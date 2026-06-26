@@ -1,0 +1,1320 @@
+/* WorkboardView — surface polish overlay.
+ * Strategy: don't modify legacy CSS. Wrap with .ds workboard-v2 and use
+ * higher-specificity overrides. JSX business logic untouched.
+ */
+
+.workboard-v2 {
+  display: block;
+  background: var(--ds-surface-page);
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Tier 2 spacing: inner padding ke token (28/32/48 = HomeView reference). */
+.workboard-v2__inner {
+  display: block;
+  padding: var(--space-page-top) var(--space-page-x) var(--space-page-bot);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ─── Toolbar — page header ──────────────────────────────── */
+
+/* Tier 2 spacing: gap toolbar → content dibesarkan dari 16px → --space-block (24px)
+ * + padding bottom 16px → --space-inline (14px). Total breathing room ~38px
+ * antara title block dan filter row, konsisten dengan rhythm HomeView. */
+.workboard-v2 .view-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 0 var(--space-inline);
+  margin-bottom: var(--space-block);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  flex-wrap: wrap;
+  height: auto;
+  overflow: visible;
+}
+
+.workboard-v2 .view-toolbar__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: var(--ds-weight-semibold);
+  letter-spacing: -0.015em;
+  color: var(--ds-text-primary);
+  line-height: 1.2;
+  font-family: var(--ds-font-sans);
+}
+
+.workboard-v2 .view-toolbar__sep {
+  display: none;
+}
+
+.workboard-v2 .view-toolbar__subtitle {
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-tertiary);
+  flex: 1 1 auto;
+}
+
+.workboard-v2 .view-toolbar__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+/* ─── Segmented toggle (Board/List/Blockers, MyTasks/All) ─── */
+
+.workboard-v2 .view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: var(--ds-neutral-100);
+  border-radius: var(--ds-radius-md);
+  border: 0;
+  box-shadow: none;
+}
+
+.workboard-v2 .view-toggle-btn {
+  height: 28px;
+  padding: 0 12px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--ds-radius-sm);
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background var(--ds-duration-fast) var(--ds-ease-standard),
+              color var(--ds-duration-fast) var(--ds-ease-standard);
+  box-shadow: none;
+}
+
+.workboard-v2 .view-toggle-btn:hover {
+  color: var(--ds-text-primary);
+}
+
+.workboard-v2 .view-toggle-btn.active {
+  background: var(--indigo-dim);
+  color: var(--indigo);
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.workboard-v2 .view-toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── Filter selects (program, workstream) ───────────────── */
+
+.workboard-v2 .wb-program-filter {
+  height: 28px;
+  padding: 0 8px;
+  background: var(--ds-surface-card);
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-md);
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-primary);
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--ds-duration-fast) var(--ds-ease-standard);
+  max-width: 260px;
+}
+
+.workboard-v2 .wb-program-filter:focus {
+  border-color: var(--ds-brand-600);
+  box-shadow: 0 0 0 1px var(--ds-brand-600);
+}
+
+.workboard-v2 .wb-program-filter:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── Stats inline ──────────────────────────────────────── */
+
+.workboard-v2 .view-toolbar__stats,
+.workboard-v2 .wb-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding-left: 12px;
+  border-left: 1px solid var(--ds-border-subtle);
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-primary);
+  font-variant-numeric: tabular-nums;
+  background: transparent;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.workboard-v2 .view-toolbar__stats em,
+.workboard-v2 .wb-stats em {
+  color: var(--ds-text-tertiary);
+  font-style: normal;
+  font-weight: var(--ds-weight-regular);
+  margin-left: 2px;
+}
+
+.workboard-v2 .wb-stats__blocked {
+  color: var(--tone-red);
+}
+
+/* Phone (≤640): stat-chip row tadinya inline-flex tanpa wrap → "0 sel…" clip
+ * di tepi kanan. Wrap penuh + buang border-left/padding kiri (divider tak
+ * relevan saat chips pindah ke baris sendiri). Fase 3 mobile, 2026-06-01. */
+@media (max-width: 640px) { /* bp-allow: --bp-sm */
+  .workboard-v2 .view-toolbar__stats,
+  .workboard-v2 .wb-stats {
+    flex-wrap: wrap;
+    width: 100%;
+    border-left: 0;
+    padding-left: 0;
+    gap: 10px 16px;
+  }
+  /* Cluster kanan flush-right (margin-left:auto) kurang ruang wrap → ~5px meluber
+   * tepi. Beri full-width dari kiri supaya item leluasa membungkus. */
+  .workboard-v2 .view-toolbar__right {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
+/* ─── Role badge ────────────────────────────────────────── */
+
+.workboard-v2 .role-monitoring-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-neutral-100);
+  font-size: 11px;
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-secondary);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* ─── Primary action button ─────────────────────────────── */
+
+.workboard-v2 .toolbar-action-btn {
+  height: 32px;
+  padding: 0 14px;
+  background: var(--ds-brand-600);
+  color: var(--ds-text-on-brand);
+  border: 0;
+  border-radius: var(--ds-radius-md);
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-medium);
+  cursor: pointer;
+  transition: background var(--ds-duration-fast) var(--ds-ease-standard);
+  box-shadow: none;
+}
+
+.workboard-v2 .toolbar-action-btn:hover {
+  background: var(--ds-brand-700);
+}
+
+/* ─── Board status / rollback ───────────────────────────── */
+
+.workboard-v2 .board-status-msg {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ds-text-tertiary);
+}
+
+.workboard-v2 .board-status-msg--error {
+  color: var(--tone-red);
+}
+
+.workboard-v2 .board-rollback-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: var(--ds-red-50);
+  border: 1px solid var(--ds-red-500);
+  border-radius: var(--ds-radius-md);
+  color: var(--tone-red);
+  font-size: var(--ds-text-13);
+}
+
+.workboard-v2 .board-rollback-banner__icon {
+  font-size: 16px;
+}
+
+.workboard-v2 .board-rollback-banner__msg {
+  font-weight: var(--ds-weight-semibold);
+}
+
+.workboard-v2 .board-rollback-banner__sub {
+  color: var(--ds-text-secondary);
+  font-weight: var(--ds-weight-regular);
+}
+
+.workboard-v2 .board-rollback-banner__close {
+  margin-left: auto;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--ds-radius-sm);
+  color: var(--tone-red);
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.workboard-v2 .board-rollback-banner__close:hover {
+  background: rgba(220, 38, 38, 0.1);
+}
+
+/* ─── Workspace + main ──────────────────────────────────── */
+
+.workboard-v2 .workboard-workspace {
+  display: block;
+  background: transparent;
+  padding: 0;
+}
+
+.workboard-v2 .workboard-main {
+  background: transparent;
+  padding: 0;
+}
+
+/* ─── Kanban board ──────────────────────────────────────── */
+
+.workboard-v2 .kanban-board {
+  display: grid;
+  /* 5 kolom sejak BLOCKED dihilangkan dari STATUS_ORDER (2026-05-21).
+     Each kolom dapat lebih banyak space (240-1fr) — better readability. */
+  grid-template-columns: repeat(5, minmax(240px, 1fr));
+  gap: 12px;
+  background: transparent;
+  padding: 0;
+}
+
+@media (max-width: 1280px) {
+  .workboard-v2 .kanban-board {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
+/* Kanban column — Tier 1+3 visual cleanup:
+ * - border 1px solid → 0 (Tier 1)
+ * - min-height 320 → 200 (Tier 3): kolom kosong tidak boros real estate.
+ *   Card pertama yang ditambahkan akan auto-extend kolom. */
+.workboard-v2 .kanban-col {
+  background: var(--ds-surface-sunken);
+  border: 0;
+  border-radius: var(--ds-radius-lg);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+  box-shadow: none;
+}
+
+.workboard-v2 .kanban-col--collapsed {
+  min-height: 44px;
+}
+
+.workboard-v2 .kanban-col__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: var(--ds-radius-lg) var(--ds-radius-lg) 0 0;
+  text-align: left;
+  width: 100%;
+  position: relative;
+}
+
+.workboard-v2 .kanban-col--collapsed .kanban-col__header {
+  border-bottom: 0;
+  border-radius: var(--ds-radius-lg);
+}
+
+.workboard-v2 .kanban-col__header:hover {
+  background: var(--ds-surface-hover);
+}
+
+/* Subtle 2px top rule per status — visual identity without heavy color */
+.workboard-v2 .kanban-col__header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 12px;
+  right: 12px;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: var(--ds-neutral-300);
+}
+
+.workboard-v2 .kanban-col__header--backlog::before     { background: var(--ds-neutral-300); }
+.workboard-v2 .kanban-col__header--ready::before       { background: #6366F1; }
+.workboard-v2 .kanban-col__header--in_progress::before { background: var(--ds-amber-500); }
+.workboard-v2 .kanban-col__header--in_review::before   { background: #A855F7; }
+.workboard-v2 .kanban-col__header--blocked::before     { background: var(--ds-red-500); }
+.workboard-v2 .kanban-col__header--completed::before   { background: var(--ds-green-500); }
+/* Lane variants — 3-lane restructure 2026-05-25 */
+.workboard-v2 .kanban-col__header--todo::before        { background: var(--ds-neutral-300); }
+.workboard-v2 .kanban-col__header--doing::before       { background: var(--ds-amber-500); }
+.workboard-v2 .kanban-col__header--done::before        { background: var(--ds-green-500); }
+
+.workboard-v2 .kanban-col__label-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.workboard-v2 .kanban-col__caret {
+  font-size: 10px;
+  color: var(--ds-text-tertiary);
+}
+
+/* Kanban column label — sentence case modern (Linear/Notion). Sebelumnya
+   uppercase 0.04em tracking jadul. */
+.workboard-v2 .kanban-col__label {
+  font-size: 13px;
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-primary);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.workboard-v2 .section-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-card);
+  border: 1px solid var(--ds-border-subtle);
+  font-size: 11px;
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.workboard-v2 .kanban-col__body {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+/* Tier 3 empty state — Pattern A polish (2026-05-24):
+ * Sebelumnya dashed box dengan border 1px dashed = terkesan "placeholder
+ * template", lazy. Sekarang minimal centered text only, no border, no box.
+ * Drop area tetap functional via parent column drop handler. Mata pengguna
+ * tidak ter-distract oleh "kotak kosong menunggu diisi" treatment. */
+.workboard-v2 .kanban-col__empty,
+.workboard-v2 .kanban-col__empty--dashed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 64px;
+  padding: 24px 16px;
+  border: 0;
+  font-size: 11px;
+  color: var(--ds-text-tertiary);
+  background: transparent;
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.workboard-v2 .kanban-drop-slot {
+  height: 64px;
+  border: 2px dashed var(--ds-brand-500);
+  background: var(--ds-brand-50);
+  border-radius: var(--ds-radius-md);
+}
+
+/* ─── Work card ─────────────────────────────────────────── */
+
+.workboard-v2 .work-card {
+  background: var(--ds-surface-card);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-lg);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  transition: border-color var(--ds-duration-fast) var(--ds-ease-standard),
+              transform var(--ds-duration-fast) var(--ds-ease-standard),
+              box-shadow var(--ds-duration-fast) var(--ds-ease-standard);
+  box-shadow: none;
+}
+
+/* Tactile hover — 1px lift + soft shadow communicates "drag me" affordance
+ * for daily-use kanban interaction. */
+.workboard-v2 .work-card:hover {
+  border-color: var(--ds-border-strong);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  transform: translateY(-1px);
+}
+
+.workboard-v2 .work-card--blocked {
+  border-color: var(--ds-red-500);
+  box-shadow: inset 2px 0 0 0 var(--ds-red-500);
+}
+
+.workboard-v2 .work-card--blocked:hover {
+  box-shadow: inset 2px 0 0 0 var(--ds-red-500),
+              0 2px 4px rgba(0, 0, 0, 0.06),
+              0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.workboard-v2 .work-card--drag-overlay {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  cursor: grabbing;
+  transform: rotate(1deg);
+}
+
+.workboard-v2 .work-card__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.workboard-v2 .work-card__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 6px;
+  background: var(--ds-neutral-400);
+}
+
+.workboard-v2 .work-card__dot--low      { background: var(--ds-neutral-400); }
+.workboard-v2 .work-card__dot--medium   { background: var(--ds-amber-500); }
+.workboard-v2 .work-card__dot--high     { background: #EA580C; }
+.workboard-v2 .work-card__dot--critical { background: var(--ds-red-500); }
+
+.workboard-v2 .work-card__title {
+  margin: 0;
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-text-14);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-primary);
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+  flex: 1 1 auto;
+}
+
+.workboard-v2 .work-card__context {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--ds-text-tertiary);
+}
+
+.workboard-v2 .work-card__context-prog {
+  font-family: var(--ds-font-mono);
+  font-size: 10px;
+  color: var(--ds-text-tertiary);
+}
+
+.workboard-v2 .work-card__context-sep {
+  color: var(--ds-text-disabled);
+}
+
+.workboard-v2 .work-card__context-ini {
+  color: var(--ds-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.workboard-v2 .work-card__progress-track,
+.workboard-v2 .work-card .progress-bar-track {
+  height: 5px;
+  background: var(--ds-neutral-100);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 0;
+  box-shadow: none;
+}
+
+.workboard-v2 .work-card .progress-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 480ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.workboard-v2 .work-card .progress-bar-fill.on-track  { background: var(--ds-green-500); }
+.workboard-v2 .work-card .progress-bar-fill.at-risk   { background: var(--ds-amber-500); }
+.workboard-v2 .work-card .progress-bar-fill.off-track { background: var(--ds-red-500); }
+
+/* Code badge inside card */
+.workboard-v2 .work-card .code-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  padding: 0 5px;
+  background: transparent;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
+  font-family: var(--ds-font-mono);
+  font-size: 9px;
+  color: var(--ds-text-tertiary);
+}
+
+/* ─── List view (when boardMode === 'list') ─────────────── */
+
+.workboard-v2 .panel {
+  background: var(--ds-surface-card);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-lg);
+  padding: 0;
+  box-shadow: none;
+}
+
+.workboard-v2 .panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+
+.workboard-v2 .panel__title {
+  margin: 0;
+  font-size: var(--ds-text-16);
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-primary);
+  letter-spacing: -0.005em;
+}
+
+.workboard-v2 .panel .badge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-neutral-100);
+  font-size: 11px;
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.workboard-v2 .wi-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.workboard-v2 .wi-list-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  transition: background var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+.workboard-v2 .wi-list-row:last-child {
+  border-bottom: 0;
+}
+
+.workboard-v2 .wi-list-row:hover {
+  background: var(--ds-surface-hover);
+}
+
+.workboard-v2 .wi-list-row__left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.workboard-v2 .wi-list-row strong {
+  display: block;
+  font-size: var(--ds-text-14);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-primary);
+}
+
+.workboard-v2 .wi-list-row .text-muted {
+  color: var(--ds-text-tertiary);
+}
+
+.workboard-v2 .wi-list-row .text-sm {
+  font-size: var(--ds-text-13);
+}
+
+.workboard-v2 .wi-list-row .code-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 5px;
+  background: transparent;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
+  font-family: var(--ds-font-mono);
+  font-size: 10px;
+  color: var(--ds-text-tertiary);
+  flex-shrink: 0;
+}
+
+/* ── Daily PIC Workspace: time filter chips & daily summary stats ───────── */
+.workboard-v2 .wb-time-filter {
+  margin-left: 4px;
+}
+.workboard-v2 .wb-daily-summary {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+.workboard-v2 .wb-summary-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+  cursor: default;
+}
+.workboard-v2 button.wb-summary-stat {
+  cursor: pointer;
+  font-family: inherit;
+}
+.workboard-v2 button.wb-summary-stat:hover:not(:disabled) {
+  background: var(--bg-subtle, #f3f4f6);
+  border-color: var(--border-subtle, #e5e7eb);
+}
+.workboard-v2 button.wb-summary-stat.is-active {
+  background: var(--brand-tint, #f0fdf4);
+  border-color: var(--brand, #10b981);
+  color: var(--brand-dark, #047857);
+}
+.workboard-v2 button.wb-summary-stat:disabled,
+.workboard-v2 .wb-summary-stat.is-zero {
+  opacity: 0.45;
+  cursor: default;
+}
+.workboard-v2 .wb-summary-stat__num {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+}
+.workboard-v2 .wb-summary-stat--overdue:not(.is-zero) .wb-summary-stat__num {
+  color: var(--danger, #dc2626);
+}
+.workboard-v2 .wb-summary-stat--today:not(.is-zero) .wb-summary-stat__num {
+  color: var(--warning, #d97706);
+}
+.workboard-v2 .wb-summary-stat em {
+  font-style: normal;
+  color: var(--text-muted, #9ca3af);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Kanban column info icon (tooltip kriteria masuk) — 2026-05-21
+ * ───────────────────────────────────────────────────────────────────────── */
+.kanban-col__info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  font-size: 10px;
+  color: var(--text-muted, #9ca3af);
+  cursor: help;
+  opacity: 0.65;
+  transition: opacity 120ms ease;
+  margin-left: 4px;
+}
+.kanban-col__info:hover { opacity: 1; color: var(--brand, #10b981); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Prereq missing modal body (drag ke READY / IN_PROGRESS dengan field kurang)
+ * ───────────────────────────────────────────────────────────────────────── */
+.wb-prereq-missing {
+  padding: 14px 16px;
+  background: color-mix(in srgb, var(--yellow, #f59e0b) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--yellow, #f59e0b) 30%, transparent);
+  border-radius: 8px;
+}
+.wb-prereq-missing__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--yellow, #f59e0b) 85%, #000);
+  margin: 0 0 10px;
+}
+.wb-prereq-missing__list {
+  margin: 0 0 12px;
+  padding-left: 24px;
+  font-size: 12.5px;
+  color: var(--text-strong);
+  line-height: 1.6;
+}
+.wb-prereq-missing__list li {
+  margin-bottom: 3px;
+}
+.wb-prereq-missing__hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * TaskDetailModal — expand from card (2026-05-21)
+ * Card click di Workboard buka modal alih-alih navigate full-page.
+ * Animation: transform-origin di card center → scale 0→1 (kesan expand).
+ * ───────────────────────────────────────────────────────────────────────── */
+.task-detail-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, #000 45%, transparent);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9800;
+  animation: tdm-backdrop-in 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 32px;
+}
+.task-detail-modal-backdrop--closing {
+  animation: tdm-backdrop-out 220ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+@keyframes tdm-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes tdm-backdrop-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.task-detail-modal {
+  position: relative;
+  background: var(--panel, #fff);
+  border-radius: 16px;
+  /* Width 820px — kompak untuk task detail, sebelumnya 1080 terasa boros
+     untuk content single-column. Mobile/tablet: full available width. */
+  width: min(820px, calc(100vw - 64px));
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px color-mix(in srgb, var(--panel-border, #e5e7eb) 60%, transparent);
+  /* Animation handled inline via style prop (transform translate + scale) di
+     TaskDetailModal component. FLIP-like: start at card position+size,
+     transition ke viewport center + full size. Lebih natural dari pure scale. */
+  transform-origin: center center;
+  will-change: transform, opacity;
+}
+
+.task-detail-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--panel-border, #e5e7eb);
+  flex-shrink: 0;
+  background: var(--panel, #fff);
+}
+.task-detail-modal__open-full {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted, #6b7280);
+  background: transparent;
+  border: 1px solid var(--panel-border, #e5e7eb);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.task-detail-modal__open-full:hover {
+  color: var(--text-strong, #111827);
+  background: var(--surface-1, #f9fafb);
+  border-color: var(--text-muted, #9ca3af);
+}
+.task-detail-modal__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: transparent;
+  border: 0;
+  color: var(--text-muted, #6b7280);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+.task-detail-modal__close:hover {
+  background: var(--surface-1, #f9fafb);
+  color: var(--text-strong, #111827);
+}
+
+.task-detail-modal__body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* TaskDetailView dalam modal — proper padding internal supaya content
+   tidak nempel ke modal edge. Padding lateral 28px, vertical 24px. */
+.wid-page--modal {
+  padding: 24px 28px !important;
+  max-width: none !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * TaskDetailView modal — zone hierarchy & section refinement (2026-05-21)
+ * Visual zones: Identity (hero) → Action (metastrip) → Content (panels) → Activity (composer)
+ * ───────────────────────────────────────────────────────────────────────── */
+
+/* Zone 1: Hero — keep tight */
+.wid-page--modal .wid-hero {
+  padding: 0 0 4px;
+  margin-bottom: 0;
+}
+
+/* Blocker callout transition */
+.wid-page--modal .wid-callout {
+  margin: 14px 0 18px;
+}
+
+/* Zone 2: Action (metastrip) — visual separator dari hero, lebih breathing */
+.wid-page--modal .wid-metastrip {
+  margin-top: 8px;
+  padding: 14px 0;
+  border-top: 1px solid var(--panel-border, #e5e7eb);
+  border-bottom: 1px solid var(--panel-border, #e5e7eb);
+}
+
+/* Zone 3: Content panels — gap konsisten antar section */
+.wid-page--modal .wid-panel--flat {
+  margin-top: 18px;
+  margin-bottom: 0;
+  padding: 0;
+}
+.wid-page--modal .wid-panel--flat + .wid-panel--flat {
+  margin-top: 12px;
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in srgb, var(--panel-border, #e5e7eb) 60%, transparent);
+}
+
+/* Zone 4: Diskusi composer — visual separator dari content zone */
+.wid-page--modal .wid-composer {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--panel-border, #e5e7eb);
+}
+
+/* Section title polish — title case, lebih readable di modal context */
+.wid-page--modal .wid-panel__title {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-strong);
+  opacity: 1;
+}
+.wid-page--modal .wid-panel--flat .wid-panel__title {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+  opacity: 1;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * TaskDetailView modal — 2-column layout (main + rail) (2026-05-21)
+ * Main: deskripsi/subtask/blockers/diskusi. Rail: Konteks & Tim sticky.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+/* Modal width: 1080 to comfortably fit 2-col (main ~650 + rail ~300 + gaps) */
+.task-detail-modal {
+  width: min(1080px, calc(100vw - 64px));
+}
+
+/* Body becomes grid in modal */
+.wid-page--modal .wid-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 296px;
+  column-gap: 32px;
+  row-gap: 0;
+  padding: 18px 0 28px;
+  align-items: start;
+}
+
+/* Main column stays vertical flow */
+.wid-page--modal .wid-body > .wid-main {
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* Rail column: sticky, distinct visual */
+.wid-page--modal .wid-body > .wid-rail {
+  grid-column: 2;
+  grid-row-start: 1;
+  position: sticky;
+  top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding-left: 24px;
+  border-left: 1px solid color-mix(in srgb, var(--panel-border, #e5e7eb) 60%, transparent);
+}
+
+/* Page mode fallback: rail sits below main, no sticky */
+.wid-page:not(.wid-page--modal) .wid-rail {
+  display: contents;
+}
+
+/* Info-footer in rail mode — always expanded, vertical stack */
+.wid-page--modal .wid-info-footer--rail {
+  margin-top: 0;
+  border-top: none;
+}
+.wid-page--modal .wid-info-footer--rail .wid-info-footer__body {
+  grid-template-columns: 1fr;
+  gap: 0;
+  padding-bottom: 0;
+  animation: none;
+}
+.wid-page--modal .wid-info-footer--rail .wid-info-footer__block {
+  gap: 4px;
+  padding: 12px 0;
+}
+.wid-page--modal .wid-info-footer--rail .wid-info-footer__block:first-child {
+  padding-top: 0;
+}
+.wid-page--modal .wid-info-footer--rail .wid-info-footer__block:last-child {
+  padding-bottom: 0;
+}
+.wid-page--modal .wid-info-footer--rail .wid-info-footer__block + .wid-info-footer__block {
+  border-top: 1px solid color-mix(in srgb, var(--panel-border, #e5e7eb) 60%, transparent);
+}
+.wid-page--modal .wid-info-footer--rail .wid-info-footer__block-title {
+  font-size: 10px;
+  opacity: 0.6;
+  margin-bottom: 2px;
+  font-weight: 700;
+}
+/* Sub-labels in rail (wid-sp-label, wid-sp-grid label) = sentence case,
+   not uppercase — supaya jelas mereka sub-field, bukan top-level header */
+.wid-page--modal .wid-rail .wid-sp-label {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.65;
+  color: var(--text-muted);
+}
+.wid-page--modal .wid-rail .wid-sp-grid .wid-sp-label {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.65;
+  color: var(--text-muted);
+}
+
+/* Executor row hidden by default in modal (info ada di hero), reveal saat editing */
+.wid-page--modal .wid-team-row--executor:not(.is-editing) {
+  display: none;
+}
+
+/* Hero assignee clickable variant — affordance via subtle hover */
+.wid-hero__assignee--clickable {
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  margin: -2px -6px;
+  border-radius: 6px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+.wid-hero__assignee--clickable:hover {
+  background: color-mix(in srgb, var(--text-muted) 10%, transparent);
+}
+
+/* Hero progress dirty state — subtle dashed track to hint unsaved draft */
+.wid-page--modal .wid-hero__progress.is-dirty .wid-hero__progress-pct {
+  position: relative;
+}
+.wid-page--modal .wid-hero__progress.is-dirty .wid-hero__progress-pct::after {
+  content: '•';
+  margin-left: 4px;
+  color: var(--indigo);
+  font-size: 16px;
+  line-height: 0;
+  vertical-align: middle;
+  opacity: 0.8;
+}
+.wid-page--modal .wid-info-footer--rail .wid-info-footer__block--full {
+  grid-column: auto;
+}
+
+/* Section header pakem: icon+title left, action chip right, hairline divider
+   between sections. Tight vertical rhythm — total visual gap ~28px. */
+.wid-page--modal .wid-body > .wid-main {
+  gap: 0;
+}
+.wid-page--modal .wid-body > .wid-main .wid-panel--flat {
+  margin-top: 0;
+  padding: 0 0 12px;
+}
+.wid-page--modal .wid-body > .wid-main .wid-panel--flat + .wid-panel--flat {
+  margin-top: 0;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--panel-border, #e5e7eb) 75%, transparent);
+}
+.wid-page--modal .wid-body > .wid-main .wid-panel--flat:last-child {
+  padding-bottom: 0;
+}
+.wid-page--modal .wid-body > .wid-main .wid-panel__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.wid-page--modal .wid-body > .wid-main .wid-panel__head .wid-panel__title {
+  margin-right: auto;
+}
+.wid-page--modal .wid-body > .wid-main .wid-panel__body {
+  padding: 0;
+}
+.wid-page--modal .wid-body > .wid-main .wid-desc {
+  font-size: 13px;
+  line-height: 1.55;
+}
+/* Empty section (head only, no body) — collapse vertical footprint */
+.wid-page--modal .wid-body > .wid-main .wid-panel--flat:has(.wid-panel__head:only-child) {
+  padding-bottom: 4px;
+}
+.wid-page--modal .wid-body > .wid-main .wid-panel--flat:has(.wid-panel__head:only-child) .wid-panel__head {
+  margin-bottom: 0;
+}
+.wid-page--modal .wid-body > .wid-main .wid-panel--flat:has(.wid-panel__head:only-child) + .wid-panel--flat {
+  padding-top: 10px;
+}
+
+/* Hero + alert + metastrip stay full width (above .wid-body) — no change needed */
+
+/* Narrow viewports: collapse to single column (rail below main) */
+@media (max-width: 880px) {
+  .wid-page--modal .wid-body {
+    grid-template-columns: 1fr;
+    row-gap: 16px;
+  }
+  .wid-page--modal .wid-body > .wid-rail {
+    grid-column: 1;
+    position: static;
+    padding-left: 0;
+    border-left: none;
+    border-top: 1px solid color-mix(in srgb, var(--panel-border, #e5e7eb) 60%, transparent);
+    padding-top: 14px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Diskusi composer collapse-when-empty (modal mode) (2026-05-21)
+ * When textarea empty + not focused: shrink to single-line, hide actions.
+ * ───────────────────────────────────────────────────────────────────────── */
+.wid-page--modal .wid-composer:not(:focus-within):not(.is-dirty) .wid-composer__textarea {
+  min-height: 38px;
+  padding: 9px 12px;
+  resize: none;
+}
+.wid-page--modal .wid-composer:not(:focus-within):not(.is-dirty) .wid-composer__actions {
+  display: none;
+}
+.wid-page--modal .wid-composer__textarea {
+  transition: min-height 160ms ease, padding 160ms ease;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Program Induk flat (no card-in-card) — per pakem (2026-05-21)
+ * Refactor wid-parent-card di rail jadi flat: code chip + name + progress
+ * line + link, tanpa border/background luar.
+ * ───────────────────────────────────────────────────────────────────────── */
+.wid-page--modal .wid-rail .wid-parent-card {
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: -8px -10px 0;
+  gap: 6px;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+.wid-page--modal .wid-rail .wid-parent-card:hover {
+  background: color-mix(in srgb, var(--indigo) 7%, transparent);
+  border: none;
+  transform: none;
+  box-shadow: none;
+}
+.wid-page--modal .wid-rail .wid-parent-card__name {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text);
+}
+.wid-page--modal .wid-rail .wid-parent-card__foot {
+  opacity: 1;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--indigo);
+  text-decoration: none;
+}
+.wid-page--modal .wid-rail .wid-parent-card__foot:hover {
+  text-decoration: underline;
+}
+.wid-page--modal .wid-rail .wid-parent-card__track {
+  background: color-mix(in srgb, var(--indigo) 18%, transparent);
+}
+
+/* PIC/Unit adder toggle — inline link, no input footprint when collapsed */
+.wid-pic-adder-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--indigo);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 120ms ease, color 120ms ease;
+  white-space: nowrap;
+}
+.wid-pic-adder-toggle:hover {
+  background: color-mix(in srgb, var(--indigo) 10%, transparent);
+}
+.wid-pic-adder-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Hero meta line — combine WI code + At Risk pill jadi satu inline meta.
+   Code chip → muted mono text (no pill), separator · sebelum health-pill. */
+.wid-page--modal .wid-hero__meta {
+  gap: 0;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.wid-page--modal .wid-hero__meta .wid-chip--code {
+  background: transparent;
+  padding: 0;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 11px;
+}
+.wid-page--modal .wid-hero__meta > * + * {
+  margin-left: 10px;
+  position: relative;
+}
+.wid-page--modal .wid-hero__meta > * + *::before {
+  content: '·';
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  opacity: 0.5;
+  font-weight: 700;
+}
+.wid-page--modal .wid-hero__meta .health-pill {
+  font-size: 10.5px;
+  padding: 2px 8px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Hero statline visual rhythm (2026-05-21)
+ * Breathy gap + subtle vertical hairline between items biar tidak berserakan.
+ * ───────────────────────────────────────────────────────────────────────── */
+.wid-page--modal .wid-hero__statline {
+  gap: 16px;
+}
+.wid-page--modal .wid-hero__statline > * + * {
+  padding-left: 16px;
+  margin-left: -16px;
+  border-left: 1px solid color-mix(in srgb, var(--panel-border, #e5e7eb) 100%, transparent);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   PHONE DENSITY PASS (≤640) — 2026-06-03
+   Di phone lane kanban menumpuk vertikal. Floor min-height 200px × 5 lane =
+   ribuan px kosong → biarkan konten (header + empty-state) yang menentukan
+   tinggi. Kartu & baris dirapatkan. Hanya gap/padding/min-height (IA tetap).
+   Block di akhir file → menang source-order atas ≤640 lain (L176).
+   ════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) { /* bp-allow: --bp-sm */
+  .workboard-v2 .view-toolbar { padding-bottom: 12px; }
+  .workboard-v2 .kanban-board { gap: 10px; }
+  /* Lane kosong tak lagi dipaksa 200px (collapsed tetap 44px via rule lain). */
+  .workboard-v2 .kanban-col { min-height: 0; }
+  .workboard-v2 .kanban-col__body { padding: 6px; gap: 6px; }
+  .workboard-v2 .work-card { padding: 10px 12px; gap: 6px; }
+  .workboard-v2 .wi-list-row { padding: 10px 14px; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   TOUCH INTERACTION (hover:none) — 2026-06-03
+   work-card hover = translateY(-1px) lift + shadow ("drag me" affordance);
+   di touch lift NYANGKUT sesudah tap → terlihat seperti bug. Netralkan lift
+   (base transform=none) + shadow (kecuali --blocked yg punya inset base),
+   highlight baris/header (base transparan), ganti :active press.
+   wb-summary-stat & toolbar primary SENGAJA tak digate (tap = jadi aktif /
+   base bg non-transparan).
+   ════════════════════════════════════════════════════════════════════ */
+@media (hover: none) {
+  .workboard-v2 .work-card:hover { transform: none; }
+  .workboard-v2 .work-card:not(.work-card--blocked):hover { box-shadow: none; }
+  .workboard-v2 .wi-list-row:hover,
+  .workboard-v2 .kanban-col__header:hover { background: transparent; }
+  .workboard-v2 .work-card:active { transform: scale(0.99); transition: transform .08s ease; }
+  .workboard-v2 .wi-list-row:active { background: color-mix(in srgb, var(--ds-text-primary) 6%, transparent); }
+}

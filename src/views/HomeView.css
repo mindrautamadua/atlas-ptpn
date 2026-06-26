@@ -1,0 +1,3536 @@
+/* HomeView — Executive Cockpit (2026-05-29 redesign)
+ *
+ * Replaces the prose-heavy v2 dashboard. Design language: calm & clean
+ * (Stripe/Linear restraint) on the design-system primitives + `--ds-*` tokens.
+ * Reads in one glance: command strip of BAN tiles → balanced KPI (lagging) ⟷
+ * Program (leading) panels → exception-only "Perlu aksi" → drill-down tables.
+ *
+ * Color is a SIGNAL, not decoration — numbers stay neutral; the verdict word,
+ * status dots, meters, and deltas carry green/amber/red. Dark mode + responsive
+ * come free via `--ds-*` tokens (no per-theme overrides needed here).
+ *
+ * Class prefix `hv__` keeps Home styles self-contained. Card/Panel chrome
+ * (surface, border, radius, padding) is provided by <Card>; these rules only
+ * add internal layout + tone. */
+
+/* ─── Surface + page wrapper ──────────────────────────────── */
+
+.home-v2 {
+  flex: 1 0 auto;
+  width: 100%;
+  background: var(--ds-surface-page);
+}
+
+.hv {
+  width: 100%;
+  padding: var(--ds-space-6) var(--ds-space-8) var(--ds-space-10);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-6);
+  font-family: var(--ds-font-sans);
+  color: var(--ds-text-primary);
+}
+
+@media (max-width: 1024px) {
+  .hv { padding: var(--ds-space-5) var(--ds-space-5) var(--ds-space-8); gap: var(--ds-space-5); }
+}
+@media (max-width: 640px) {
+  .hv { padding: var(--ds-space-4) var(--ds-space-4) var(--ds-space-8); }
+}
+
+/* ─── Greeting (one line — no narrative) ──────────────────── */
+
+.hv__head { display: flex; align-items: baseline; }
+
+.hv__greeting {
+  margin: 0;
+  font-size: var(--ds-text-20);
+  font-weight: var(--ds-weight-regular);
+  letter-spacing: var(--ds-tracking-tight);
+  color: var(--ds-text-secondary);
+}
+.hv__greeting-name {
+  color: var(--ds-text-primary);
+  font-weight: var(--ds-weight-semibold);
+}
+
+/* ─── Shared status dot ───────────────────────────────────── */
+
+.hv__dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--ds-border-strong);
+}
+.hv__dot[data-tone="green"]   { background: var(--tone-green); }
+.hv__dot[data-tone="amber"]   { background: var(--tone-amber); }
+.hv__dot[data-tone="red"]     { background: var(--tone-red); }
+.hv__dot[data-tone="neutral"] { background: var(--ds-border-strong); }
+
+/* ─── Command strip — BAN tiles ───────────────────────────── */
+
+.hv__strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
+  gap: var(--ds-space-4);
+}
+
+/* Tile chrome comes from <Card>; we add the internal column layout + tone. */
+.hv__tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-2);
+  min-width: 0;
+}
+
+.hv__tile-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-secondary);
+}
+
+.hv__tile-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--ds-space-2);
+  flex-wrap: wrap;
+}
+
+.hv__tile-value {
+  font-size: var(--ds-text-28);
+  font-weight: var(--ds-weight-semibold);
+  line-height: var(--ds-leading-tight);
+  letter-spacing: var(--ds-tracking-tight);
+  color: var(--ds-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.hv__tile-unit {
+  font-size: var(--ds-text-16);
+  font-weight: var(--ds-weight-regular);
+  color: var(--ds-text-tertiary);
+  margin-left: 2px;
+}
+
+.hv__tile-caption {
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-tertiary);
+  line-height: var(--ds-leading-snug);
+}
+
+/* Verdict tile shows a word (not a BAN) — slightly smaller. */
+.hv__tile--verdict .hv__tile-value { font-size: var(--ds-text-20); }
+
+/* Status glyph (✓ aman / ⚠ hati-hati / ✕ bahaya) — tone via currentColor. */
+.hv__tile-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ds-text-tertiary);
+}
+.hv__tile-glyph[data-tone="green"] { color: var(--tone-green); }
+.hv__tile-glyph[data-tone="amber"] { color: var(--tone-amber); }
+.hv__tile-glyph[data-tone="red"]   { color: var(--tone-red); }
+
+/* RAG full tint — the tile background carries the status colour (Pak Iswahyudi:
+ * aman hijau, hati-hati kuning, bahaya merah). color-mix keeps it subtle and
+ * theme-aware; value + glyph take the full tone for contrast. Attribute
+ * selectors out-rank <Card>'s base surface/border. */
+.hv__tile[data-tone="green"] {
+  background: color-mix(in srgb, var(--tone-green) 8%, var(--ds-surface-card));
+  border-color: color-mix(in srgb, var(--tone-green) 24%, var(--ds-border-subtle));
+}
+.hv__tile[data-tone="amber"] {
+  background: color-mix(in srgb, var(--tone-amber) 9%, var(--ds-surface-card));
+  border-color: color-mix(in srgb, var(--tone-amber) 26%, var(--ds-border-subtle));
+}
+.hv__tile[data-tone="red"] {
+  background: color-mix(in srgb, var(--tone-red) 8%, var(--ds-surface-card));
+  border-color: color-mix(in srgb, var(--tone-red) 26%, var(--ds-border-subtle));
+}
+.hv__tile[data-tone="green"] .hv__tile-value { color: var(--tone-green); }
+.hv__tile[data-tone="amber"] .hv__tile-value { color: var(--tone-amber); }
+.hv__tile[data-tone="red"]   .hv__tile-value { color: var(--tone-red); }
+.hv__tile[data-tone="neutral"] .hv__tile-value { color: var(--ds-text-primary); }
+
+/* Hoverable label affordance — signals "hover me for the definition". */
+.hv__has-tip {
+  border-bottom: 1px dotted color-mix(in srgb, currentColor 45%, transparent);
+  cursor: help;
+}
+
+/* ─── Insight band — Hasil (lagging) ↔ Eksekusi (leading) ─────── */
+
+.hv__align {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-4);
+  flex-wrap: wrap;
+  padding: var(--ds-space-3) var(--ds-space-5);
+  background: var(--ds-surface-card);
+  border: 1px solid var(--ds-border-subtle);
+  border-left: 3px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-lg);
+}
+.hv__align[data-tone="red"] {
+  border-left-color: var(--tone-red);
+  background: color-mix(in srgb, var(--tone-red) 5%, var(--ds-surface-card));
+}
+.hv__align[data-tone="amber"] { border-left-color: var(--tone-amber); }
+.hv__align[data-tone="green"] { border-left-color: var(--tone-green); }
+
+.hv__align-eyebrow {
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-secondary);
+  letter-spacing: var(--ds-tracking-wide);
+  text-transform: uppercase;
+}
+.hv__align-pair { display: inline-flex; align-items: baseline; gap: var(--ds-space-2); }
+.hv__align-num {
+  font-size: var(--ds-text-20);
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--ds-tracking-tight);
+  color: var(--ds-text-primary);
+}
+.hv__align-num[data-tone="green"] { color: var(--tone-green); }
+.hv__align-num[data-tone="amber"] { color: var(--tone-amber); }
+.hv__align-num[data-tone="red"]   { color: var(--tone-red); }
+.hv__align-cap { font-size: var(--ds-text-13); color: var(--ds-text-tertiary); }
+.hv__align-vs { color: var(--ds-text-tertiary); font-size: var(--ds-text-16); }
+
+.hv__align-tip { margin-left: auto; }
+.hv__align-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  padding: var(--ds-space-1) var(--ds-space-3);
+  border-radius: var(--ds-radius-pill);
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-medium);
+  cursor: help;
+}
+.hv__align-pill[data-tone="red"]   { background: color-mix(in srgb, var(--tone-red) 12%, transparent);   color: var(--tone-red); }
+.hv__align-pill[data-tone="amber"] { background: color-mix(in srgb, var(--tone-amber) 14%, transparent); color: var(--tone-amber); }
+.hv__align-pill[data-tone="green"] { background: color-mix(in srgb, var(--tone-green) 12%, transparent); color: var(--tone-green); }
+.hv__align-gap { font-weight: var(--ds-weight-regular); opacity: 0.85; }
+
+/* ─── Balanced panels — KPI (lagging) ⟷ Program (leading) ─── */
+
+.hv__balance {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ds-space-5);
+  align-items: start;
+}
+.hv__balance--single { grid-template-columns: 1fr; }
+
+@media (max-width: 1024px) {
+  .hv__balance { grid-template-columns: 1fr; gap: var(--ds-space-4); }
+}
+
+.hv__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-3);
+  min-width: 0;
+}
+
+/* Tone accent on the panel's left edge — RAG signal without flooding the whole
+ * panel (keeps charts + text readable). Attribute selector out-ranks <Card>. */
+.hv__panel[data-tone] { border-left-width: 3px; }
+.hv__panel[data-tone="green"]   { border-left-color: var(--tone-green); }
+.hv__panel[data-tone="amber"]   { border-left-color: var(--tone-amber); }
+.hv__panel[data-tone="red"]     { border-left-color: var(--tone-red); }
+.hv__panel[data-tone="neutral"] { border-left-color: var(--ds-border-default); }
+
+.hv__panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-3);
+}
+
+.hv__panel-eyebrow {
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-secondary);
+  letter-spacing: var(--ds-tracking-wide);
+  text-transform: uppercase;
+}
+
+.hv__panel-head-right {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-3);
+}
+
+.hv__panel-headline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-4);
+}
+
+.hv__panel-metric {
+  display: flex;
+  align-items: baseline;
+  gap: var(--ds-space-3);
+  min-width: 0;
+}
+
+.hv__panel-big {
+  font-size: var(--ds-text-40);
+  font-weight: var(--ds-weight-semibold);
+  line-height: var(--ds-leading-tight);
+  letter-spacing: var(--ds-tracking-tight);
+  color: var(--ds-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.hv__panel-big[data-tone="green"] { color: var(--tone-green); }
+.hv__panel-big[data-tone="amber"] { color: var(--tone-amber); }
+.hv__panel-big[data-tone="red"]   { color: var(--tone-red); }
+
+.hv__panel-unit {
+  font-size: var(--ds-text-20);
+  font-weight: var(--ds-weight-regular);
+  color: var(--ds-text-tertiary);
+  margin-left: 2px;
+}
+
+.hv__panel-sub {
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── KPI bullet-graph list (lagging) ─────────────────────── */
+
+.hv__kpi-list { display: flex; flex-direction: column; }
+
+.hv__kpi-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 1.3fr) 2fr auto;
+  align-items: center;
+  gap: var(--ds-space-3);
+  padding: var(--ds-space-2);
+  margin: 0 calc(-1 * var(--ds-space-2));
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--ds-radius-md);
+  transition: background-color 120ms ease;
+}
+.hv__kpi-row + .hv__kpi-row { border-top: 1px solid var(--ds-border-subtle); border-radius: 0; }
+.hv__kpi-row:hover { background: var(--ds-surface-hover); }
+.hv__kpi-row:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--tone-green) 35%, transparent);
+}
+
+.hv__kpi-name {
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hv__kpi-val {
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--ds-tracking-tight);
+  text-align: right;
+  min-width: 52px;
+}
+.hv__kpi-val[data-tone="green"] { color: var(--tone-green); }
+.hv__kpi-val[data-tone="amber"] { color: var(--tone-amber); }
+.hv__kpi-val[data-tone="red"]   { color: var(--tone-red); }
+
+/* ─── Program status bars (leading) ───────────────────────── */
+
+.hv__status-list { display: flex; flex-direction: column; }
+
+.hv__status-row {
+  display: grid;
+  grid-template-columns: 132px 1fr auto;
+  align-items: center;
+  gap: var(--ds-space-3);
+  padding: var(--ds-space-2);
+  margin: 0 calc(-1 * var(--ds-space-2));
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--ds-radius-md);
+  transition: background-color 120ms ease;
+}
+.hv__status-row:hover { background: var(--ds-surface-hover); }
+.hv__status-row:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--tone-green) 35%, transparent);
+}
+
+.hv__status-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-secondary);
+}
+
+.hv__status-val {
+  font-size: var(--ds-text-14);
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-text-primary);
+  text-align: right;
+  min-width: 24px;
+}
+
+/* ─── Section system (shared: exceptions + drill-down) ────── */
+
+.hv__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-4);
+}
+
+.hv__sec-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ds-space-4);
+}
+
+.hv__sec-title {
+  margin: 0;
+  font-size: var(--ds-text-14);
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-primary);
+  letter-spacing: var(--ds-tracking-tight);
+}
+
+.hv__sec-meta {
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Text link with arrow — shared by section + panel headers. */
+.hv__sec-link,
+.hv__panel-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-1);
+  padding: var(--ds-space-1) var(--ds-space-2);
+  margin: calc(-1 * var(--ds-space-1)) calc(-1 * var(--ds-space-2));
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-secondary);
+  cursor: pointer;
+  border-radius: var(--ds-radius-sm);
+  white-space: nowrap;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.hv__sec-link:hover,
+.hv__panel-link:hover { background: var(--ds-surface-hover); color: var(--ds-text-primary); }
+.hv__sec-link:focus-visible,
+.hv__panel-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--tone-green) 35%, transparent);
+}
+
+/* ─── Perlu aksi — exceptions only ────────────────────────── */
+
+.hv__exc-list {
+  display: flex;
+  flex-direction: column;
+  background: var(--ds-surface-card);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-lg);
+  overflow: hidden;
+}
+
+.hv__exc-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: var(--ds-space-3);
+  padding: var(--ds-space-3) var(--ds-space-4);
+  border: 0;
+  border-top: 1px solid var(--ds-border-subtle);
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+.hv__exc-row:first-child { border-top: 0; }
+.hv__exc-row:hover { background: var(--ds-surface-hover); }
+.hv__exc-row:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--tone-green) 35%, transparent);
+}
+
+.hv__exc-label {
+  font-size: var(--ds-text-14);
+  color: var(--ds-text-secondary);
+  min-width: 0;
+}
+.hv__exc-label strong { color: var(--ds-text-primary); font-weight: var(--ds-weight-semibold); }
+
+.hv__exc-meta {
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.hv__exc-arrow { color: var(--ds-text-tertiary); font-size: var(--ds-text-13); }
+
+.hv__all-clear {
+  margin: 0;
+  padding: var(--ds-space-4);
+  font-size: var(--ds-text-14);
+  color: var(--ds-text-tertiary);
+  background: var(--ds-surface-card);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-lg);
+}
+
+/* ─── Analisis — chart cards (batang + lingkaran) ─────────── */
+
+.hv__analisis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--ds-space-4);
+  align-items: start;
+}
+
+.hv__chart-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-4);
+  padding: var(--ds-space-4) var(--ds-space-5);
+  background: var(--ds-surface-card);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-lg);
+  min-width: 0;
+}
+
+.hv__chart-title {
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-secondary);
+}
+
+.hv__donut-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-5);
+  flex-wrap: wrap;
+}
+
+.hv__legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-2);
+  flex: 1 1 130px;
+  min-width: 130px;
+}
+
+.hv__legend-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--ds-space-2);
+  font-size: var(--ds-text-13);
+}
+
+.hv__legend-label {
+  color: var(--ds-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hv__legend-val {
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-text-primary);
+}
+
+/* ─── Portfolio analytics — momentum + capacity cards ─────── */
+
+.hv__momentum {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ds-space-3) var(--ds-space-4);
+}
+.hv__mom-stat { display: flex; flex-direction: column; gap: 2px; }
+.hv__mom-val {
+  font-size: var(--ds-text-28);
+  font-weight: var(--ds-weight-semibold);
+  line-height: var(--ds-leading-tight);
+  letter-spacing: var(--ds-tracking-tight);
+  color: var(--ds-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.hv__mom-unit { font-size: var(--ds-text-16); font-weight: var(--ds-weight-regular); color: var(--ds-text-tertiary); margin-left: 1px; }
+.hv__mom-lbl { font-size: var(--ds-text-13); color: var(--ds-text-tertiary); }
+
+.hv__velocity {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-3);
+  flex-wrap: wrap;
+  margin-top: var(--ds-space-1);
+  padding-top: var(--ds-space-3);
+  border-top: 1px solid var(--ds-border-subtle);
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-secondary);
+}
+.hv__velocity-label { color: var(--ds-text-tertiary); }
+.hv__velocity-item { display: inline-flex; align-items: center; gap: var(--ds-space-1); }
+
+.hv__cap-list { display: flex; flex-direction: column; gap: var(--ds-space-2); }
+.hv__cap-row {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  align-items: center;
+  gap: var(--ds-space-3);
+}
+.hv__cap-name {
+  font-family: var(--ds-font-mono, 'Geist Mono', ui-monospace, monospace);
+  font-size: var(--ds-text-11);
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hv__cap-meta {
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.hv__cap-overdue { color: var(--tone-red); font-style: normal; font-weight: var(--ds-weight-medium); }
+
+/* ─── Microinteraction — subtle card "alive" hover ─────────────
+ * NOTE (2026-05-31): deliberately NO transform-based load/entrance animation.
+ * A `transform` on the many `.hv > *` sections INSIDE the `.workspace__content`
+ * scroll container triggered scroll-repaint ghosting (whole shell appeared to
+ * repeat while scrolling) on some Chrome builds — the same transform
+ * sensitivity already flagged in shell.css. Hover-only (box-shadow) is safe
+ * because it never runs during scroll. Do NOT re-add transform here. */
+
+.hv__tile,
+.hv__chart-card { transition: box-shadow 160ms ease; }
+.hv__tile:hover,
+.hv__chart-card:hover { box-shadow: 0 2px 14px rgba(0, 0, 0, 0.05); }
+
+@media (prefers-reduced-motion: reduce) {
+  .hv__tile, .hv__chart-card { transition: none; }
+}
+
+/* ─── Tabs — organize depth (Program / Analisis / Divisi) ───── */
+
+.hv__tabs {
+  display: flex;
+  gap: var(--ds-space-2);
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+.hv__tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--ds-text-14);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-secondary);
+  padding: var(--ds-space-2) var(--ds-space-3);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 140ms ease, border-color 140ms ease;
+}
+.hv__tab:hover { color: var(--ds-text-primary); }
+.hv__tab[data-active="true"] {
+  color: var(--ds-text-primary);
+  font-weight: var(--ds-weight-semibold);
+  border-bottom-color: var(--tone-green);
+}
+.hv__tab:focus-visible {
+  outline: none;
+  border-radius: var(--ds-radius-sm);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--tone-green) 35%, transparent);
+}
+
+/* ═══════════════ Below the fold — drill-down detail ═══════════════ */
+
+/* ─── Divisi dengan delay (chips) ─────────────────────────── */
+
+.hv__divisi-row { display: flex; align-items: center; gap: var(--ds-space-2); flex-wrap: wrap; }
+
+.hv__divisi-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  padding: var(--ds-space-1) var(--ds-space-3);
+  border-radius: var(--ds-radius-pill);
+  border: 1px solid color-mix(in srgb, var(--tone-red) 30%, transparent);
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-medium);
+  color: var(--tone-red);
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+.hv__divisi-chip:hover {
+  background: color-mix(in srgb, var(--tone-red) 6%, transparent);
+  border-color: color-mix(in srgb, var(--tone-red) 50%, transparent);
+}
+.hv__divisi-code {
+  font-family: var(--ds-font-mono, 'Geist Mono', ui-monospace, monospace);
+  font-size: var(--ds-text-11);
+  font-weight: var(--ds-weight-semibold);
+}
+.hv__divisi-count {
+  font-family: var(--ds-font-mono, 'Geist Mono', ui-monospace, monospace);
+  font-size: var(--ds-text-11);
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  padding: 0 var(--ds-space-1);
+  border-radius: var(--ds-radius-pill);
+  background: color-mix(in srgb, var(--tone-red) 10%, transparent);
+}
+.hv__divisi-empty { font-size: var(--ds-text-13); color: var(--ds-text-tertiary); }
+
+/* ─── Program ketat deadline (table) ──────────────────────── */
+
+.hv__deadline-table {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--ds-border-subtle);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-lg);
+  overflow: hidden;
+}
+.hv__deadline-row {
+  display: grid;
+  grid-template-columns:
+    minmax(180px, 1.5fr) 80px 100px 110px minmax(160px, 1.4fr) minmax(140px, 1.2fr);
+  gap: var(--ds-space-3);
+  padding: var(--ds-space-3) var(--ds-space-4);
+  align-items: center;
+  background: var(--ds-surface-card);
+  text-align: left;
+  border: none;
+  cursor: pointer;
+  font-size: var(--ds-text-13);
+  font-family: inherit;
+}
+.hv__deadline-row:hover { background: var(--ds-surface-hover); }
+.hv__deadline-row-wrap {
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid var(--ds-border-subtle);
+}
+.hv__deadline-table > .hv__deadline-row-wrap:first-of-type { border-top: 0; }
+.hv__deadline-row-wrap > .hv__deadline-row { flex: 1 1 auto; min-width: 0; }
+.hv__deadline-row-wrap > .hv__row-action {
+  display: flex;
+  align-items: center;
+  padding-right: var(--ds-space-3);
+  padding-left: var(--ds-space-1);
+  background: var(--ds-surface-card);
+}
+.hv__deadline-row--head {
+  background: var(--ds-surface-sunken);
+  font-weight: var(--ds-weight-medium);
+  font-size: var(--ds-text-11);
+  color: var(--ds-text-tertiary);
+  cursor: default;
+}
+.hv__deadline-row--head:hover { background: var(--ds-surface-sunken); }
+.hv__deadline-program { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.hv__deadline-code {
+  font-family: var(--ds-font-mono, 'Geist Mono', ui-monospace, monospace);
+  font-size: var(--ds-text-11);
+  color: var(--ds-text-tertiary);
+}
+.hv__deadline-name {
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hv__deadline-divisi {
+  font-family: var(--ds-font-mono, 'Geist Mono', ui-monospace, monospace);
+  font-size: var(--ds-text-11);
+  color: var(--ds-text-secondary);
+}
+.hv__deadline-date { color: var(--ds-text-secondary); }
+.hv__deadline-countdown {
+  font-weight: var(--ds-weight-semibold);
+  text-align: center;
+  padding: 2px var(--ds-space-2);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface-sunken);
+  color: var(--ds-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.hv__deadline-countdown[data-urgency="critical"] { background: color-mix(in srgb, var(--tone-red) 12%, transparent); color: var(--tone-red); }
+.hv__deadline-countdown[data-urgency="urgent"]   { background: color-mix(in srgb, var(--tone-amber) 14%, transparent); color: var(--tone-amber); }
+.hv__deadline-countdown[data-urgency="soon"]     { background: color-mix(in srgb, var(--tone-green) 10%, transparent); color: var(--tone-green); }
+.hv__deadline-progress,
+.hv__deadline-support {
+  color: var(--ds-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hv__deadline-empty { color: var(--ds-text-tertiary); font-style: normal; }
+
+/* ─── Program butuh perhatian (list) ──────────────────────── */
+
+.hv__list { display: flex; flex-direction: column; }
+.hv__list-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 130px 90px 44px 100px;
+  align-items: center;
+  gap: var(--ds-space-3);
+  padding: var(--ds-space-2) var(--ds-space-2);
+  margin: 0 calc(-1 * var(--ds-space-2));
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  border-radius: var(--ds-radius-md);
+  transition: background-color 120ms ease;
+}
+.hv__list-row:hover { background: var(--ds-surface-hover); }
+.hv__list-row-wrap { display: flex; align-items: center; gap: var(--ds-space-2); }
+.hv__list-row-wrap > .hv__list-row { flex: 1 1 auto; min-width: 0; }
+.hv__list-row-wrap + .hv__list-row-wrap { border-top: 1px solid var(--ds-border-subtle); }
+.hv__row-action { flex-shrink: 0; padding: 0 var(--ds-space-1); }
+.hv__row-escalated {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-1);
+  font-size: var(--ds-text-11);
+  font-weight: var(--ds-weight-medium);
+  color: var(--tone-green);
+  padding: var(--ds-space-1) var(--ds-space-3);
+  border-radius: var(--ds-radius-pill);
+  background: color-mix(in srgb, var(--tone-green) 12%, transparent);
+  white-space: nowrap;
+}
+.hv__list-code {
+  font-family: var(--ds-font-mono, 'Geist Mono', ui-monospace, monospace);
+  font-size: var(--ds-text-11);
+  color: var(--ds-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hv__list-name {
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hv__list-divisi {
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-tertiary);
+  font-family: var(--ds-font-mono, 'Geist Mono', ui-monospace, monospace);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hv__list-bar {
+  display: block;
+  width: 100%;
+  height: 4px;
+  background: var(--ds-surface-sunken);
+  border-radius: var(--ds-radius-pill);
+  overflow: hidden;
+}
+.hv__list-bar-fill { display: block; height: 100%; border-radius: var(--ds-radius-pill); }
+.hv__list-bar-fill[data-tone="green"]   { background: var(--tone-green); }
+.hv__list-bar-fill[data-tone="amber"]   { background: var(--tone-amber); }
+.hv__list-bar-fill[data-tone="red"]     { background: var(--tone-red); }
+.hv__list-bar-fill[data-tone="neutral"] { background: var(--ds-border-strong); }
+.hv__list-pct {
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-primary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.hv__list-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  font-size: var(--ds-text-11);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-secondary);
+  white-space: nowrap;
+}
+.hv__list-foot {
+  margin-top: var(--ds-space-2);
+  padding-top: var(--ds-space-2);
+  border-top: 1px solid var(--ds-border-subtle);
+  display: flex;
+  justify-content: flex-start;
+}
+
+@media (max-width: 1024px) {
+  .hv__list-row {
+    grid-template-columns: 110px 1fr 70px;
+    grid-template-areas:
+      "code   name    pct"
+      "divisi status  status";
+    gap: var(--ds-space-1) var(--ds-space-3);
+  }
+  .hv__list-code   { grid-area: code; }
+  .hv__list-name   { grid-area: name; }
+  .hv__list-pct    { grid-area: pct; }
+  .hv__list-divisi { grid-area: divisi; }
+  .hv__list-status { grid-area: status; justify-self: end; }
+  .hv__list-bar    { display: none; }
+}
+
+/* ─── Matrix Direktorat (cross-direktorat grid) ───────────── */
+
+.hv__direktorat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: var(--ds-space-3);
+}
+.hv__direktorat-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-2);
+  padding: var(--ds-space-3) var(--ds-space-4);
+  background: var(--ds-surface-card);
+  border: 1px solid var(--ds-border-subtle);
+  border-left: 3px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-lg);
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 120ms ease, box-shadow 120ms ease;
+}
+.hv__direktorat-card:hover { background: var(--ds-surface-hover); }
+.hv__direktorat-card[data-tone="green"] { border-left-color: var(--tone-green); }
+.hv__direktorat-card[data-tone="amber"] { border-left-color: var(--tone-amber); }
+.hv__direktorat-card[data-tone="red"]   { border-left-color: var(--tone-red); }
+.hv__direktorat-card__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--ds-space-2); }
+.hv__direktorat-card__title { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1 1 auto; }
+.hv__direktorat-card__code {
+  font-family: var(--ds-font-mono, 'Geist Mono', ui-monospace, monospace);
+  font-size: var(--ds-text-11);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-tertiary);
+}
+.hv__direktorat-card__name {
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hv__direktorat-card__nilai {
+  font-size: var(--ds-text-20);
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.hv__direktorat-card__nilai[data-tone="green"] { color: var(--tone-green); }
+.hv__direktorat-card__nilai[data-tone="amber"] { color: var(--tone-amber); }
+.hv__direktorat-card__nilai[data-tone="red"]   { color: var(--tone-red); }
+.hv__direktorat-card__divisi {
+  list-style: none;
+  margin: var(--ds-space-1) 0 0;
+  padding: var(--ds-space-2) 0 0;
+  border-top: 1px solid var(--ds-border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-1);
+}
+.hv__direktorat-card__divisi-row { display: grid; grid-template-columns: 64px 1fr auto; align-items: center; gap: var(--ds-space-2); font-size: var(--ds-text-11); }
+.hv__direktorat-card__divisi-code {
+  font-family: var(--ds-font-mono, 'Geist Mono', ui-monospace, monospace);
+  font-size: var(--ds-text-11);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-tertiary);
+}
+.hv__direktorat-card__divisi-name { color: var(--ds-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.hv__direktorat-card__divisi-nilai { font-variant-numeric: tabular-nums; font-weight: var(--ds-weight-semibold); color: var(--ds-text-tertiary); }
+.hv__direktorat-card__divisi-nilai[data-tone="green"] { color: var(--tone-green); }
+.hv__direktorat-card__divisi-nilai[data-tone="amber"] { color: var(--tone-amber); }
+.hv__direktorat-card__divisi-nilai[data-tone="red"]   { color: var(--tone-red); }
+
+@media (max-width: 640px) {
+  .hv__direktorat-grid { grid-template-columns: 1fr; }
+}
+
+/* ─── Status per divisi (rollup table) ────────────────────── */
+
+.hv__rollup-table {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--ds-border-subtle);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-lg);
+  overflow: hidden;
+}
+.hv__rollup-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) repeat(5, 80px) 100px;
+  gap: var(--ds-space-3);
+  padding: var(--ds-space-3) var(--ds-space-4);
+  align-items: center;
+  background: var(--ds-surface-card);
+  text-align: left;
+  border: none;
+  cursor: pointer;
+  font-size: var(--ds-text-13);
+  font-family: inherit;
+}
+.hv__rollup-row:hover { background: var(--ds-surface-hover); }
+.hv__rollup-row--head {
+  background: var(--ds-surface-sunken);
+  font-weight: var(--ds-weight-medium);
+  font-size: var(--ds-text-11);
+  color: var(--ds-text-tertiary);
+  cursor: default;
+}
+.hv__rollup-row--head:hover { background: var(--ds-surface-sunken); }
+.hv__rollup-divisi { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.hv__rollup-code {
+  font-family: var(--ds-font-mono, 'Geist Mono', ui-monospace, monospace);
+  font-size: var(--ds-text-11);
+  color: var(--ds-text-tertiary);
+}
+.hv__rollup-name {
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hv__rollup-num { text-align: center; font-variant-numeric: tabular-nums; color: var(--ds-text-secondary); }
+.hv__rollup-num[data-tone="green"]   { color: var(--tone-green); font-weight: var(--ds-weight-semibold); }
+.hv__rollup-num[data-tone="amber"]   { color: var(--tone-amber); font-weight: var(--ds-weight-semibold); }
+.hv__rollup-num[data-tone="red"]     { color: var(--tone-red); font-weight: var(--ds-weight-semibold); }
+.hv__rollup-num[data-tone="neutral"] { color: var(--ds-text-tertiary); }
+.hv__rollup-total { color: var(--ds-text-primary); font-weight: var(--ds-weight-semibold); }
+.hv__rollup-pct {
+  text-align: center;
+  padding: 2px var(--ds-space-2);
+  border-radius: var(--ds-radius-sm);
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.hv__rollup-pct[data-tone="green"] { background: color-mix(in srgb, var(--tone-green) 14%, transparent); color: var(--tone-green); }
+.hv__rollup-pct[data-tone="amber"] { background: color-mix(in srgb, var(--tone-amber) 14%, transparent); color: var(--tone-amber); }
+.hv__rollup-pct[data-tone="red"]   { background: color-mix(in srgb, var(--tone-red) 14%, transparent); color: var(--tone-red); }
+
+/* ════════════════════════════════════════════════════════════════════
+   COMMAND CENTER (hvc__) — dense executive layout inspired by the mockup.
+   Theme-following: dark surfaces come free via --ds-* tokens. Color stays a
+   signal (RAG); the bright panels read as data, not decoration. Hover-only
+   lift (no transform persisted in the scroll container).
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Shared atoms ──────────────────────────────────────────── */
+.hvc__eyebrow {
+  font-size: var(--ds-text-11);
+  font-weight: var(--ds-weight-semibold);
+  letter-spacing: var(--ds-tracking-wide);
+  text-transform: uppercase;
+  color: var(--ds-text-tertiary);
+}
+.hvc__sub { font-size: var(--ds-text-13); color: var(--ds-text-secondary); }
+
+.hvc__bignum {
+  font-size: clamp(2.25rem, 4vw, 3.25rem);
+  font-weight: var(--ds-weight-semibold);
+  line-height: var(--ds-leading-tight);
+  letter-spacing: var(--ds-tracking-tight);
+  color: var(--ds-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.hvc__bignum--sm { font-size: clamp(1.5rem, 2.4vw, 2rem); }
+.hvc__bignum-unit { font-size: 0.5em; font-weight: var(--ds-weight-regular); color: var(--ds-text-tertiary); margin-left: 2px; }
+
+/* Tone text — applied to numeric values across the cockpit. */
+.hvc__bignum[data-tone="green"], .hvc__stat-val[data-tone="green"], .hvc__mstat-val[data-tone="green"],
+.hvc__align-pair b[data-tone="green"], .hvc__topdays[data-tone="green"], .hvc__tcard-days[data-tone="green"] { color: var(--tone-green); }
+.hvc__bignum[data-tone="amber"], .hvc__stat-val[data-tone="amber"], .hvc__mstat-val[data-tone="amber"],
+.hvc__align-pair b[data-tone="amber"], .hvc__topdays[data-tone="amber"], .hvc__tcard-days[data-tone="amber"] { color: var(--tone-amber); }
+.hvc__bignum[data-tone="red"], .hvc__stat-val[data-tone="red"], .hvc__mstat-val[data-tone="red"],
+.hvc__align-pair b[data-tone="red"], .hvc__topdays[data-tone="red"], .hvc__tcard-days[data-tone="red"] { color: var(--tone-red); }
+
+.hvc__empty {
+  margin: var(--ds-space-2) 0 0;
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-tertiary);
+}
+
+.hvc__link {
+  background: none; border: 0; cursor: pointer;
+  font-size: var(--ds-text-13); font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-secondary); padding: 0;
+}
+.hvc__link:hover { color: var(--ds-text-primary); }
+
+/* ── Header (sticky frosted band — 2026-06-01) ─────────────────
+ * The global utility cluster (search/notif/period) floats absolute at the
+ * workspace top-right and does NOT scroll. Home runs flush (no top padding),
+ * so without an opaque header the cluster would overlap content on scroll.
+ * Fix: pin the greeting as a sticky frosted band spanning the full workspace
+ * width — content slides UNDER it cleanly, and the cluster sits over its empty
+ * right zone (cleared via padding-right). z below --z-topbar so cluster stays clickable. */
+.hvc__head {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  /* Greeting is now a tier BELOW the topbar (Home un-flushed), so it spans the
+   * full width — no need to reserve the right cluster zone. Sticky top:0 pins it
+   * just below the 44px topbar (sticky is relative to the content box). */
+  margin: calc(var(--ds-space-6) * -1) calc(var(--ds-space-8) * -1) var(--ds-space-1);
+  padding: var(--ds-space-5) var(--ds-space-8) var(--ds-space-4);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ds-space-3) var(--ds-space-4);
+  /* Opaque (NOT backdrop-filter): per 2026-06-01 pakem, blur over the cockpit
+   * aurora causes scroll stutter. A solid band hides content sliding under it. */
+  background: var(--ds-surface-page);
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+[data-theme="dark"] .hvc__head { background: #0A0A0B; }
+.hvc__head-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.hvc__head .hv__greeting {
+  font-size: clamp(var(--ds-text-20), 2.3vw, var(--ds-text-28));
+  font-weight: var(--ds-weight-regular);
+  line-height: 1.15;
+}
+.hvc__head-subrow { display: flex; align-items: center; gap: var(--ds-space-3); flex-wrap: wrap; }
+.hvc__head-sub { font-size: var(--ds-text-13); color: var(--ds-text-tertiary); }
+.hvc__head-meta { display: inline-flex; align-items: center; gap: var(--ds-space-2); }
+
+@media (max-width: 1024px) {
+  .hvc__head {
+    margin: calc(var(--ds-space-5) * -1) calc(var(--ds-space-5) * -1) var(--ds-space-1);
+    padding: var(--ds-space-4) var(--ds-space-5) var(--ds-space-3);
+  }
+}
+
+/* ── HERO band ─────────────────────────────────────────────── */
+.hvc__hero {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--ds-space-4);
+  align-items: stretch;
+}
+.hvc__hero-kpi, .hvc__hero-donut, .hvc__hero-visual {
+  display: flex; flex-direction: column; gap: var(--ds-space-3); min-width: 0;
+}
+.hvc__hero-kpi-row { display: flex; align-items: baseline; gap: var(--ds-space-3); flex-wrap: wrap; }
+.hvc__hero-kpi-foot { margin-top: auto; display: flex; align-items: flex-end; justify-content: space-between; gap: var(--ds-space-3); }
+.hvc__hero-kpi-foot .hvc__sub { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+.hvc__hero-donut { align-items: center; text-align: center; }
+.hvc__hero-donut .hvc__eyebrow { align-self: flex-start; }
+.hvc__donut-wrap { display: flex; justify-content: center; padding: var(--ds-space-1) 0; }
+
+/* Stat tiles — 2×2 inside one hero cell */
+.hvc__hero-stats { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ds-space-3); }
+.hvc__stat {
+  display: flex; flex-direction: column; gap: 2px; align-items: flex-start;
+  padding: var(--ds-space-3) var(--ds-space-4);
+  background: var(--ds-surface-card);
+  border: 1px solid var(--ds-border-subtle);
+  border-left: 3px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-lg);
+  cursor: pointer; text-align: left;
+  transition: background .12s ease, border-color .12s ease;
+}
+.hvc__stat:hover { background: var(--ds-surface-hover); }
+.hvc__stat[data-tone="green"]   { border-left-color: var(--tone-green); }
+.hvc__stat[data-tone="amber"]   { border-left-color: var(--tone-amber); }
+.hvc__stat[data-tone="red"]     { border-left-color: var(--tone-red); }
+.hvc__stat-val { font-size: var(--ds-text-28); font-weight: var(--ds-weight-semibold); line-height: 1.1; color: var(--ds-text-primary); font-variant-numeric: tabular-nums; }
+.hvc__stat-label { font-size: var(--ds-text-11); color: var(--ds-text-tertiary); }
+
+/* Decorative hero visual */
+.hvc__hero-visual { position: relative; overflow: hidden; justify-content: flex-end; min-height: 150px; }
+.hvc__motif { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--tone-green); opacity: 0.5; pointer-events: none; }
+.hvc__hero-visual-cap { position: relative; display: flex; flex-direction: column; gap: 2px; }
+
+/* ── Section + grids ───────────────────────────────────────── */
+.hvc__section { display: flex; flex-direction: column; gap: var(--ds-space-4); }
+.hvc__sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--ds-space-3); }
+.hvc__sec-title { margin: 0; font-size: var(--ds-text-16); font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); }
+
+.hvc__grid { display: grid; gap: var(--ds-space-4); }
+.hvc__grid--cmd  { grid-template-columns: repeat(4, 1fr); }
+.hvc__grid--mid  { grid-template-columns: 0.9fr 1.3fr 1.3fr; }
+.hvc__grid--foot { grid-template-columns: 2fr 1fr; }
+
+/* ── Panel ─────────────────────────────────────────────────── */
+.hvc__panel { display: flex; flex-direction: column; gap: var(--ds-space-3); min-width: 0; }
+.hvc__panel[data-tone="green"] { border-left: 3px solid var(--tone-green); }
+.hvc__panel[data-tone="amber"] { border-left: 3px solid var(--tone-amber); }
+.hvc__panel[data-tone="red"]   { border-left: 3px solid var(--tone-red); }
+.hvc__panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--ds-space-2); }
+
+/* ── Alert & Insight: align band ───────────────────────────── */
+.hvc__align {
+  display: flex; align-items: center; gap: var(--ds-space-2); flex-wrap: wrap;
+  padding: var(--ds-space-2) var(--ds-space-3);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-sunken);
+  cursor: default; font-size: var(--ds-text-13); color: var(--ds-text-secondary);
+}
+.hvc__align-pair b { font-weight: var(--ds-weight-semibold); font-variant-numeric: tabular-nums; }
+.hvc__align-vs { color: var(--ds-text-tertiary); }
+.hvc__align-verdict {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 4px;
+  font-weight: var(--ds-weight-semibold);
+  padding: 2px var(--ds-space-2); border-radius: var(--ds-radius-pill);
+}
+.hvc__align-verdict[data-tone="green"] { color: var(--tone-green); background: color-mix(in srgb, var(--tone-green) 12%, transparent); }
+.hvc__align-verdict[data-tone="amber"] { color: var(--tone-amber); background: color-mix(in srgb, var(--tone-amber) 12%, transparent); }
+.hvc__align-verdict[data-tone="red"]   { color: var(--tone-red);   background: color-mix(in srgb, var(--tone-red) 12%, transparent); }
+
+/* ── Heatmap (divisi × status) ─────────────────────────────── */
+.hvc__heat {
+  display: grid;
+  grid-template-columns: minmax(44px, auto) repeat(var(--cols), 1fr);
+  gap: 3px; align-items: center;
+}
+.hvc__heat-corner { }
+.hvc__heat-colh { font-size: var(--ds-text-11); color: var(--ds-text-tertiary); text-align: center; white-space: nowrap; }
+.hvc__heat-rowh { font-size: var(--ds-text-11); font-weight: var(--ds-weight-medium); color: var(--ds-text-secondary); font-variant-numeric: tabular-nums; }
+.hvc__heat-cell {
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
+  aspect-ratio: 1 / 1; min-height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: var(--ds-text-13); font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-primary); font-variant-numeric: tabular-nums;
+  cursor: pointer; background: var(--ds-surface-sunken);
+}
+.hvc__heat-cell[data-tone="green"]   { background: color-mix(in srgb, var(--tone-green) calc(var(--i, 0) * 100%), var(--ds-surface-sunken)); }
+.hvc__heat-cell[data-tone="amber"]   { background: color-mix(in srgb, var(--tone-amber) calc(var(--i, 0) * 100%), var(--ds-surface-sunken)); }
+.hvc__heat-cell[data-tone="red"]     { background: color-mix(in srgb, var(--tone-red) calc(var(--i, 0) * 100%), var(--ds-surface-sunken)); }
+.hvc__heat-cell[data-tone="neutral"] { background: color-mix(in srgb, var(--ds-neutral-500) calc(var(--i, 0) * 100%), var(--ds-surface-sunken)); }
+.hvc__heat-cell:hover { outline: 2px solid var(--ds-border-strong); outline-offset: -1px; }
+
+/* ── Top 5 list ────────────────────────────────────────────── */
+.hvc__toplist { display: flex; flex-direction: column; }
+.hvc__toprow {
+  display: flex; align-items: center; gap: var(--ds-space-3);
+  padding: var(--ds-space-2) 0; border: 0; background: none; cursor: pointer; text-align: left;
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+.hvc__toprow:last-child { border-bottom: 0; }
+.hvc__toprow:hover { background: var(--ds-surface-hover); }
+.hvc__toprank {
+  flex-shrink: 0; width: 20px; height: 20px; border-radius: var(--ds-radius-pill);
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--tone-red) 14%, transparent); color: var(--tone-red);
+  font-size: var(--ds-text-11); font-weight: var(--ds-weight-semibold);
+}
+.hvc__topbody { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.hvc__topname { font-size: var(--ds-text-13); font-weight: var(--ds-weight-medium); color: var(--ds-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hvc__topmeta { font-size: var(--ds-text-11); color: var(--ds-text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hvc__topdays { flex-shrink: 0; font-size: var(--ds-text-11); font-weight: var(--ds-weight-semibold); font-variant-numeric: tabular-nums; }
+
+/* ── Activity timeline ─────────────────────────────────────── */
+.hvc__activity { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.hvc__act-row { display: flex; align-items: baseline; gap: var(--ds-space-2); padding: var(--ds-space-2) 0; border-bottom: 1px solid var(--ds-border-subtle); }
+.hvc__act-row:last-child { border-bottom: 0; }
+.hvc__act-dot { flex-shrink: 0; width: 6px; height: 6px; border-radius: 50%; background: var(--ds-border-strong); transform: translateY(-1px); }
+.hvc__act-text { flex: 1; min-width: 0; font-size: var(--ds-text-13); color: var(--ds-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hvc__act-time { flex-shrink: 0; font-size: var(--ds-text-11); color: var(--ds-text-tertiary); white-space: nowrap; }
+
+/* ── Deadline timeline cards ───────────────────────────────── */
+.hvc__timeline { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--ds-space-3); }
+.hvc__tcard {
+  display: flex; flex-direction: column; gap: 2px; align-items: flex-start;
+  padding: var(--ds-space-3);
+  background: var(--ds-surface-sunken);
+  border: 1px solid var(--ds-border-subtle);
+  border-top: 3px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-lg);
+  cursor: pointer; text-align: left; min-width: 0; width: 100%;
+}
+.hvc__tcard:hover { background: var(--ds-surface-hover); }
+.hvc__tcard[data-tone="green"] { border-top-color: var(--tone-green); }
+.hvc__tcard[data-tone="amber"] { border-top-color: var(--tone-amber); }
+.hvc__tcard[data-tone="red"]   { border-top-color: var(--tone-red); }
+.hvc__tcard-days { font-size: var(--ds-text-16); font-weight: var(--ds-weight-semibold); font-variant-numeric: tabular-nums; }
+.hvc__tcard-name { font-size: var(--ds-text-13); color: var(--ds-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.hvc__tcard-meta { font-size: var(--ds-text-11); color: var(--ds-text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+/* ── Shortcuts ─────────────────────────────────────────────── */
+.hvc__shortcuts { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ds-space-3); margin-top: auto; }
+.hvc__shortcut {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--ds-space-2);
+  padding: var(--ds-space-4) var(--ds-space-3);
+  background: var(--ds-surface-sunken);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-lg);
+  cursor: pointer;
+}
+.hvc__shortcut:hover { background: var(--ds-surface-hover); }
+.hvc__shortcut-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; border-radius: var(--ds-radius-md);
+  background: color-mix(in srgb, var(--ds-neutral-500) 14%, transparent); color: var(--ds-text-secondary);
+}
+.hvc__shortcut-icon[data-tone="green"] { background: color-mix(in srgb, var(--tone-green) 16%, transparent); color: var(--tone-green); }
+.hvc__shortcut-icon[data-tone="amber"] { background: color-mix(in srgb, var(--tone-amber) 16%, transparent); color: var(--tone-amber); }
+.hvc__shortcut-label { font-size: var(--ds-text-13); font-weight: var(--ds-weight-medium); color: var(--ds-text-primary); }
+
+/* ── Responsive (tokens: 1280 / 1024 / 768 / 640) ──────────── */
+@media (max-width: 1280px) {
+  .hvc__grid--cmd { grid-template-columns: repeat(2, 1fr); }
+  .hvc__grid--mid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 1024px) {
+  .hvc__grid--mid  { grid-template-columns: 1fr; }
+  .hvc__grid--foot { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .hvc__grid--cmd { grid-template-columns: 1fr; }
+  .hvc__hero-stats { grid-template-columns: 1fr 1fr; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   RICH LAYER (2026-05-31) — premium visual treatment per user mandate
+   ("setara mockup, rich penuh, boleh menabrak pakem calm"). Both themes.
+   Adds: depth/shadow, gradient surfaces, vivid accents, gradient BAN,
+   glowing backdrop, refined tiles/heatmap/shortcuts, single-row timeline.
+   Layered AFTER the base hvc rules so it wins by source order + specificity.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Cockpit tokens (light) ──────────────────────────────────── */
+.hv--cockpit {
+  --hvc-card-bg: linear-gradient(158deg, var(--ds-surface-card) 0%, color-mix(in srgb, var(--ds-surface-card) 88%, var(--ds-neutral-100)) 100%);
+  --hvc-card-border: var(--ds-border-subtle);
+  --hvc-card-radius: 16px;
+  --hvc-card-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 10px 28px -10px rgba(16,24,40,0.12);
+  --hvc-card-shadow-hover: 0 2px 4px rgba(16,24,40,0.06), 0 16px 40px -12px rgba(16,24,40,0.20);
+  --hvc-inset-top: inset 0 1px 0 rgba(255,255,255,0.6);
+  --hvc-grad-green: linear-gradient(135deg, #34D399, #059669);
+  --hvc-grad-amber: linear-gradient(135deg, #FBBF24, #D97706);
+  --hvc-grad-red: linear-gradient(135deg, #FB7185, #DC2626);
+}
+
+/* ── Cockpit tokens (dark) — near-black + glow, like the mockup ── */
+[data-theme="dark"] .hv--cockpit {
+  --hvc-card-bg: linear-gradient(158deg, #16181F 0%, #101116 100%);
+  --hvc-card-border: rgba(255,255,255,0.08);
+  /* Struktur (count + inset-ness + urutan) WAJIB sama dgn light, kalau tidak
+   * box-shadow snap saat ganti tema. Dulu layer-1 di sini `inset`, di light
+   * `outset` → mismatch → seluruh shadow tak bisa di-interpolasi. Highlight atas
+   * tetap ada via --hvc-inset-top (sama posisi di light & dark). (2026-06-01) */
+  --hvc-card-shadow: 0 1px 2px rgba(0,0,0,0.5), 0 14px 36px -14px rgba(0,0,0,0.7);
+  --hvc-card-shadow-hover: 0 2px 4px rgba(0,0,0,0.6), 0 20px 48px -14px rgba(0,0,0,0.85);
+  --hvc-inset-top: inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+/* ── Glowing page backdrop ───────────────────────────────────── */
+.home-v2.home-v2--cockpit {
+  background:
+    radial-gradient(1100px 460px at 100% -6%, rgba(16,185,129,0.07), transparent 60%),
+    radial-gradient(820px 460px at -6% 112%, rgba(16,185,129,0.045), transparent 60%),
+    var(--ds-surface-page);
+}
+[data-theme="dark"] .home-v2.home-v2--cockpit {
+  background:
+    radial-gradient(1100px 520px at 100% -8%, rgba(16,185,129,0.11), transparent 55%),
+    radial-gradient(900px 600px at -8% 110%, rgba(56,189,248,0.07), transparent 55%),
+    #0A0A0B;
+}
+
+/* ── Card depth on every cockpit panel ───────────────────────── */
+.hv--cockpit .ds-card {
+  background: var(--hvc-card-bg);
+  border: 1px solid var(--hvc-card-border);
+  border-radius: var(--hvc-card-radius);
+  box-shadow: var(--hvc-card-shadow), var(--hvc-inset-top);
+}
+.hv--cockpit .ds-card:hover { box-shadow: var(--hvc-card-shadow-hover), var(--hvc-inset-top); }
+
+/* Tone accent → inset left glow (plays nice with rounded corners) */
+.hv--cockpit .hvc__panel[data-tone="green"] { border-left-color: var(--hvc-card-border); box-shadow: var(--hvc-card-shadow), var(--hvc-inset-top), inset 3px 0 0 0 #10B981; }
+.hv--cockpit .hvc__panel[data-tone="amber"] { border-left-color: var(--hvc-card-border); box-shadow: var(--hvc-card-shadow), var(--hvc-inset-top), inset 3px 0 0 0 #F59E0B; }
+.hv--cockpit .hvc__panel[data-tone="red"]   { border-left-color: var(--hvc-card-border); box-shadow: var(--hvc-card-shadow), var(--hvc-inset-top), inset 3px 0 0 0 #EF4444; }
+
+/* ── Eyebrows + section titles ───────────────────────────────── */
+.hv--cockpit .hvc__eyebrow { color: var(--ds-text-secondary); letter-spacing: 0.06em; }
+.hv--cockpit .hvc__sec-title { font-size: var(--ds-text-20); letter-spacing: var(--ds-tracking-tight); }
+
+/* ── Gradient BAN numbers (hero + momentum headline) ─────────── */
+.hv--cockpit .hvc__bignum { font-size: clamp(2.5rem, 4.6vw, 3.85rem); letter-spacing: -0.02em; }
+.hv--cockpit .hvc__bignum--sm { font-size: clamp(1.7rem, 2.6vw, 2.25rem); }
+.hv--cockpit .hvc__bignum[data-tone="green"],
+.hv--cockpit .hvc__bignum[data-tone="amber"],
+.hv--cockpit .hvc__bignum[data-tone="red"] {
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+.hv--cockpit .hvc__bignum[data-tone="green"] { background-image: var(--hvc-grad-green); }
+.hv--cockpit .hvc__bignum[data-tone="amber"] { background-image: var(--hvc-grad-amber); }
+.hv--cockpit .hvc__bignum[data-tone="red"]   { background-image: var(--hvc-grad-red); }
+.hv--cockpit .hvc__bignum-unit { -webkit-text-fill-color: var(--ds-text-tertiary); }
+
+/* ── Stat tiles — tinted gradient, bigger, hover lift ────────── */
+.hv--cockpit .hvc__stat {
+  border: 1px solid var(--hvc-card-border);
+  border-left-width: 1px;
+  border-radius: 14px;
+  padding: var(--ds-space-4);
+  box-shadow: var(--hvc-card-shadow), var(--hvc-inset-top);
+  transition: transform .14s ease, box-shadow .14s ease;
+}
+.hv--cockpit .hvc__stat:hover { transform: translateY(-2px); box-shadow: var(--hvc-card-shadow-hover), var(--hvc-inset-top); }
+.hv--cockpit .hvc__stat[data-tone="red"]   { background: linear-gradient(158deg, color-mix(in srgb, #EF4444 11%, var(--ds-surface-card)), var(--ds-surface-card)); }
+.hv--cockpit .hvc__stat[data-tone="green"] { background: linear-gradient(158deg, color-mix(in srgb, #10B981 11%, var(--ds-surface-card)), var(--ds-surface-card)); }
+.hv--cockpit .hvc__stat[data-tone="amber"] { background: linear-gradient(158deg, color-mix(in srgb, #F59E0B 12%, var(--ds-surface-card)), var(--ds-surface-card)); }
+.hv--cockpit .hvc__stat-val { font-size: clamp(1.9rem, 2.4vw, 2.35rem); }
+.hv--cockpit .hvc__stat-val[data-tone="green"] { color: #059669; }
+.hv--cockpit .hvc__stat-val[data-tone="amber"] { color: #D97706; }
+.hv--cockpit .hvc__stat-val[data-tone="red"]   { color: #DC2626; }
+[data-theme="dark"] .hv--cockpit .hvc__stat-val[data-tone="green"] { color: #34D399; }
+[data-theme="dark"] .hv--cockpit .hvc__stat-val[data-tone="amber"] { color: #FBBF24; }
+[data-theme="dark"] .hv--cockpit .hvc__stat-val[data-tone="red"]   { color: #FB7185; }
+
+/* ── Hero visual — bolder, motif fills the panel ─────────────── */
+.hv--cockpit .hvc__hero-visual { min-height: 188px; }
+.hv--cockpit .hvc__motif { opacity: 0.95; right: -8px; top: -6px; left: auto; width: 78%; }
+[data-theme="dark"] .hv--cockpit .hvc__motif { opacity: 1; }
+
+/* ── Momentum — tighter rhythm ───────────────────────────────── */
+.hv--cockpit .hvc__mstats { gap: 0 var(--ds-space-4); }
+.hv--cockpit .hvc__mstat { padding: var(--ds-space-3) 0; }
+.hv--cockpit .hvc__mstat-val { font-size: var(--ds-text-28); }
+
+/* ── Heatmap — rounder, softer, glow on hover ────────────────── */
+.hv--cockpit .hvc__heat { gap: 5px; }
+.hv--cockpit .hvc__heat-cell {
+  border: 1px solid transparent;
+  border-radius: 10px; min-height: 38px;
+  font-size: var(--ds-text-16); font-weight: var(--ds-weight-semibold);
+  box-shadow: var(--hvc-inset-top);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.hv--cockpit .hvc__heat-cell:hover { transform: scale(1.04); outline: none; box-shadow: 0 6px 16px -6px rgba(0,0,0,0.25); z-index: 1; }
+
+/* ── Alert align band — gradient chip ────────────────────────── */
+.hv--cockpit .hvc__align { background: color-mix(in srgb, var(--ds-surface-sunken) 70%, transparent); border: 1px solid var(--hvc-card-border); }
+
+/* ── Top-5 rank chips — gradient ─────────────────────────────── */
+.hv--cockpit .hvc__toprank { background: var(--hvc-grad-red); color: #fff; box-shadow: 0 2px 6px -1px rgba(220,38,38,0.4); }
+
+/* ── Single-row scrollable deadline timeline ─────────────────── */
+.hv--cockpit .hvc__timeline {
+  display: flex; gap: var(--ds-space-3);
+  overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin;
+}
+.hv--cockpit .hvc__tcard {
+  flex: 0 0 auto; min-width: 172px; border-radius: 14px;
+  background: var(--hvc-card-bg); border: 1px solid var(--hvc-card-border); border-top-width: 1px;
+  box-shadow: var(--hvc-card-shadow), var(--hvc-inset-top);
+  transition: transform .14s ease, box-shadow .14s ease;
+}
+.hv--cockpit .hvc__tcard:hover { transform: translateY(-2px); box-shadow: var(--hvc-card-shadow-hover), var(--hvc-inset-top); }
+.hv--cockpit .hvc__tcard[data-tone="green"] { box-shadow: var(--hvc-card-shadow), var(--hvc-inset-top), inset 0 3px 0 0 #10B981; }
+.hv--cockpit .hvc__tcard[data-tone="amber"] { box-shadow: var(--hvc-card-shadow), var(--hvc-inset-top), inset 0 3px 0 0 #F59E0B; }
+.hv--cockpit .hvc__tcard[data-tone="red"]   { box-shadow: var(--hvc-card-shadow), var(--hvc-inset-top), inset 0 3px 0 0 #EF4444; }
+.hv--cockpit .hvc__tcard-days[data-tone="green"] { color: #059669; }
+.hv--cockpit .hvc__tcard-days[data-tone="amber"] { color: #D97706; }
+.hv--cockpit .hvc__tcard-days[data-tone="red"]   { color: #DC2626; }
+[data-theme="dark"] .hv--cockpit .hvc__tcard-days[data-tone="green"] { color: #34D399; }
+[data-theme="dark"] .hv--cockpit .hvc__tcard-days[data-tone="amber"] { color: #FBBF24; }
+[data-theme="dark"] .hv--cockpit .hvc__tcard-days[data-tone="red"]   { color: #FB7185; }
+
+/* ── Shortcut tiles — gradient icon chips, hover lift ────────── */
+.hv--cockpit .hvc__shortcut {
+  border: 1px solid var(--hvc-card-border); border-radius: 14px;
+  background: var(--hvc-card-bg); box-shadow: var(--hvc-card-shadow), var(--hvc-inset-top);
+  transition: transform .14s ease, box-shadow .14s ease;
+}
+.hv--cockpit .hvc__shortcut:hover { transform: translateY(-2px); box-shadow: var(--hvc-card-shadow-hover), var(--hvc-inset-top); }
+.hv--cockpit .hvc__shortcut-icon { width: 44px; height: 44px; border-radius: 12px; color: #fff; }
+.hv--cockpit .hvc__shortcut-icon[data-tone="green"]   { background: var(--hvc-grad-green); box-shadow: 0 4px 12px -2px rgba(16,185,129,0.5); }
+.hv--cockpit .hvc__shortcut-icon[data-tone="amber"]   { background: var(--hvc-grad-amber); box-shadow: 0 4px 12px -2px rgba(245,158,11,0.5); }
+.hv--cockpit .hvc__shortcut-icon[data-tone="neutral"] { background: linear-gradient(135deg, #94A3B8, #64748B); box-shadow: 0 4px 12px -2px rgba(100,116,139,0.45); }
+
+/* ── Status meters (Overdue per divisi) — slightly taller ────── */
+.hv--cockpit .hv__status-meter { height: 8px; }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 3 (2026-05-31) — BOLD. Hero "command band" gelap-aurora (di light
+   & dark) + backdrop aurora + glass panel + tipografi tegas + viz lebih
+   infografis. Mandat user: "rich penuh, berani, outstanding, > ChatGPT".
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Bigger, bolder greeting + section titles with accent bar ── */
+.hv--cockpit .hv__greeting { font-size: clamp(1.4rem, 2.4vw, 1.95rem); color: var(--ds-text-primary); }
+.hv--cockpit .hv__greeting-name { font-weight: 700; }
+.hv--cockpit .hvc__sec-title {
+  display: flex; align-items: center; gap: 10px;
+  font-size: clamp(1.3rem, 1.9vw, 1.6rem); font-weight: 700; letter-spacing: -0.02em;
+}
+.hv--cockpit .hvc__sec-title::before {
+  content: ''; width: 4px; height: 1.05em; border-radius: 999px;
+  background: var(--hvc-grad-green); box-shadow: 0 0 10px rgba(16,185,129,0.5);
+}
+
+/* ── Stronger aurora backdrop ────────────────────────────────── */
+.home-v2.home-v2--cockpit {
+  background:
+    radial-gradient(900px 420px at 96% -8%, rgba(16,185,129,0.10), transparent 58%),
+    radial-gradient(760px 460px at -6% 116%, rgba(45,212,191,0.07), transparent 60%),
+    var(--ds-surface-page);
+}
+[data-theme="dark"] .home-v2.home-v2--cockpit {
+  background:
+    radial-gradient(1000px 520px at 98% -8%, rgba(16,185,129,0.14), transparent 55%),
+    radial-gradient(820px 600px at -8% 112%, rgba(56,189,248,0.09), transparent 55%),
+    radial-gradient(600px 400px at 50% 40%, rgba(16,185,129,0.04), transparent 70%),
+    #08090C;
+}
+
+/* ── "Glass" panels over the aurora ──────────────────────────────
+ * PERF 2026-06-01: backdrop-filter blur(16px) DIHAPUS. Tadinya tiap .ds-card
+ * (16+ di cockpit) mem-blur ulang konten di belakangnya tiap frame composite —
+ * scroll/hover/animasi jadi stutter berat. Aurora-nya tipis (alpha 0.07–0.10),
+ * jadi background opak menggantikan look frosted tanpa biaya GPU per-frame. */
+.hv--cockpit .ds-card {
+  background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(255,255,255,0.6);
+  box-shadow: var(--hvc-card-shadow), var(--hvc-inset-top);
+}
+[data-theme="dark"] .hv--cockpit .ds-card {
+  background: rgba(22,24,31,0.94);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* ════════════ HERO COMMAND BAND ════════════ */
+.hvc__herobar {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  padding: clamp(20px, 2.6vw, 38px);
+  display: grid;
+  grid-template-columns: 1.25fr 0.9fr 1.05fr;
+  gap: clamp(16px, 2.4vw, 40px);
+  align-items: center;
+  min-height: 236px;
+  color: #fff;
+  /* dark aurora — always dramatic regardless of theme */
+  background:
+    linear-gradient(118deg, #052E26 0%, #064E3B 24%, #064341 50%, #0A1B1E 76%, #08090C 100%);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 28px 70px -28px rgba(2,20,16,0.65), inset 0 1px 0 rgba(255,255,255,0.10);
+  /* donut track → translucent white so it reads on dark */
+  --ds-surface-sunken: rgba(255,255,255,0.13);
+}
+.hvc__herobar--nokpi { grid-template-columns: 0.9fr 1.1fr; }
+
+/* glow blobs */
+.hvc__herobar-aurora {
+  position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(440px 320px at 10% -12%, rgba(52,211,153,0.40), transparent 60%),
+    radial-gradient(380px 300px at 88% 124%, rgba(45,212,191,0.26), transparent 60%),
+    radial-gradient(280px 240px at 62% 46%, rgba(16,185,129,0.14), transparent 70%);
+}
+/* faint tech grid */
+.hvc__herobar-grid-lines {
+  position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.5;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px);
+  background-size: 38px 38px;
+  -webkit-mask-image: radial-gradient(120% 120% at 80% 30%, #000, transparent 75%);
+  mask-image: radial-gradient(120% 120% at 80% 30%, #000, transparent 75%);
+}
+/* big graphic on the right */
+.hvc__herobar-motif {
+  position: absolute; right: -1%; top: 50%; transform: translateY(-50%);
+  width: clamp(220px, 26%, 360px); height: 90%;
+  z-index: 0; pointer-events: none; opacity: 0.92;
+}
+.hvc__herobar .hvc__motif { position: static; inset: auto; width: 100%; height: 100%; opacity: 1; color: #34D399; }
+
+.hvc__hb-block { position: relative; z-index: 1; min-width: 0; }
+
+.hvc__hb-eyebrow {
+  font-size: var(--ds-text-11); font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: rgba(255,255,255,0.62);
+}
+.hvc__hb-sub { display: block; margin-top: 8px; font-size: var(--ds-text-13); color: rgba(255,255,255,0.68); }
+
+/* KPI block */
+.hvc__hb-kpi-row { display: flex; align-items: baseline; gap: 12px; margin-top: 6px; }
+.hvc__hb-big {
+  font-size: clamp(3.2rem, 6vw, 5.2rem); font-weight: 800; line-height: 0.92;
+  letter-spacing: -0.035em; font-variant-numeric: tabular-nums;
+  color: #fff;
+  background-image: linear-gradient(180deg, #FFFFFF 0%, #A7F3D0 120%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 32px rgba(52,211,153,0.28);
+}
+.hvc__hb-big[data-tone="red"]   { background-image: linear-gradient(180deg, #FFFFFF, #FCA5A5); text-shadow: 0 0 32px rgba(248,113,113,0.30); }
+.hvc__hb-big[data-tone="amber"] { background-image: linear-gradient(180deg, #FFFFFF, #FDE68A); text-shadow: 0 0 32px rgba(251,191,36,0.30); }
+.hvc__hb-unit { -webkit-text-fill-color: rgba(255,255,255,0.55); font-size: 0.4em; font-weight: 600; }
+.hvc__hb-spark { margin-top: 14px; }
+
+/* embedded primitives on the dark band */
+.hvc__herobar .ds-sparkline { color: #34D399 !important; }
+.hvc__herobar .ds-delta--up   { color: #34D399; }
+.hvc__herobar .ds-delta--down { color: #FB7185; }
+.hvc__herobar .ds-delta--flat { color: rgba(255,255,255,0.5); }
+.hvc__herobar .ds-donut__value { color: #fff; }
+.hvc__herobar .ds-donut__label { color: rgba(255,255,255,0.62); }
+
+/* donut block */
+.hvc__hb-donut { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; }
+
+/* stat chips — glass */
+.hvc__hb-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.hvc__hb-chip {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+  padding: 14px 16px; cursor: pointer; text-align: left;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.08); /* PERF: dropped blur(8px) — sits on the solid dark hero, blur was imperceptible */
+  border: 1px solid rgba(255,255,255,0.12);
+  transition: transform .14s ease, background .14s ease, box-shadow .14s ease;
+}
+.hvc__hb-chip:hover { transform: translateY(-2px); background: rgba(255,255,255,0.11); }
+.hvc__hb-chip[data-tone="red"]   { box-shadow: 0 0 28px -10px rgba(251,113,133,0.55); }
+.hvc__hb-chip[data-tone="amber"] { box-shadow: 0 0 28px -10px rgba(251,191,36,0.55); }
+.hvc__hb-chip[data-tone="green"] { box-shadow: 0 0 28px -10px rgba(52,211,153,0.45); }
+.hvc__hb-chip-val {
+  font-size: clamp(1.9rem, 2.6vw, 2.5rem); font-weight: 800; line-height: 1;
+  color: #fff; font-variant-numeric: tabular-nums;
+}
+.hvc__hb-chip-val[data-tone="red"]   { color: #FB7185; }
+.hvc__hb-chip-val[data-tone="amber"] { color: #FBBF24; }
+.hvc__hb-chip-val[data-tone="green"] { color: #34D399; }
+.hvc__hb-chip-label { font-size: var(--ds-text-11); color: rgba(255,255,255,0.64); }
+
+/* ── Bars rich — floating value bubbles ──────────────────────── */
+.hv--cockpit .ds-bars--rich .ds-bars__val {
+  background: var(--ds-surface-card);
+  border: 1px solid var(--hvc-card-border);
+  border-radius: 999px; padding: 2px 9px;
+  box-shadow: 0 2px 6px -2px rgba(16,24,40,0.18);
+}
+
+/* ── Momentum — mini radial gauge + tidy stats ───────────────── */
+.hv--cockpit .hvc__mhead { align-items: center; gap: var(--ds-space-3); }
+
+/* ── Activity — vertical timeline w/ connector + entity icons ── */
+.hv--cockpit .hvc__activity { position: relative; padding-left: 6px; }
+.hv--cockpit .hvc__act-row { gap: var(--ds-space-3); padding: var(--ds-space-2) 0; position: relative; }
+.hv--cockpit .hvc__act-icon {
+  flex-shrink: 0; width: 28px; height: 28px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--ds-surface-sunken);
+  color: var(--ds-text-secondary); position: relative; z-index: 1;
+}
+.hv--cockpit .hvc__act-icon[data-tone="green"] { background: color-mix(in srgb, var(--tone-green) 14%, transparent); color: var(--tone-green); }
+.hv--cockpit .hvc__act-icon[data-tone="amber"] { background: color-mix(in srgb, var(--tone-amber) 15%, transparent); color: var(--tone-amber); }
+[data-theme="dark"] .hv--cockpit .hvc__act-icon[data-tone="green"] { color: #34D399; background: rgba(52,211,153,0.16); }
+[data-theme="dark"] .hv--cockpit .hvc__act-icon[data-tone="amber"] { color: #FBBF24; background: rgba(251,191,36,0.16); }
+/* connector line through the icons */
+.hv--cockpit .hvc__act-row:not(:last-child) .hvc__act-icon::after {
+  content: ''; position: absolute; top: 28px; left: 50%; transform: translateX(-50%);
+  width: 2px; height: calc(100% + var(--ds-space-4));
+  background: linear-gradient(var(--ds-border-default), transparent);
+}
+.hv--cockpit .hvc__act-text { align-self: center; }
+.hv--cockpit .hvc__act-time { align-self: center; }
+
+/* ── Heatmap cells — bolder numerals ─────────────────────────── */
+.hv--cockpit .hvc__heat-cell { font-size: var(--ds-text-20); }
+
+/* ════════════ Responsive ════════════ */
+@media (max-width: 1024px) {
+  .hvc__herobar { grid-template-columns: 1fr 1fr; }
+  .hvc__herobar-motif { display: none; }
+}
+@media (max-width: 768px) {
+  .hvc__herobar { grid-template-columns: 1fr; text-align: left; }
+  .hvc__hb-donut { align-items: flex-start; }
+}
+
+/* ── Hero KPI speedometer gauge ──────────────────────────────── */
+.hvc__hb-gauge { display: flex; align-items: center; gap: clamp(8px, 1.4vw, 20px); margin-top: 10px; flex-wrap: wrap; }
+.hvc__hb-gauge-meta { display: flex; flex-direction: column; gap: 7px; align-items: flex-start; min-width: 0; }
+.hvc__hb-gauge-meta .hvc__hb-sub { margin-top: 0; }
+.hvc__herobar .ds-gauge__value { color: #fff; text-shadow: 0 0 22px rgba(52,211,153,0.32); }
+.hvc__herobar .ds-gauge__unit { color: rgba(255,255,255,0.55); }
+.hvc__herobar .ds-gauge__label { color: rgba(255,255,255,0.55); }
+.hvc__herobar .ds-gauge__tick { stroke: #ffffff; }
+
+/* ── Hero gauge inside a clean theme-following card (no dark band) ── */
+.hvc__hero-gauge { display: flex; align-items: center; gap: var(--ds-space-4); flex-wrap: wrap; margin-top: var(--ds-space-1); }
+.hvc__hero-gauge-meta { display: flex; flex-direction: column; gap: var(--ds-space-2); align-items: flex-start; min-width: 0; }
+.hv--cockpit .hvc__hero-kpi, .hv--cockpit .hvc__hero-donut { justify-content: flex-start; }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 4 (2026-05-31) — KOMPOSISI & HIERARKI (bukan sekадар warna).
+   Feedback user: "berani/rich = susunan, urutan, besar-kecil informasi".
+   Bento asimetris: KPI dominan (besar+tinggi), Execution + insight
+   Hasil↔Eksekusi + Perlu Aksi dipromosikan; 4 kotak seragam dibubarkan.
+   ════════════════════════════════════════════════════════════════════ */
+.hvc__verdict {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-auto-rows: minmax(0, auto);
+  gap: var(--ds-space-4);
+}
+.hvc__v-kpi     { grid-column: span 5; grid-row: span 2; }
+.hvc__v-exec    { grid-column: span 4; }
+.hvc__v-insight { grid-column: span 3; }
+.hvc__v-action  { grid-column: span 7; }
+.hvc__verdict--nokpi .hvc__v-exec   { grid-column: span 5; }
+.hvc__verdict--nokpi .hvc__v-action { grid-column: span 7; }
+
+/* ① KPI dominant */
+.hvc__v-kpi-body { display: flex; flex-direction: column; align-items: center; gap: var(--ds-space-4); text-align: center; flex: 1; justify-content: center; padding: var(--ds-space-2) 0; }
+.hvc__v-kpi-meta { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+.hvc__v-kpi-foot { display: flex; gap: var(--ds-space-2); flex-wrap: wrap; justify-content: center; }
+.hvc__chip {
+  font-size: var(--ds-text-13); color: var(--ds-text-secondary);
+  background: var(--ds-surface-sunken); border: 1px solid var(--hvc-card-border);
+  border-radius: 999px; padding: 4px 12px; white-space: nowrap;
+}
+.hvc__chip b { color: var(--ds-text-primary); font-weight: var(--ds-weight-semibold); }
+/* the KPI gauge is the page's hero number — make it large */
+.hvc__v-kpi .ds-gauge__value { font-size: clamp(2.4rem, 3.2vw, 3.1rem); }
+
+/* ② Execution donut centered */
+.hvc__v-exec { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.hvc__v-exec .hvc__donut-wrap { margin: auto 0; padding: var(--ds-space-2) 0; }
+
+/* ③ Insight Hasil↔Eksekusi */
+.hvc__v-insight-verdict { display: inline-flex; align-items: center; gap: 4px; font-size: var(--ds-text-13); font-weight: var(--ds-weight-semibold); }
+.hvc__v-insight-verdict[data-tone="green"] { color: var(--tone-green); }
+.hvc__v-insight-verdict[data-tone="amber"] { color: var(--tone-amber); }
+.hvc__v-insight-verdict[data-tone="red"]   { color: var(--tone-red); }
+.hvc__v-insight-pair { display: flex; align-items: center; gap: var(--ds-space-3); margin: var(--ds-space-1) 0 var(--ds-space-2); }
+.hvc__v-insight-side { display: flex; flex-direction: column; gap: 2px; }
+.hvc__v-insight-num { font-size: var(--ds-text-28); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.hvc__v-insight-num[data-tone="green"] { color: var(--tone-green); }
+.hvc__v-insight-num[data-tone="amber"] { color: var(--tone-amber); }
+.hvc__v-insight-num[data-tone="red"]   { color: var(--tone-red); }
+.hvc__v-insight-cap { font-size: var(--ds-text-11); color: var(--ds-text-tertiary); }
+.hvc__v-insight-vs { color: var(--ds-text-tertiary); font-size: var(--ds-text-20); }
+.hvc__v-insight-note { margin: auto 0 0; font-size: var(--ds-text-13); color: var(--ds-text-secondary); line-height: 1.45; }
+
+/* ④ Action badge */
+.hvc__count-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 26px; height: 24px; padding: 0 9px; border-radius: 999px;
+  font-size: var(--ds-text-13); font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.hvc__count-badge[data-tone="red"]   { background: color-mix(in srgb, var(--tone-red) 14%, transparent); color: var(--tone-red); }
+.hvc__count-badge[data-tone="amber"] { background: color-mix(in srgb, var(--tone-amber) 16%, transparent); color: var(--tone-amber); }
+.hvc__count-badge[data-tone="green"] { background: color-mix(in srgb, var(--tone-green) 14%, transparent); color: var(--tone-green); }
+
+/* Command center — varied widths (break the uniform grid) */
+.hv--cockpit .hvc__grid--cmd { grid-template-columns: repeat(4, 1fr); }
+/* Mid — rekap divisi ringkas (kiri), beri ruang lebih ke Top 5 + Aktivitas */
+.hv--cockpit .hvc__grid--mid { grid-template-columns: 0.9fr 1.3fr 1.3fr; }
+
+/* Responsive bento */
+@media (max-width: 1280px) {
+  .hvc__v-kpi { grid-column: span 7; grid-row: span 1; }
+  .hvc__v-exec { grid-column: span 5; }
+  .hvc__v-insight { grid-column: span 6; }
+  .hvc__v-action { grid-column: span 6; }
+  .hv--cockpit .hvc__grid--cmd { grid-template-columns: 1fr 1fr; }
+  .hv--cockpit .hvc__grid--mid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 768px) {
+  .hvc__verdict { grid-template-columns: 1fr; }
+  .hvc__v-kpi, .hvc__v-exec, .hvc__v-insight, .hvc__v-action { grid-column: 1 / -1; grid-row: auto; }
+  .hv--cockpit .hvc__grid--cmd, .hv--cockpit .hvc__grid--mid { grid-template-columns: 1fr; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 14 (2026-06-01) — PANGKAS REDUNDANSI + de-narasi (ref baru
+   docs/ChatGPT Image Jun 1). Command Center 4-kol (+ rail keputusan),
+   Overdue/divisi dapat mini-sparkline, Aliran Status jadi %-share,
+   Forecast caption ringkas. Buang Kalender (dup Horizon) + action-rail penuh.
+   ════════════════════════════════════════════════════════════════════ */
+@media (max-width: 1280px) { .hv--cockpit .hvc__grid--cmd { grid-template-columns: 1fr 1fr; } }
+/* Phone (≤640): rule ITERASI 14 di atas (≤1280 → 1fr 1fr) menang atas rule
+ * ≤768 (1fr) karena source-order → command strip jadi 2-kolom ~175px di phone,
+ * teks aksi overflow. Paksa balik 1-kolom. Fase 3 mobile, 2026-06-01. */
+@media (max-width: 640px) { /* bp-allow: --bp-sm */
+  .hv--cockpit .hvc__grid--cmd { grid-template-columns: 1fr; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 16 (2026-06-01) — 3 sisa gap vs mockup: (1) timeline horizontal
+   sumbu-tanggal, (2) KPI card + 3 mini-bar divisi, (3) Execution Map 3×3.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── (2) KPI hero: number+spark kiri, 3 mini-bar divisi kanan ── */
+.hvc__kpi-split { display: flex; gap: var(--ds-space-4); align-items: flex-start; justify-content: space-between; }
+.hvc__kpi-left { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.hvc__kpi-divbars { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 6px; min-width: 138px; flex-shrink: 0; }
+.hvc__kpi-divbar { display: grid; grid-template-columns: 36px 1fr auto; align-items: center; gap: 7px; }
+.hvc__kpi-divbar-name { font-size: var(--ds-text-11); color: var(--ds-text-tertiary); font-family: var(--ds-font-mono); }
+.hvc__kpi-divbar-val { font-size: var(--ds-text-11); font-weight: 700; font-variant-numeric: tabular-nums; }
+.hvc__kpi-divbar-val[data-tone="green"] { color: var(--tone-green); }
+.hvc__kpi-divbar-val[data-tone="amber"] { color: var(--tone-amber); }
+.hvc__kpi-divbar-val[data-tone="red"]   { color: var(--tone-red); }
+@media (max-width: 1280px) { .hvc__kpi-divbars { display: none; } }
+
+/* ── (3) Execution Map 3×3 ── */
+.hvc__xmap { display: flex; align-items: center; justify-content: center; gap: 6px; }
+/* y-axis title — sumbu baris (deadline pressure), vertikal di kiri */
+.hvc__xmap-yaxis {
+  writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap;
+  font-size: var(--ds-text-11); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--ds-text-tertiary); align-self: center; padding-bottom: 18px;
+}
+.hvc__xmap-grid {
+  display: grid;
+  grid-template-columns: auto repeat(3, minmax(34px, 1fr));
+  grid-template-rows: repeat(3, 1fr) auto auto;
+  gap: 4px; flex: 1; min-width: 0;
+}
+.hvc__xmap-rowh { display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; font-size: var(--ds-text-11); color: var(--ds-text-tertiary); }
+.hvc__xmap-corner {}
+.hvc__xmap-colh { text-align: center; font-size: var(--ds-text-11); color: var(--ds-text-tertiary); }
+/* x-axis title — sumbu kolom (progress), sejajar di bawah sel saja */
+.hvc__xmap-xaxis {
+  grid-column: 2 / -1; text-align: center; margin-top: 2px;
+  font-size: var(--ds-text-11); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--ds-text-tertiary);
+}
+.hvc__xmap-cell {
+  border: 0; cursor: pointer; border-radius: 8px; aspect-ratio: 1 / 1; min-height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: var(--ds-text-16); font-weight: 700; color: var(--ds-text-primary); font-variant-numeric: tabular-nums;
+  transition: transform .12s ease;
+}
+.hvc__xmap-cell:hover { transform: scale(1.05); }
+.hvc__xmap-cell[data-tone="green"] { background: color-mix(in srgb, #10B981 calc(var(--i,0) * 100%), var(--ds-surface-sunken)); }
+.hvc__xmap-cell[data-tone="amber"] { background: color-mix(in srgb, #F59E0B calc(var(--i,0) * 100%), var(--ds-surface-sunken)); }
+.hvc__xmap-cell[data-tone="red"]   { background: color-mix(in srgb, #EF4444 calc(var(--i,0) * 100%), var(--ds-surface-sunken)); }
+
+/* ── (1) Horizontal deadline timeline ── */
+.hvc__tl { width: 100%; overflow-x: auto; padding: var(--ds-space-2) 0 0; }
+.hvc__tl-track {
+  position: relative;
+  display: grid; grid-template-columns: repeat(var(--n), minmax(150px, 1fr));
+  gap: 0; padding-top: 40px;
+}
+.hvc__tl-line { position: absolute; top: 47px; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--ds-border-default), var(--ds-border-subtle)); }
+.hvc__tl-stop {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+  padding: 0 var(--ds-space-3) var(--ds-space-2) 0; border: 0; background: none; cursor: pointer; text-align: left;
+}
+.hvc__tl-date { position: absolute; top: -34px; left: 0; font-size: var(--ds-text-14); font-weight: 700; font-variant-numeric: tabular-nums; }
+.hvc__tl-date[data-tone="red"] { color: var(--tone-red); }
+.hvc__tl-date[data-tone="amber"] { color: var(--tone-amber); }
+.hvc__tl-date[data-tone="green"] { color: var(--tone-green); }
+.hvc__tl-node {
+  width: 13px; height: 13px; border-radius: 50%; border: 3px solid var(--ds-surface-card); flex-shrink: 0;
+  margin-top: -7px; margin-bottom: 6px; position: relative; z-index: 1;
+}
+.hvc__tl-node[data-tone="red"]   { background: #EF4444; box-shadow: 0 0 0 2px #EF4444, 0 0 10px rgba(239,68,68,0.5); }
+.hvc__tl-node[data-tone="amber"] { background: #F59E0B; box-shadow: 0 0 0 2px #F59E0B; }
+.hvc__tl-node[data-tone="green"] { background: #10B981; box-shadow: 0 0 0 2px #10B981; }
+.hvc__tl-meta { font-size: var(--ds-text-11); color: var(--ds-text-tertiary); }
+.hvc__tl-name { font-size: var(--ds-text-13); color: var(--ds-text-primary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; padding-right: var(--ds-space-3); }
+
+/* ── Panel hint — sub-eyebrow ringkas di header panel (legend/konteks) ── */
+.hvc__panel-hint { font-size: var(--ds-text-11); color: var(--ds-text-tertiary); letter-spacing: 0.01em; white-space: nowrap; }
+
+/* title + info-dot group — legend dipindah ke tooltip ikon (anti-clutter) */
+.hvc__panel-title { display: inline-flex; align-items: center; gap: var(--ds-space-1); }
+.hvc__infohint { display: inline-flex; align-items: center; color: var(--ds-text-quaternary, var(--ds-text-tertiary)); cursor: help; transition: color 120ms ease; }
+.hvc__infohint:hover, .hvc__infohint:focus-visible { color: var(--ds-text-secondary); }
+
+/* ── Momentum — throughput nyata (task selesai/minggu, 8 minggu) ── */
+.hvc__mtrend-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--ds-space-2); margin-bottom: var(--ds-space-3); }
+.hvc__mtrend-flat { font-size: var(--ds-text-12); font-weight: 600; color: var(--ds-text-tertiary); }
+.hvc__mthead-val { display: inline-flex; align-items: baseline; gap: var(--ds-space-2); min-width: 0; }
+.hvc__mthead-num {
+  font-size: clamp(1.75rem, 2.8vw, 2.5rem);
+  font-weight: var(--ds-weight-semibold);
+  line-height: var(--ds-leading-tight);
+  letter-spacing: var(--ds-tracking-tight);
+  color: var(--tone-green);
+  font-variant-numeric: tabular-nums;
+}
+.hvc__mthead-num[data-zero] { color: var(--ds-text-tertiary); }
+.hvc__mbars { width: 100%; }
+.hvc__mcaption { margin: var(--ds-space-2) 0 0; font-size: var(--ds-text-11); color: var(--ds-text-tertiary); }
+
+/* ── Deadline timeline v2 — sumbu proporsional terhadap tanggal + daftar terbaca ── */
+.hvc__tl2 { display: flex; flex-direction: column; gap: var(--ds-space-3); width: 100%; }
+.hvc__tl2-axis { position: relative; height: 76px; margin-top: var(--ds-space-2); }
+.hvc__tl2-line { position: absolute; left: 0; right: 0; bottom: 16px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--ds-border-default), var(--ds-border-subtle)); }
+.hvc__tl2-tick { position: absolute; bottom: 0; transform: translateX(-50%); font-size: var(--ds-text-11); color: var(--ds-text-tertiary); font-variant-numeric: tabular-nums; }
+.hvc__tl2-tick::before { content: ''; position: absolute; left: 50%; bottom: 16px; width: 1px; height: 5px; background: var(--ds-border-default); transform: translateX(-50%); }
+/* "Today" — penambat acuan: garis vertikal putus-putus dari atas sumbu ke baseline,
+   memberi makna pada klaster (kiri = lewat, kanan = upcoming). Subtil (reference,
+   bukan data) dan di belakang dot (z-index 0). */
+.hvc__tl2-today { position: absolute; top: 2px; bottom: 16px; transform: translateX(-50%); border-left: 1px dashed var(--ds-border-default); z-index: 0; }
+.hvc__tl2-today-label { position: absolute; top: -2px; left: 50%; transform: translateX(-50%); padding: 0 4px; font-size: var(--ds-text-11); font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--ds-text-tertiary); background: var(--ds-surface-card); white-space: nowrap; }
+.hvc__tl2-dot { position: absolute; left: 0; bottom: calc(20px + var(--lane, 0) * 14px); transform: translateX(-50%); width: 17px; height: 17px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; display: grid; place-items: center; color: #fff; font-size: 9px; font-weight: 700; font-variant-numeric: tabular-nums; z-index: 1; box-shadow: 0 0 0 3px var(--ds-surface-card); transition: transform .12s ease, box-shadow .12s ease; }
+.hvc__tl2-dot::after { content: ''; position: absolute; top: 100%; left: 50%; width: 1px; height: calc(4px + var(--lane, 0) * 14px); background: var(--ds-border-default); transform: translateX(-50%); z-index: -1; }
+.hvc__tl2-dot:hover { transform: translateX(-50%) scale(1.22); z-index: 4; }
+.hvc__tl2-dot[data-tone="red"]   { background: #EF4444; box-shadow: 0 0 0 3px var(--ds-surface-card), 0 0 10px rgba(239,68,68,.45); }
+.hvc__tl2-dot[data-tone="amber"] { background: #F59E0B; box-shadow: 0 0 0 3px var(--ds-surface-card); }
+.hvc__tl2-dot[data-tone="green"] { background: #10B981; box-shadow: 0 0 0 3px var(--ds-surface-card); }
+.hvc__tl2-num { pointer-events: none; line-height: 1; }
+.hvc__tl2-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+/* Beri napas antar klaster tanggal; baris sub (expand) tetap rapat di bawahnya. */
+.hvc__tl2-grp:not(:first-child) { margin-top: var(--ds-space-2); }
+.hvc__tl2-row { display: grid; grid-template-columns: 20px 58px minmax(0, 1fr) auto auto; align-items: center; gap: var(--ds-space-3); width: 100%; padding: var(--ds-space-2); border: 0; background: none; cursor: pointer; text-align: left; border-radius: var(--ds-radius-sm); transition: background .12s ease; }
+.hvc__tl2-row:hover { background: var(--ds-surface-hover); }
+/* Baris ringkas tanggal padat: rdot · date · (count+div) · days · chevron. */
+.hvc__tl2-row--group { grid-template-columns: 20px 58px minmax(0, 1fr) auto 16px; }
+.hvc__tl2-rgroup { display: inline-flex; align-items: baseline; gap: var(--ds-space-2); min-width: 0; }
+.hvc__tl2-rcount { font-size: var(--ds-text-13); font-weight: 600; color: var(--ds-text-primary); white-space: nowrap; }
+.hvc__tl2-rdiv { font-size: var(--ds-text-11); color: var(--ds-text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.hvc__tl2-chev { justify-self: end; color: var(--ds-text-tertiary); font-size: 16px; line-height: 1; transition: transform .15s ease; }
+.hvc__tl2-chev.is-open { transform: rotate(90deg); }
+/* Baris program di dalam tanggal yang di-expand — nama selaras di bawah header,
+   warna sekunder + guide tipis di kiri sebagai isyarat hierarki. */
+.hvc__tl2-sub .hvc__tl2-row--sub { padding-top: 3px; padding-bottom: 3px; }
+.hvc__tl2-row--sub .hvc__tl2-rname { color: var(--ds-text-secondary); }
+.hvc__tl2-rnum { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 10px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.hvc__tl2-rnum[data-tone="red"]   { background: #EF4444; }
+.hvc__tl2-rnum[data-tone="amber"] { background: #F59E0B; }
+.hvc__tl2-rnum[data-tone="green"] { background: #10B981; }
+/* Dot penanda baris (pin tak lagi bernomor urut — penanda = tanggal, bukan rank) */
+.hvc__tl2-rdot { width: 9px; height: 9px; border-radius: 50%; justify-self: center; }
+.hvc__tl2-rdot[data-tone="red"]   { background: #EF4444; }
+.hvc__tl2-rdot[data-tone="amber"] { background: #F59E0B; }
+.hvc__tl2-rdot[data-tone="green"] { background: #10B981; }
+.hvc__tl2-rdate { font-size: var(--ds-text-13); font-weight: 700; font-variant-numeric: tabular-nums; }
+.hvc__tl2-rdate[data-tone="red"]   { color: var(--tone-red); }
+.hvc__tl2-rdate[data-tone="amber"] { color: var(--tone-amber); }
+.hvc__tl2-rdate[data-tone="green"] { color: var(--tone-green); }
+.hvc__tl2-rname { font-size: var(--ds-text-13); color: var(--ds-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hvc__tl2-rmeta { font-size: var(--ds-text-11); color: var(--ds-text-tertiary); white-space: nowrap; }
+.hvc__tl2-rdays { font-size: var(--ds-text-12); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hvc__tl2-rdays[data-tone="red"]   { color: var(--tone-red); }
+.hvc__tl2-rdays[data-tone="amber"] { color: var(--tone-amber); }
+.hvc__tl2-rdays[data-tone="green"] { color: var(--ds-text-tertiary); }
+
+@media (prefers-reduced-motion: reduce) {
+  .hvc__tl2-dot, .hvc__tl2-row, .hvc__tl2-chev { transition: none; }
+}
+
+/* Shortcut as a slim row (was 2×2 card) */
+.hvc__shortcuts--row { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--ds-space-3); }
+.hvc__shortcuts--row .hvc__shortcut { flex-direction: row; justify-content: flex-start; }
+@media (max-width: 768px) { .hvc__shortcuts--row { grid-template-columns: 1fr 1fr; } }
+
+/* Forecast caption — short label, not a sentence */
+.hvc__fc-callout-sep { margin: 0 6px; color: var(--ds-text-disabled); }
+
+/* Status flow — % share emphasis */
+.hvc__flow-pct { font-size: 0.5em; font-weight: 600; color: var(--ds-text-tertiary); margin-left: 1px; }
+
+/* Overdue per divisi — row with bar + sparkline */
+.hvc__divlist { display: flex; flex-direction: column; gap: 2px; }
+.hvc__divrow {
+  display: grid; grid-template-columns: 8px 64px 1fr auto; align-items: center; gap: var(--ds-space-3);
+  padding: var(--ds-space-2) var(--ds-space-1); border: 0; background: none; cursor: pointer; text-align: left;
+  border-radius: var(--ds-radius-sm);
+}
+.hvc__divrow:hover { background: var(--ds-surface-hover); }
+.hvc__divrow-code { font-size: var(--ds-text-13); font-weight: var(--ds-weight-medium); color: var(--ds-text-secondary); }
+.hvc__divrow-spark { opacity: 0.7; }
+.hvc__divrow-val { font-size: var(--ds-text-16); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--tone-red); text-align: right; }
+
+/* Decision rail inside command center — FLAT rows separated by a hairline.
+ * No card-in-card: the .hv__exc-list bordered box is dissolved; in the narrow
+ * command column the label+meta STACK (grid-areas) so they never collide. */
+.hvc__cmd-action .hv__exc-list {
+  gap: 0; background: transparent; border: 0; border-radius: 0; overflow: visible;
+}
+.hvc__cmd-action .hv__exc-row {
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas: "dot label arrow" "dot meta arrow";
+  column-gap: var(--ds-space-2); row-gap: 2px; align-items: start;
+  border: 0; border-top: 1px solid var(--hvc-card-border); border-radius: 8px;
+  padding: var(--ds-space-3) var(--ds-space-2);
+}
+.hvc__cmd-action .hv__exc-row > .hv__dot { grid-area: dot; margin-top: 5px; }
+.hvc__cmd-action .hv__exc-label { grid-area: label; }
+.hvc__cmd-action .hv__exc-meta  { grid-area: meta; }
+.hvc__cmd-action .hv__exc-arrow { grid-area: arrow; align-self: center; }
+.hvc__cmd-action .hv__exc-row:first-child { border-top: 0; }
+.hvc__cmd-action .hv__exc-row:hover { background: color-mix(in srgb, var(--ds-text-primary) 3%, transparent); }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 15 (2026-06-01) — DE-PANEL: gabung grid analitik jadi SATU
+   permukaan, sel dipisah hairline (pola "Execution Overview" mockup).
+   Hentikan kesan "15 kotak mengambang seragam / terkunci dalam panel".
+   Hero (4 stat) + Peta tetap kartu (mockup pun begitu).
+   Trik: container = warna hairline + gap 1px; sel = surface opaque →
+   1px gap terbaca sbg garis. Specificity > rule glass, tanpa !important.
+   ════════════════════════════════════════════════════════════════════ */
+.hv--cockpit .hvc__grid--cmd,
+.hv--cockpit .hvc__grid--mid,
+.hv--cockpit .hvc__grid--insight {
+  gap: 1px;
+  background: var(--hvc-card-border);
+  border: 1px solid var(--hvc-card-border);
+  border-radius: var(--hvc-card-radius);
+  overflow: hidden;
+  box-shadow: var(--hvc-card-shadow), var(--hvc-inset-top);
+}
+/* strip per-cell card chrome → flat opaque cells inside one grouped surface */
+.hv--cockpit .hvc__grid--cmd > .ds-card,
+.hv--cockpit .hvc__grid--mid > .ds-card,
+.hv--cockpit .hvc__grid--insight > .ds-card {
+  background: var(--ds-surface-card);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+[data-theme="dark"] .hv--cockpit .hvc__grid--cmd > .ds-card,
+[data-theme="dark"] .hv--cockpit .hvc__grid--mid > .ds-card,
+[data-theme="dark"] .hv--cockpit .hvc__grid--insight > .ds-card {
+  background: #15171E;
+}
+/* tone accent for the decision cell → top strip, not floating left-border */
+.hv--cockpit .hvc__grid--cmd > .ds-card.hvc__cmd-action[data-tone="red"]   { box-shadow: inset 0 3px 0 0 #EF4444; }
+.hv--cockpit .hvc__grid--cmd > .ds-card.hvc__cmd-action[data-tone="amber"] { box-shadow: inset 0 3px 0 0 #F59E0B; }
+.hv--cockpit .hvc__grid--cmd > .ds-card.hvc__cmd-action[data-tone="green"] { box-shadow: inset 0 3px 0 0 #10B981; }
+/* hover lift removed inside groups (cells are static; the group is the object) */
+.hv--cockpit .hvc__grid--cmd > .ds-card:hover,
+.hv--cockpit .hvc__grid--mid > .ds-card:hover,
+.hv--cockpit .hvc__grid--insight > .ds-card:hover { box-shadow: none; }
+[data-theme="dark"] .hv--cockpit .hvc__grid--cmd > .ds-card.hvc__cmd-action[data-tone="red"]   { box-shadow: inset 0 3px 0 0 #EF4444; }
+[data-theme="dark"] .hv--cockpit .hvc__grid--cmd > .ds-card.hvc__cmd-action[data-tone="amber"] { box-shadow: inset 0 3px 0 0 #F59E0B; }
+[data-theme="dark"] .hv--cockpit .hvc__grid--cmd > .ds-card.hvc__cmd-action[data-tone="green"] { box-shadow: inset 0 3px 0 0 #10B981; }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 5 (2026-05-31) — DENSITY. Feedback: "panel kebesaran, makan
+   setengah halaman". Rapatkan: padding↓, gap↓, heatmap cell tak lagi
+   bujur-sangkar raksasa, chart lebih kecil. + Peta Portfolio (signature).
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Tighter shell + padding */
+.hv.hv--cockpit { gap: var(--ds-space-5); padding-top: var(--ds-space-5); }
+.hv--cockpit .ds-card.ds-card--p-lg { padding: var(--ds-space-5); }
+.hv--cockpit .hvc__section { gap: var(--ds-space-3); }
+.hv--cockpit .hvc__verdict,
+.hv--cockpit .hvc__grid { gap: var(--ds-space-3); }
+.hv--cockpit .hvc__panel { gap: var(--ds-space-2); }
+
+/* KPI card — compact, not half-page */
+.hvc__v-kpi-body { gap: var(--ds-space-2); padding: 0; }
+.hv--cockpit .hvc__v-kpi .ds-gauge__value { font-size: clamp(1.7rem, 2.2vw, 2.1rem); }
+
+/* Momentum — smaller numerals so it stops dominating */
+.hv--cockpit .hvc__mstat-val { font-size: var(--ds-text-20); }
+.hv--cockpit .hvc__mstats { gap: 0 var(--ds-space-4); }
+
+/* Heatmap — kill the giant square cells: short flexible rows */
+.hv--cockpit .hvc__heat { gap: 5px; }
+.hv--cockpit .hvc__heat-cell {
+  aspect-ratio: auto; min-height: 0; height: 48px;
+  font-size: var(--ds-text-16); border-radius: 9px;
+}
+
+/* ── Peta Portfolio (progres × tekanan waktu) ────────────────── */
+.hvc__map { width: 100%; }
+.hvc__map-svg { width: 100%; height: auto; display: block; }
+.hvc__map-q--danger { fill: color-mix(in srgb, #EF4444 8%, transparent); }
+.hvc__map-q--push   { fill: color-mix(in srgb, #F59E0B 6%, transparent); }
+.hvc__map-q--safe   { fill: color-mix(in srgb, #10B981 8%, transparent); }
+.hvc__map-q--new    { fill: color-mix(in srgb, var(--ds-neutral-500) 5%, transparent); }
+.hvc__map-axis { stroke: var(--ds-border-default); stroke-width: 1; stroke-dasharray: 3 5; }
+.hvc__map-qlabel {
+  fill: var(--ds-text-tertiary); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.05em; text-transform: uppercase;
+}
+.hvc__map-qlabel--danger { fill: #DC2626; }
+.hvc__map-qlabel--safe   { fill: #059669; }
+.hvc__map-qlabel--push   { fill: #D97706; }
+.hvc__map-axcap { fill: var(--ds-text-tertiary); font-size: 11px; font-weight: 500; }
+.hvc__map-dot { cursor: pointer; transition: fill-opacity .12s ease, r .12s ease; }
+.hvc__map-dot:hover { fill-opacity: 0.9; }
+.hvc__map-legend {
+  display: flex; flex-wrap: wrap; gap: var(--ds-space-4); justify-content: center;
+  margin-top: var(--ds-space-3); font-size: var(--ds-text-13); color: var(--ds-text-secondary);
+}
+.hvc__map-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.hvc__map-legend .hvc__dot[data-tone="green"] { background: #10B981; }
+.hvc__map-legend .hvc__dot[data-tone="amber"] { background: #F59E0B; }
+.hvc__map-legend .hvc__dot[data-tone="red"]   { background: #EF4444; }
+.hvc__map-legend .hvc__dot[data-tone="neutral"] { background: #94A3B8; }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 6 (2026-05-31) — RADAR KOMANDO. Landing dipangkas drastis ke
+   SATU hero: radar melingkar (sektor=divisi, ring=tekanan waktu, inti=KPI)
+   + console HUD. Semua detail lain → tab. Mengacu mockup + futuristik.
+   ════════════════════════════════════════════════════════════════════ */
+.hvc__radarbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(280px, 1fr);
+  gap: var(--ds-space-5);
+  align-items: center;
+}
+.hvc__radar-stage { display: flex; justify-content: center; min-width: 0; }
+
+.hvc__radar { position: relative; width: 100%; max-width: 540px; }
+.hvc__radar-svg { width: 100%; height: auto; display: block; overflow: visible; }
+.hvc__radar-ring { fill: none; stroke: var(--ds-border-subtle); stroke-width: 1; }
+.hvc__radar-rim  { fill: none; stroke: var(--ds-border-default); stroke-width: 1.5; }
+.hvc__radar-spoke { stroke: var(--ds-border-subtle); stroke-width: 1; }
+.hvc__radar-sector { fill: var(--ds-text-tertiary); font-size: 11px; font-weight: 700; letter-spacing: 0.05em; font-family: var(--ds-font-mono); }
+.hvc__radar-ringlabel { fill: #DC2626; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.hvc__radar-dot { cursor: pointer; transition: fill-opacity .12s ease; }
+.hvc__radar-dot:hover { fill-opacity: 0.95; }
+.hvc__radar-corec { stroke: var(--ds-border-default); stroke-width: 1; }
+
+.hvc__radar-center {
+  position: absolute; inset: 0; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+}
+.hvc__radar-kpi {
+  font-size: clamp(1.9rem, 3.1vw, 2.7rem); font-weight: 800; line-height: 1;
+  letter-spacing: -0.03em; color: var(--ds-text-primary); font-variant-numeric: tabular-nums;
+}
+.hvc__radar-kpiunit { font-size: 0.42em; font-weight: 600; color: var(--ds-text-tertiary); margin-left: 1px; }
+.hvc__radar-kpisub { font-size: var(--ds-text-11); color: var(--ds-text-tertiary); }
+.hvc__radar-execlabel { font-size: var(--ds-text-11); font-weight: 700; margin-top: 3px; }
+.hvc__radar-execlabel[data-tone="green"] { color: var(--tone-green); }
+.hvc__radar-execlabel[data-tone="amber"] { color: var(--tone-amber); }
+.hvc__radar-execlabel[data-tone="red"]   { color: var(--tone-red); }
+
+/* ── Console (HUD beside the radar) ──────────────────────────── */
+.hvc__console { display: flex; flex-direction: column; gap: var(--ds-space-3); min-width: 0; }
+.hvc__console-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--ds-space-2); }
+.hvc__console-align {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: var(--ds-space-3); border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface-card); border: 1px solid var(--hvc-card-border);
+  box-shadow: var(--hvc-card-shadow), var(--hvc-inset-top);
+}
+.hvc__console-align[data-tone="red"]   { border-left: 3px solid #EF4444; }
+.hvc__console-align[data-tone="amber"] { border-left: 3px solid #F59E0B; }
+.hvc__console-align[data-tone="green"] { border-left: 3px solid #10B981; }
+.hvc__console-align-head { display: inline-flex; align-items: center; gap: 5px; font-size: var(--ds-text-13); font-weight: 700; }
+.hvc__console-align-head[data-tone="red"]   { color: var(--tone-red); }
+.hvc__console-align-head[data-tone="amber"] { color: var(--tone-amber); }
+.hvc__console-align-head[data-tone="green"] { color: var(--tone-green); }
+.hvc__console-align-pair { font-size: var(--ds-text-14); color: var(--ds-text-secondary); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.hvc__console-align-pair b { font-weight: 700; font-variant-numeric: tabular-nums; }
+.hvc__console-align-pair b[data-tone="green"] { color: var(--tone-green); }
+.hvc__console-align-pair b[data-tone="amber"] { color: var(--tone-amber); }
+.hvc__console-align-pair b[data-tone="red"]   { color: var(--tone-red); }
+.hvc__console-align-note { font-size: var(--ds-text-11); color: var(--ds-text-tertiary); }
+
+.hvc__console-stats { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ds-space-2); }
+.hvc__console-stat {
+  display: flex; flex-direction: column; gap: 1px; align-items: flex-start;
+  padding: var(--ds-space-2) var(--ds-space-3); border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-sunken); border: 1px solid var(--hvc-card-border); cursor: pointer;
+  transition: background .12s ease;
+}
+.hvc__console-stat:hover { background: var(--ds-surface-hover); }
+.hvc__console-statval { font-size: var(--ds-text-20); font-weight: 700; color: var(--ds-text-primary); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.hvc__console-statval[data-tone="green"] { color: var(--tone-green); }
+.hvc__console-statval[data-tone="amber"] { color: var(--tone-amber); }
+.hvc__console-statval[data-tone="red"]   { color: var(--tone-red); }
+.hvc__console-statlbl { font-size: var(--ds-text-11); color: var(--ds-text-tertiary); }
+.hvc__console-action { display: flex; flex-direction: column; gap: var(--ds-space-2); }
+
+/* ── Radar legend strip ──────────────────────────────────────── */
+.hvc__radar-legend {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--ds-space-4);
+  flex-wrap: wrap; padding: 0 var(--ds-space-1);
+  font-size: var(--ds-text-13); color: var(--ds-text-secondary);
+}
+.hvc__radar-legend-axis { color: var(--ds-text-tertiary); }
+.hvc__radar-legend-dots { display: flex; flex-wrap: wrap; gap: var(--ds-space-3); }
+.hvc__radar-legend-dots span { display: inline-flex; align-items: center; gap: 6px; }
+.hvc__radar-legend-dots .hvc__dot[data-tone="green"] { background: #10B981; }
+.hvc__radar-legend-dots .hvc__dot[data-tone="amber"] { background: #F59E0B; }
+.hvc__radar-legend-dots .hvc__dot[data-tone="red"]   { background: #EF4444; }
+.hvc__radar-legend-dots .hvc__dot[data-tone="neutral"] { background: #94A3B8; }
+
+@media (max-width: 1024px) {
+  .hvc__radarbar { grid-template-columns: 1fr; }
+  .hvc__radar { max-width: 440px; margin: 0 auto; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 7 (2026-05-31) — FOKUS NARATIF. Landing = 1 kalimat verdict
+   besar + SATU viz (radar) + rail aksi ramping. Anti-overload, editorial.
+   ════════════════════════════════════════════════════════════════════ */
+.hvc__narr {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: var(--ds-space-2);
+}
+.hvc__narr-line {
+  margin: 0; max-width: 940px;
+  font-size: clamp(1.4rem, 2.5vw, 2.15rem); font-weight: 600; line-height: 1.32;
+  letter-spacing: -0.01em; color: var(--ds-text-secondary);
+}
+.hvc__narr-num { font-weight: 800; color: var(--ds-text-primary); font-variant-numeric: tabular-nums; }
+.hvc__narr-num[data-tone="green"] { color: var(--tone-green); }
+.hvc__narr-num[data-tone="amber"] { color: var(--tone-amber); }
+.hvc__narr-num[data-tone="red"]   { color: var(--tone-red); }
+.hvc__narr-meta {
+  display: flex; align-items: center; justify-content: center; gap: var(--ds-space-3);
+  font-size: var(--ds-text-13); color: var(--ds-text-tertiary);
+}
+.hvc__narr-stage { width: 100%; display: flex; justify-content: center; margin-top: var(--ds-space-1); }
+.hvc__narr-stage .hvc__radar { max-width: 580px; }
+
+/* Action rail — slim, horizontal */
+.hvc__actionrail {
+  background: rgba(255,255,255,0.92); /* PERF: was frosted blur(16px) — see .ds-card note */
+  border: 1px solid var(--hvc-card-border); border-radius: var(--hvc-card-radius);
+  box-shadow: var(--hvc-card-shadow), var(--hvc-inset-top);
+  padding: var(--ds-space-4) var(--ds-space-5);
+  display: flex; flex-direction: column; gap: var(--ds-space-3);
+}
+[data-theme="dark"] .hvc__actionrail { background: rgba(22,24,31,0.94); }
+.hvc__actionrail[data-tone="red"]   { box-shadow: var(--hvc-card-shadow), var(--hvc-inset-top), inset 3px 0 0 0 #EF4444; }
+.hvc__actionrail[data-tone="amber"] { box-shadow: var(--hvc-card-shadow), var(--hvc-inset-top), inset 3px 0 0 0 #F59E0B; }
+.hvc__actionrail[data-tone="green"] { box-shadow: var(--hvc-card-shadow), var(--hvc-inset-top), inset 3px 0 0 0 #10B981; }
+.hvc__actionrail-head { display: flex; align-items: center; gap: var(--ds-space-2); }
+.hvc__actionrail-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--ds-space-2); }
+.hvc__actionrail-list .hv__exc-row { border: 1px solid var(--hvc-card-border); border-radius: var(--ds-radius-md); padding: var(--ds-space-2) var(--ds-space-3); }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 8 (2026-05-31) — DECK NEON. Home dipaksa gelap (data-theme=dark
+   di wrapper → token --ds-* dark utk subtree) + aksen neon. Radar+console
+   sebagai isi. Mengacu mockup ChatGPT (kanvas gelap, glass, glow).
+   ════════════════════════════════════════════════════════════════════ */
+.home-v2.home-v2--deck {
+  background:
+    radial-gradient(1000px 520px at 98% -8%, rgba(16,185,129,0.16), transparent 55%),
+    radial-gradient(820px 600px at -8% 112%, rgba(56,189,248,0.10), transparent 55%),
+    radial-gradient(640px 420px at 50% 36%, rgba(16,185,129,0.05), transparent 72%),
+    #08090C;
+}
+/* neon radar on the dark deck */
+.home-v2--deck .hvc__radar-rim   { stroke: rgba(52,211,153,0.38); }
+.home-v2--deck .hvc__radar-ring  { stroke: rgba(255,255,255,0.06); }
+.home-v2--deck .hvc__radar-spoke { stroke: rgba(255,255,255,0.06); }
+.home-v2--deck .hvc__radar-sector { fill: rgba(226,232,240,0.62); }
+.home-v2--deck .hvc__radar-corec {
+  stroke: rgba(52,211,153,0.45);
+  filter: drop-shadow(0 0 14px rgba(16,185,129,0.45));
+}
+/* lift glass + add neon edge to panels on the deck */
+.home-v2--deck .hv--cockpit .ds-card,
+.home-v2--deck .hvc__console-align,
+.home-v2--deck .hvc__console-stat {
+  border-color: rgba(255,255,255,0.10);
+}
+.home-v2--deck .hvc__console-align[data-tone="red"]   { box-shadow: 0 0 28px -12px rgba(248,113,133,0.6); }
+.home-v2--deck .hvc__console-align[data-tone="amber"] { box-shadow: 0 0 28px -12px rgba(251,191,36,0.55); }
+.home-v2--deck .hvc__console-align[data-tone="green"] { box-shadow: 0 0 28px -12px rgba(52,211,153,0.5); }
+/* count badge + exception rows pop on dark */
+.home-v2--deck .hvc__count-badge[data-tone="red"]   { background: rgba(248,113,133,0.18); color: #FB7185; }
+.home-v2--deck .hvc__count-badge[data-tone="amber"] { background: rgba(251,191,36,0.18); color: #FBBF24; }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 9 (2026-05-31) — PETA PORTFOLIO sebagai hero (non-radar), ikut
+   tema. Strip HUD ringkas (KPI · eksekusi · selaras? · perlu aksi) di atas
+   peta kuadran full-width. Tidak dipaksa dark.
+   ════════════════════════════════════════════════════════════════════ */
+.hvc__maphero { display: flex; flex-direction: column; gap: var(--ds-space-4); }
+
+.hvc__hud { display: flex; gap: var(--ds-space-3); flex-wrap: wrap; }
+.hvc__hud-item {
+  flex: 1 1 0; min-width: 156px;
+  display: flex; flex-direction: column; gap: 3px; justify-content: center;
+  padding: var(--ds-space-3) var(--ds-space-4);
+  background: var(--hvc-card-bg); border: 1px solid var(--hvc-card-border);
+  border-radius: var(--hvc-card-radius); box-shadow: var(--hvc-card-shadow), var(--hvc-inset-top);
+}
+.hvc__hud-item--btn { cursor: pointer; text-align: left; transition: transform .14s ease, box-shadow .14s ease; }
+.hvc__hud-item--btn:hover { transform: translateY(-2px); box-shadow: var(--hvc-card-shadow-hover), var(--hvc-inset-top); }
+.hvc__hud-item--insight[data-tone="red"]   { border-left: 3px solid var(--tone-red); }
+.hvc__hud-item--insight[data-tone="amber"] { border-left: 3px solid var(--tone-amber); }
+.hvc__hud-item--insight[data-tone="green"] { border-left: 3px solid var(--tone-green); }
+.hvc__hud-val { font-size: clamp(1.6rem, 2.3vw, 2.2rem); font-weight: 800; line-height: 1; color: var(--ds-text-primary); font-variant-numeric: tabular-nums; }
+.hvc__hud-val[data-tone="green"] { color: var(--tone-green); }
+.hvc__hud-val[data-tone="amber"] { color: var(--tone-amber); }
+.hvc__hud-val[data-tone="red"]   { color: var(--tone-red); }
+.hvc__hud-unit { font-size: 0.5em; font-weight: 600; color: var(--ds-text-tertiary); margin-left: 1px; }
+.hvc__hud-verdict { display: inline-flex; align-items: center; gap: 5px; font-size: var(--ds-text-16); font-weight: 700; }
+.hvc__hud-verdict[data-tone="green"] { color: var(--tone-green); }
+.hvc__hud-verdict[data-tone="amber"] { color: var(--tone-amber); }
+.hvc__hud-verdict[data-tone="red"]   { color: var(--tone-red); }
+.hvc__hud-lbl { font-size: var(--ds-text-11); color: var(--ds-text-tertiary); }
+
+.hvc__map-card .hvc__map-svg { max-height: 320px; }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 10 (2026-06-01) — WAWASAN: 4 elemen kreatif di tab Analisis.
+   Forecast (proyeksi Des) · KPI cascade bullet · Aliran status · Kalender
+   beban tenggat. On-identity (program+KPI), bukan risk/finansial.
+   ════════════════════════════════════════════════════════════════════ */
+.hv--cockpit .hvc__grid--insight { grid-template-columns: 1fr 1fr; }
+@media (max-width: 1024px) { .hv--cockpit .hvc__grid--insight { grid-template-columns: 1fr; } }
+
+/* ── Forecast chart ──────────────────────────────────────────── */
+.hvc__fc { display: flex; flex-direction: column; gap: var(--ds-space-2); }
+.hvc__fc-svg { width: 100%; height: auto; display: block; }
+.hvc__fc-target { stroke: var(--ds-border-strong); stroke-width: 1; stroke-dasharray: 4 4; }
+.hvc__fc-actual { stroke: var(--tone-green); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.hvc__fc-forecast { stroke-width: 2.4; stroke-dasharray: 5 4; stroke-linecap: round; }
+.hvc__fc-forecast[data-tone="green"] { stroke: #10B981; }
+.hvc__fc-forecast[data-tone="amber"] { stroke: #F59E0B; }
+.hvc__fc-forecast[data-tone="red"]   { stroke: #EF4444; }
+.hvc__fc-dot { fill: var(--tone-green); }
+.hvc__fc-proj[data-tone="green"] { fill: #10B981; }
+.hvc__fc-proj[data-tone="amber"] { fill: #F59E0B; }
+.hvc__fc-proj[data-tone="red"]   { fill: #EF4444; }
+.hvc__fc-callout { margin: 0; font-size: var(--ds-text-14); color: var(--ds-text-secondary); }
+.hvc__fc-callout b { font-weight: 700; color: var(--ds-text-primary); }
+.hvc__fc-callout[data-tone="red"] b   { color: var(--tone-red); }
+.hvc__fc-callout[data-tone="amber"] b { color: var(--tone-amber); }
+.hvc__fc-callout[data-tone="green"] b { color: var(--tone-green); }
+
+/* ── KPI cascade (bullet per divisi) ─────────────────────────── */
+.hvc__casc { display: flex; flex-direction: column; }
+.hvc__casc-row {
+  display: grid; grid-template-columns: minmax(90px, 1.1fr) 2fr auto; align-items: center;
+  gap: var(--ds-space-3); padding: var(--ds-space-2) 0; border: 0; background: none; cursor: pointer; text-align: left;
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+.hvc__casc-row:last-child { border-bottom: 0; }
+.hvc__casc-row:hover { background: var(--ds-surface-hover); }
+.hvc__casc-name { font-size: var(--ds-text-13); color: var(--ds-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.hvc__casc-val { font-size: var(--ds-text-13); font-weight: 700; font-variant-numeric: tabular-nums; }
+.hvc__casc-val[data-tone="green"] { color: var(--tone-green); }
+.hvc__casc-val[data-tone="amber"] { color: var(--tone-amber); }
+.hvc__casc-val[data-tone="red"]   { color: var(--tone-red); }
+
+/* ── Status flow (pipeline) ──────────────────────────────────── */
+.hvc__flow { display: flex; align-items: stretch; gap: var(--ds-space-2); flex-wrap: wrap; }
+.hvc__flow-node {
+  flex: 1 1 0; min-width: 92px;
+  display: flex; flex-direction: column; gap: 3px;
+  padding: var(--ds-space-3); border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface-sunken); border: 1px solid var(--hvc-card-border);
+}
+.hvc__flow-node[data-tone="red"] { border-color: color-mix(in srgb, #EF4444 40%, var(--hvc-card-border)); box-shadow: 0 0 20px -8px rgba(239,68,68,0.5); }
+.hvc__flow-val { font-size: var(--ds-text-28); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; color: var(--ds-text-primary); }
+.hvc__flow-val[data-tone="green"] { color: var(--tone-green); }
+.hvc__flow-val[data-tone="amber"] { color: var(--tone-amber); }
+.hvc__flow-val[data-tone="red"]   { color: var(--tone-red); }
+.hvc__flow-lbl { font-size: var(--ds-text-11); color: var(--ds-text-tertiary); }
+.hvc__flow-bar { display: block; height: 4px; border-radius: 999px; background: var(--ds-border-subtle); margin-top: 4px; overflow: hidden; }
+.hvc__flow-fill { display: block; height: 100%; border-radius: 999px; }
+.hvc__flow-fill[data-tone="green"]   { background: #10B981; }
+.hvc__flow-fill[data-tone="amber"]   { background: #F59E0B; }
+.hvc__flow-fill[data-tone="red"]     { background: #EF4444; }
+.hvc__flow-fill[data-tone="neutral"] { background: #94A3B8; }
+.hvc__flow-arrow { display: flex; align-items: center; color: var(--ds-text-disabled); font-size: var(--ds-text-16); }
+
+/* ── Deadline calendar heatmap ───────────────────────────────── */
+.hvc__cal { display: grid; grid-template-columns: repeat(11, 1fr); gap: 5px; }
+.hvc__cal-cell {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  min-height: 56px; border-radius: 9px; border: 1px solid var(--ds-border-subtle);
+  background: color-mix(in srgb, var(--ds-neutral-500) calc(var(--i, 0) * 0%), var(--ds-surface-sunken));
+}
+.hvc__cal-cell[data-tone="red"]   { background: color-mix(in srgb, #EF4444 calc(var(--i, 0) * 100%), var(--ds-surface-sunken)); }
+.hvc__cal-cell[data-tone="amber"] { background: color-mix(in srgb, #F59E0B calc(var(--i, 0) * 100%), var(--ds-surface-sunken)); }
+.hvc__cal-cell[data-tone="green"] { background: color-mix(in srgb, #10B981 calc(var(--i, 0) * 100%), var(--ds-surface-sunken)); }
+.hvc__cal-count { font-size: var(--ds-text-16); font-weight: 700; color: var(--ds-text-primary); font-variant-numeric: tabular-nums; }
+.hvc__cal-lbl { font-size: 10px; color: var(--ds-text-tertiary); white-space: nowrap; }
+@media (max-width: 1024px) { .hvc__cal { grid-template-columns: repeat(6, 1fr); } }
+
+/* ── Momentum trend (smooth flowing sparkline) ───────────────── */
+.hv--cockpit .hvc__mhead { align-items: center; gap: var(--ds-space-4); }
+.hvc__mtrend { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.hvc__mtrend .ds-sparkline { width: 100%; height: auto; }
+.hvc__mtrend-cap { font-size: var(--ds-text-11); color: var(--ds-text-tertiary); }
+
+/* Forecast line — slightly heavier + smooth glow, less "ruler" */
+.hvc__fc-actual { stroke-width: 2.6; }
+.hvc__fc-forecast { stroke-width: 2.6; }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 13 (2026-06-01) — HERO STATS bergaya mockup: tiap kartu = angka
+   besar + viz TERTANAM (sparkline area mengalir / gauge+legend / 3D accent).
+   Theme-agnostic. Mengganti HUD angka-telanjang.
+   ════════════════════════════════════════════════════════════════════ */
+.hvc__hud { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--ds-space-3); }
+@media (max-width: 1280px) { .hvc__hud { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px)  { .hvc__hud { grid-template-columns: 1fr; } }
+
+.hv--cockpit .hvc__hcard {
+  position: relative; overflow: hidden; min-height: 158px;
+  display: flex; flex-direction: column; cursor: default; text-align: left;
+}
+button.hvc__hcard { cursor: pointer; }
+button.hvc__hcard:hover { box-shadow: var(--hvc-card-shadow-hover), var(--hvc-inset-top); transform: translateY(-2px); transition: transform .14s ease, box-shadow .14s ease; }
+.hvc__hcard[data-tone="red"]   { box-shadow: var(--hvc-card-shadow), var(--hvc-inset-top), inset 3px 0 0 0 #EF4444; }
+.hvc__hcard[data-tone="amber"] { box-shadow: var(--hvc-card-shadow), var(--hvc-inset-top), inset 3px 0 0 0 #F59E0B; }
+.hvc__hcard[data-tone="green"] { box-shadow: var(--hvc-card-shadow), var(--hvc-inset-top), inset 3px 0 0 0 #10B981; }
+
+.hvc__hcard-body { display: flex; flex-direction: column; gap: 5px; padding: var(--ds-space-4) var(--ds-space-4) var(--ds-space-3); position: relative; z-index: 1; }
+.hvc__hcard-eyebrow { font-size: var(--ds-text-11); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ds-text-tertiary); }
+.hvc__hcard-figure { display: flex; align-items: baseline; gap: var(--ds-space-2); flex-wrap: wrap; }
+.hvc__hcard-big {
+  font-size: clamp(2.1rem, 3vw, 2.9rem); font-weight: 800; line-height: 1;
+  letter-spacing: -0.03em; color: var(--ds-text-primary); font-variant-numeric: tabular-nums;
+}
+.hvc__hcard-big[data-tone="green"] { color: var(--tone-green); }
+.hvc__hcard-big[data-tone="amber"] { color: var(--tone-amber); }
+.hvc__hcard-big[data-tone="red"]   { color: var(--tone-red); }
+.hvc__hcard-unit { font-size: 0.42em; font-weight: 600; color: var(--ds-text-tertiary); margin-left: 3px; }
+.hvc__hcard-foot { display: inline-flex; align-items: center; gap: 5px; font-size: var(--ds-text-13); color: var(--ds-text-secondary); }
+
+/* embedded flowing trend pinned to the card bottom (the mockup signature) */
+.hvc__hcard-spark { position: absolute; left: 0; right: 0; bottom: 0; line-height: 0; pointer-events: none; }
+.hvc__hcard-spark .ds-sparkline { width: 100%; height: auto; display: block; }
+
+/* footer "Lihat … →" link — uniform card affordance (mockup) */
+.hvc__hcard-link {
+  margin-top: auto;
+  align-self: flex-start;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: var(--ds-space-2) var(--ds-space-4) var(--ds-space-3);
+  font-family: inherit; font-size: var(--ds-text-12); font-weight: 600;
+  color: var(--ds-text-secondary);
+  background: none; border: 0; cursor: pointer;
+  position: relative; z-index: 2;
+  transition: color .12s ease;
+}
+.hvc__hcard-link--static { cursor: inherit; }
+.hvc__hcard-link:hover { color: var(--ds-text-primary); }
+.hvc__hcard-link .hvc__arrow { transition: transform .12s ease; }
+.hvc__hcard-link:hover .hvc__arrow,
+button.hvc__hcard:hover .hvc__arrow { transform: translateX(3px); }
+/* lift the embedded spark clear of the footer link so they don't collide */
+.hvc__hcard--kpi .hvc__hcard-spark,
+.hvc__hcard--late .hvc__hcard-spark { bottom: 26px; opacity: 0.7; }
+
+/* execution: gauge + legend side by side */
+.hvc__hcard--exec .hvc__hcard-exec-row { display: flex; align-items: center; gap: var(--ds-space-4); }
+.hvc__hcard-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; flex: 1; }
+.hvc__hcard-legend li { display: flex; align-items: center; gap: 7px; font-size: var(--ds-text-13); color: var(--ds-text-secondary); }
+.hvc__hcard-legend li b { margin-left: auto; font-weight: 700; color: var(--ds-text-primary); font-variant-numeric: tabular-nums; }
+.hvc__hcard-legend .hvc__dot[data-tone="green"] { background: #10B981; }
+.hvc__hcard-legend .hvc__dot[data-tone="amber"] { background: #F59E0B; }
+.hvc__hcard-legend .hvc__dot[data-tone="red"]   { background: #EF4444; }
+.hvc__hcard-legend .hvc__dot[data-tone="neutral"] { background: #94A3B8; }
+
+/* ── Traceability (2026-06-02): elemen display jadi clickable (deep-link/drill).
+   Semua = reset tombol + warisi layout dari kelas dasarnya + hover halus. ── */
+.hvc__legend-btn { display: flex; align-items: center; gap: 7px; width: 100%; padding: 0; background: none; border: 0; font: inherit; color: var(--ds-text-secondary); text-align: left; cursor: pointer; transition: color .12s ease; }
+.hvc__legend-btn:hover { color: var(--ds-text-primary); }
+.hvc__mstat--link { border-left: 0; border-right: 0; border-bottom: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; border-radius: var(--ds-radius-sm); transition: opacity .12s ease; }
+.hvc__mstat--link:hover { opacity: .7; }
+.hvc__act-row--link { width: 100%; border-top: 0; border-left: 0; border-right: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; transition: color .12s ease; }
+.hvc__act-row--link:hover .hvc__act-text { color: var(--ds-text-primary); }
+.hvc__kpi-divbar--btn { padding: 1px 0; background: none; border: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; transition: opacity .12s ease; }
+.hvc__kpi-divbar--btn:hover { opacity: .72; }
+@media (prefers-reduced-motion: reduce) {
+  .hvc__legend-btn, .hvc__mstat--link, .hvc__act-row--link, .hvc__kpi-divbar--btn { transition: none; }
+}
+
+/* gap card: 3D isometric accent, glowing */
+.hvc__hcard--gap .hvc__hcard-motif {
+  position: absolute; right: -6px; bottom: -10px; width: 128px; height: 128px;
+  z-index: 0; pointer-events: none; opacity: 0.9;
+}
+.hvc__hcard--gap .hvc__motif { position: static; inset: auto; width: 100%; height: 100%; opacity: 1; }
+.hvc__hcard--gap .hvc__hcard-foot .hvc__tile-glyph { display: none; }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 17 (2026-06-01) — DENSITY PASS: rapatkan agar mendekati "1 layar"
+   mockup. Hero cards lebih pendek, Peta drastis dikecilkan (redundan dgn
+   Execution Map 3×3), KPI area chart isi kartu, Map jadi lingkaran pastel.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* tighter overall rhythm */
+.hv.hv--cockpit { gap: var(--ds-space-4); }
+
+/* hero cards — shorter, less dead space */
+.hv--cockpit .hvc__hcard { min-height: 124px; }
+.hv--cockpit .hvc__hcard-body { padding: var(--ds-space-3) var(--ds-space-4) var(--ds-space-2); gap: 3px; }
+.hv--cockpit .hvc__hcard-big { font-size: clamp(1.9rem, 2.6vw, 2.5rem); }
+/* KPI area chart fills the card bottom (taller, like mockup) */
+.hvc__hcard--kpi .hvc__hcard-spark { opacity: 0.9; }
+.hvc__hcard--kpi .hvc__hcard-spark .ds-sparkline { height: 64px; }
+/* gap card motif smaller so number breathes */
+.hvc__hcard--gap .hvc__hcard-motif { width: 104px; height: 104px; right: -10px; bottom: -14px; }
+
+/* Peta Portfolio — fill panel width fully (no letterbox); wide-short viewBox.
+ * width:100% + height:auto → SVG spans the whole card, no left/right gap. */
+.hvc__map-card .hvc__map-svg { width: 100%; height: auto; max-height: none; display: block; }
+.hv--cockpit .hvc__maphero { gap: var(--ds-space-3); }
+
+/* Execution Map — soft pastel circles + "Program" caption (mockup) */
+.hvc__xmap-cell {
+  aspect-ratio: 1 / 1; border-radius: 50%; min-height: 52px;
+  flex-direction: column; gap: 0; line-height: 1;
+}
+.hvc__xmap-cell[data-tone="green"] { background: color-mix(in srgb, #10B981 calc(8% + var(--i,0) * 30%), var(--ds-surface-card)); }
+.hvc__xmap-cell[data-tone="amber"] { background: color-mix(in srgb, #F59E0B calc(8% + var(--i,0) * 30%), var(--ds-surface-card)); }
+.hvc__xmap-cell[data-tone="red"]   { background: color-mix(in srgb, #EF4444 calc(8% + var(--i,0) * 32%), var(--ds-surface-card)); }
+.hvc__xmap-count { font-size: var(--ds-text-20); display: flex; flex-direction: column; align-items: center; line-height: 1.05; }
+.hvc__xmap-cap { font-size: 9px; font-weight: 500; color: var(--ds-text-tertiary); letter-spacing: 0.02em; }
+.hvc__xmap-grid { gap: var(--ds-space-2); }
+/* soft ring outline on map circles (mockup) */
+.hvc__xmap-cell { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, currentColor 0%, transparent); }
+.hvc__xmap-cell[data-tone="green"] { border: 1.5px solid color-mix(in srgb, #10B981 35%, transparent); }
+.hvc__xmap-cell[data-tone="amber"] { border: 1.5px solid color-mix(in srgb, #F59E0B 35%, transparent); }
+.hvc__xmap-cell[data-tone="red"]   { border: 1.5px solid color-mix(in srgb, #EF4444 38%, transparent); }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 18 (2026-06-01) — tutup sisa gap: divisi 6-baris+toggle, KPI area
+   penuh, Quick Insight strip, avatar inisial aktivitas, ring Execution Map.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Eksekusi per divisi — toggle + rows */
+.hvc__divp { display: flex; flex-direction: column; gap: var(--ds-space-2); }
+.hvc__divp-toggle { display: inline-flex; align-self: flex-start; gap: 2px; padding: 2px; border-radius: 999px; background: var(--ds-surface-sunken); }
+.hvc__divp-toggle button {
+  border: 0; background: none; cursor: pointer; padding: 3px 12px; border-radius: 999px;
+  font-size: var(--ds-text-11); font-weight: 600; color: var(--ds-text-tertiary);
+}
+.hvc__divp-toggle button[data-active="true"] { background: var(--ds-surface-card); color: var(--ds-text-primary); box-shadow: var(--ds-shadow-popover); }
+.hvc__divrow { grid-template-columns: 8px 52px 1fr auto; }
+.hvc__divrow-dot { width: 7px; height: 7px; border-radius: 50%; }
+.hvc__divrow-dot[data-tone="green"] { background: #10B981; }
+.hvc__divrow-dot[data-tone="amber"] { background: #F59E0B; }
+.hvc__divrow-dot[data-tone="red"]   { background: #EF4444; }
+.hvc__divrow-val[data-tone="green"] { color: var(--tone-green); }
+.hvc__divrow-val[data-tone="amber"] { color: var(--tone-amber); }
+
+/* KPI hero — area chart taller, fills the card bottom */
+.hvc__hcard--kpi .hvc__hcard-spark .ds-sparkline { height: 72px; }
+
+/* Activity avatars (initials, no backend) */
+.hvc__act-avatar {
+  flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
+  color: var(--tone-green); background: color-mix(in srgb, var(--tone-green) 13%, transparent);
+  position: relative; z-index: 1;
+}
+[data-theme="dark"] .hvc__act-avatar { color: #34D399; background: rgba(52,211,153,0.16); }
+.hv--cockpit .hvc__act-row:not(:last-child) .hvc__act-avatar::after {
+  content: ''; position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
+  width: 2px; height: calc(100% + var(--ds-space-3)); background: linear-gradient(var(--ds-border-default), transparent);
+}
+
+/* Quick Insight strip — beside greeting (compact, 1 sentence + spark) */
+.hvc__qinsight {
+  display: flex; align-items: center; gap: var(--ds-space-3);
+  padding: var(--ds-space-2) var(--ds-space-4);
+  background: var(--hvc-card-bg); border: 1px solid var(--hvc-card-border);
+  border-radius: 999px; box-shadow: var(--hvc-card-shadow), var(--hvc-inset-top);
+  max-width: 460px;
+}
+.hvc__qinsight-icon { flex-shrink: 0; color: var(--tone-green); display: flex; }
+.hvc__qinsight-text { font-size: var(--ds-text-13); color: var(--ds-text-secondary); line-height: 1.35; }
+.hvc__qinsight-text b { color: var(--ds-text-primary); font-weight: 700; }
+@media (max-width: 1024px) { .hvc__qinsight { display: none; } }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 19 (2026-06-01) — CRAFT PASS "memukau": dari rapi-tapi-flat →
+   berkedalaman & hidup. Border keras dilunakkan, shadow berlapis, angka
+   hero menyala (gradient + glow), top-accent gradient (ganti bar 3px kaku),
+   bubble Execution Map glossy, heatmap berdimensi, entrance staggered.
+   PERF: hanya opacity/shadow/gradient + transform HANYA hover & entrance
+   one-shot (transient, tak persist) — patuh pakem anti-ghosting & no-backdrop.
+   ════════════════════════════════════════════════════════════════════ */
+
+.hv--cockpit { --hvc-card-radius: 18px; }
+
+/* — Floating depth on every card: lunakkan hairline, shadow ambient+key — */
+.hv--cockpit .ds-card,
+.hv--cockpit .hvc__hcard {
+  border-color: color-mix(in srgb, var(--hvc-card-border) 58%, transparent);
+  box-shadow:
+    0 1px 1.5px rgba(16,24,40,0.04),
+    0 8px 20px -10px rgba(16,24,40,0.10),
+    0 26px 56px -30px rgba(16,24,40,0.20),
+    var(--hvc-inset-top);
+}
+[data-theme="dark"] .hv--cockpit .ds-card,
+[data-theme="dark"] .hv--cockpit .hvc__hcard {
+  border-color: rgba(255,255,255,0.06);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.05) inset,
+    0 10px 24px -12px rgba(0,0,0,0.55),
+    0 32px 64px -32px rgba(0,0,0,0.8);
+}
+
+/* — Toned hero cards: glowing tapered top accent + tone ambient glow
+     (replaces the rigid inset 3px left bar). Matches the mockup. — */
+.hv--cockpit .hvc__hcard[data-tone="green"] { --tone: #10B981; --tone-soft: rgba(16,185,129,0.30); }
+.hv--cockpit .hvc__hcard[data-tone="amber"] { --tone: #F59E0B; --tone-soft: rgba(245,158,11,0.30); }
+.hv--cockpit .hvc__hcard[data-tone="red"]   { --tone: #EF4444; --tone-soft: rgba(239,68,68,0.28); }
+.hv--cockpit .hvc__hcard[data-tone],
+.hv--cockpit .hvc__panel[data-tone] {
+  box-shadow:
+    0 1px 1.5px rgba(16,24,40,0.04),
+    0 8px 20px -10px rgba(16,24,40,0.09),
+    0 26px 56px -28px var(--tone-soft),
+    var(--hvc-inset-top);
+}
+.hv--cockpit .hvc__panel[data-tone] { position: relative; }
+.hv--cockpit .hvc__panel[data-tone="green"] { --tone: #10B981; --tone-soft: rgba(16,185,129,0.26); }
+.hv--cockpit .hvc__panel[data-tone="amber"] { --tone: #F59E0B; --tone-soft: rgba(245,158,11,0.26); }
+.hv--cockpit .hvc__panel[data-tone="red"]   { --tone: #EF4444; --tone-soft: rgba(239,68,68,0.26); }
+.hv--cockpit .hvc__hcard[data-tone]::after,
+.hv--cockpit .hvc__panel[data-tone]::after {
+  content: ''; position: absolute; top: 0; left: 18px; right: 18px; height: 3px;
+  border-radius: 0 0 4px 4px;
+  background: linear-gradient(90deg, var(--tone) 0%, color-mix(in srgb, var(--tone) 28%, transparent) 55%, transparent 88%);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--tone) 52%, transparent);
+  pointer-events: none; z-index: 2;
+}
+[data-theme="dark"] .hv--cockpit .hvc__hcard[data-tone],
+[data-theme="dark"] .hv--cockpit .hvc__panel[data-tone] {
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.05) inset,
+    0 10px 24px -12px rgba(0,0,0,0.5),
+    0 30px 60px -28px color-mix(in srgb, var(--tone) 38%, transparent);
+}
+
+/* — Hero numbers ignite: gradient text + tone glow — */
+.hv--cockpit .hvc__hcard-big[data-tone] {
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+.hv--cockpit .hvc__hcard-big[data-tone="green"] { background-image: linear-gradient(140deg, #34D399, #047857); filter: drop-shadow(0 3px 10px rgba(16,185,129,0.28)); }
+.hv--cockpit .hvc__hcard-big[data-tone="amber"] { background-image: linear-gradient(140deg, #FBBF24, #B45309); filter: drop-shadow(0 3px 10px rgba(245,158,11,0.28)); }
+.hv--cockpit .hvc__hcard-big[data-tone="red"]   { background-image: linear-gradient(140deg, #FB7185, #B91C1C); filter: drop-shadow(0 3px 10px rgba(239,68,68,0.26)); }
+.hv--cockpit .hvc__hcard-big .hvc__hcard-unit {
+  -webkit-text-fill-color: var(--ds-text-tertiary); color: var(--ds-text-tertiary);
+  filter: none;
+}
+
+/* — Execution Map: pastel flat → glossy bubbles (radial gloss + soft drop) — */
+.hv--cockpit .hvc__xmap-cell {
+  position: relative; overflow: hidden;
+  box-shadow: 0 5px 13px -6px rgba(16,24,40,0.20), inset 0 1px 0 rgba(255,255,255,0.5);
+  transition: transform .16s cubic-bezier(0.16,1,0.3,1), box-shadow .16s ease;
+}
+.hv--cockpit .hvc__xmap-cell::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 0;
+  background: radial-gradient(125% 100% at 32% 16%, rgba(255,255,255,0.58), rgba(255,255,255,0) 52%);
+}
+.hv--cockpit .hvc__xmap-count { position: relative; z-index: 1; }
+.hv--cockpit .hvc__xmap-cell:hover { box-shadow: 0 9px 22px -8px rgba(16,24,40,0.30), inset 0 1px 0 rgba(255,255,255,0.6); }
+[data-theme="dark"] .hv--cockpit .hvc__xmap-cell {
+  box-shadow: 0 5px 13px -6px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+[data-theme="dark"] .hv--cockpit .hvc__xmap-cell::after {
+  background: radial-gradient(125% 100% at 32% 16%, rgba(255,255,255,0.16), rgba(255,255,255,0) 55%);
+}
+
+/* — Heatmap cells: flat → subtle dimensional tiles — */
+.hv--cockpit .hvc__heat-cell {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.38), 0 2px 7px -4px rgba(16,24,40,0.14);
+}
+[data-theme="dark"] .hv--cockpit .hvc__heat-cell {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 3px 9px -5px rgba(0,0,0,0.5);
+}
+
+/* — Section accent bar: thicker, brighter glow — */
+.hv--cockpit .hvc__sec-title::before {
+  width: 5px; height: 1.1em;
+  box-shadow: 0 0 14px rgba(16,185,129,0.6), 0 0 4px rgba(16,185,129,0.4);
+}
+
+/* — Entrance: one-shot staggered rise (transient transform → no ghosting) — */
+@keyframes hvc-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+.hv--cockpit .hvc__hud > *,
+.hv--cockpit .hvc__grid--cmd > *,
+.hv--cockpit .hvc__grid--mid > *,
+.hv--cockpit .hvc__tl-card,
+.hv--cockpit .hvc__shortcut {
+  animation: hvc-rise 560ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.hv--cockpit .hvc__hud > *:nth-child(1) { animation-delay: 20ms; }
+.hv--cockpit .hvc__hud > *:nth-child(2) { animation-delay: 90ms; }
+.hv--cockpit .hvc__hud > *:nth-child(3) { animation-delay: 160ms; }
+.hv--cockpit .hvc__hud > *:nth-child(4) { animation-delay: 230ms; }
+.hv--cockpit .hvc__grid--cmd > *:nth-child(1) { animation-delay: 120ms; }
+.hv--cockpit .hvc__grid--cmd > *:nth-child(2) { animation-delay: 180ms; }
+.hv--cockpit .hvc__grid--cmd > *:nth-child(3) { animation-delay: 240ms; }
+.hv--cockpit .hvc__grid--cmd > *:nth-child(4) { animation-delay: 300ms; }
+.hv--cockpit .hvc__grid--cmd > *:nth-child(5) { animation-delay: 360ms; }
+.hv--cockpit .hvc__grid--mid > *:nth-child(1) { animation-delay: 150ms; }
+.hv--cockpit .hvc__grid--mid > *:nth-child(2) { animation-delay: 220ms; }
+.hv--cockpit .hvc__grid--mid > *:nth-child(3) { animation-delay: 290ms; }
+@media (prefers-reduced-motion: reduce) {
+  .hv--cockpit .hvc__hud > *,
+  .hv--cockpit .hvc__grid--cmd > *,
+  .hv--cockpit .hvc__grid--mid > *,
+  .hv--cockpit .hvc__tl-card,
+  .hv--cockpit .hvc__shortcut { animation: none; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 20 (2026-06-01) — REVIEW FIX: tutup dead-space hero, sel "0"
+   Execution Map, top-accent lebih tegas di light.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* — Dead space: pusatkan blok angka di kartu-stat (③ tertinggal, ④ selisih)
+     supaya void di tengah hilang; eyebrow ikut naik-turun sebagai 1 cluster. — */
+.hv--cockpit .hvc__hcard--late .hvc__hcard-body,
+.hv--cockpit .hvc__hcard--gap  .hvc__hcard-body {
+  flex: 1 1 auto; justify-content: center; gap: 4px;
+}
+/* exec card: gauge sedikit dikecilkan + cluster ditengahkan → tinggi baris turun */
+.hv--cockpit .hvc__hcard--exec .hvc__hcard-body { flex: 1 1 auto; justify-content: center; }
+.hv--cockpit .hvc__hcard--exec .hvc__hcard-exec-row { gap: var(--ds-space-3); }
+/* KPI card: rapatkan & tengahkan kolom kiri terhadap bars kanan */
+.hv--cockpit .hvc__hcard--kpi .hvc__hcard-body { flex: 1 1 auto; justify-content: center; }
+
+/* — Execution Map: sel kosong = "0" muted, bukan lubang krem — */
+.hv--cockpit .hvc__xmap-cell[data-empty] {
+  box-shadow: none;
+  border-color: color-mix(in srgb, var(--ds-border-subtle) 65%, transparent);
+}
+.hv--cockpit .hvc__xmap-cell[data-empty]::after { display: none; }
+.hvc__xmap-count--zero {
+  font-size: var(--ds-text-18); font-weight: 600;
+  color: var(--ds-text-tertiary); opacity: 0.55;
+}
+
+/* — Top-accent lebih tegas (terutama light): solid lebih panjang + glow turun — */
+.hv--cockpit .hvc__hcard[data-tone]::after,
+.hv--cockpit .hvc__panel[data-tone]::after {
+  left: 14px; right: 14px; height: 3px;
+  background: linear-gradient(90deg, var(--tone) 0%, var(--tone) 20%, color-mix(in srgb, var(--tone) 32%, transparent) 62%, transparent 92%);
+  box-shadow: 0 1px 11px color-mix(in srgb, var(--tone) 60%, transparent);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 21 (2026-06-01) — round 3: gapviz KPI↔Eksekusi, shortcut chips,
+   hover micro-interaction (hover-only = aman ghosting), timeline lebih hidup.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* — Mini-viz Selisih: KPI (lagging) vs Eksekusi (leading), skala sama → gap terlihat — */
+.hvc__gapviz { display: flex; flex-direction: column; gap: 7px; margin-top: var(--ds-space-2); width: 100%; }
+.hvc__gapviz-row { display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 9px; }
+.hvc__gapviz-lbl { font-size: var(--ds-text-11); color: var(--ds-text-tertiary); }
+.hvc__gapviz-track { height: 8px; border-radius: 999px; background: color-mix(in srgb, var(--ds-text-primary) 8%, transparent); overflow: hidden; }
+.hvc__gapviz-fill { display: block; height: 100%; border-radius: 999px; min-width: 4px; }
+.hvc__gapviz-fill[data-k="kpi"] { background: linear-gradient(90deg, #34D399, #059669); box-shadow: 0 0 8px rgba(16,185,129,0.45); }
+.hvc__gapviz-fill[data-k="exec"][data-tone="red"]   { background: linear-gradient(90deg, #FB7185, #DC2626); box-shadow: 0 0 8px rgba(239,68,68,0.4); }
+.hvc__gapviz-fill[data-k="exec"][data-tone="amber"] { background: linear-gradient(90deg, #FBBF24, #D97706); box-shadow: 0 0 8px rgba(245,158,11,0.4); }
+.hvc__gapviz-fill[data-k="exec"][data-tone="green"] { background: linear-gradient(90deg, #34D399, #059669); }
+.hvc__gapviz-val { font-size: var(--ds-text-12); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ds-text-secondary); }
+.hvc__gapviz-val[data-k="kpi"] { color: var(--tone-green); }
+
+/* — Shortcut: 4 kartu besar → chip pill ringkas (pelengkap, bukan duplikat sidebar) — */
+.hvc__shortcuts--chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-space-2); }
+.hvc__shortcuts-lead { font-size: var(--ds-text-11); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ds-text-tertiary); margin-right: var(--ds-space-1); }
+.hv--cockpit .hvc__shortcuts--chips .hvc__shortcut {
+  flex: 0 0 auto; flex-direction: row; align-items: center; gap: 8px;
+  min-height: 0; padding: 6px 15px 6px 7px; border-radius: 999px;
+  background: var(--hvc-card-bg); border: 1px solid color-mix(in srgb, var(--hvc-card-border) 70%, transparent);
+  box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 6px 14px -10px rgba(16,24,40,0.18);
+  transition: transform .16s cubic-bezier(0.16,1,0.3,1), box-shadow .16s ease;
+}
+.hv--cockpit .hvc__shortcuts--chips .hvc__shortcut:hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(16,24,40,0.06), 0 12px 24px -12px rgba(16,24,40,0.28); }
+.hv--cockpit .hvc__shortcuts--chips .hvc__shortcut-icon { width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0; }
+.hv--cockpit .hvc__shortcuts--chips .hvc__shortcut-icon svg { width: 15px; height: 15px; }
+.hv--cockpit .hvc__shortcuts--chips .hvc__shortcut-label { font-size: var(--ds-text-13); font-weight: 500; }
+
+/* — Hover micro-interaction: kartu naik + glow menguat (hover-only) — */
+.hv--cockpit .ds-card { transition: transform .18s cubic-bezier(0.16,1,0.3,1), box-shadow .18s ease; }
+.hv--cockpit .ds-card:hover { transform: translateY(-2px); }
+.hv--cockpit .hvc__hcard[data-tone]:hover,
+.hv--cockpit .hvc__panel[data-tone]:hover {
+  box-shadow:
+    0 2px 4px rgba(16,24,40,0.05),
+    0 12px 26px -10px rgba(16,24,40,0.12),
+    0 34px 68px -30px var(--tone-soft),
+    var(--hvc-inset-top);
+}
+/* bubble Execution Map: pop on hover */
+.hv--cockpit .hvc__xmap-cell:hover { transform: scale(1.07); z-index: 2; }
+/* heat cell already scales; strengthen the glow */
+.hv--cockpit .hvc__heat-cell:hover { transform: scale(1.05); box-shadow: 0 8px 18px -7px rgba(0,0,0,0.28); z-index: 2; }
+
+/* — Timeline: garis gradient urgensi (kiri overdue → kanan aman), node glow, hover — */
+.hv--cockpit .hvc__tl-line {
+  height: 3px; top: 46px; border-radius: 999px; opacity: 0.55;
+  background: linear-gradient(90deg, #EF4444 0%, #F59E0B 52%, #10B981 100%);
+}
+.hv--cockpit .hvc__tl-node[data-tone="red"]   { box-shadow: 0 0 0 2.5px color-mix(in srgb, #EF4444 30%, transparent), 0 0 12px rgba(239,68,68,0.6); }
+.hv--cockpit .hvc__tl-node[data-tone="amber"] { box-shadow: 0 0 0 2.5px color-mix(in srgb, #F59E0B 30%, transparent), 0 0 10px rgba(245,158,11,0.5); }
+.hv--cockpit .hvc__tl-node[data-tone="green"] { box-shadow: 0 0 0 2.5px color-mix(in srgb, #10B981 30%, transparent), 0 0 10px rgba(16,185,129,0.45); }
+.hv--cockpit .hvc__tl-stop { transition: transform .16s cubic-bezier(0.16,1,0.3,1); }
+.hv--cockpit .hvc__tl-stop:hover { transform: translateY(-3px); }
+.hv--cockpit .hvc__tl-stop:hover .hvc__tl-node { box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 0%, transparent), 0 0 16px color-mix(in srgb, var(--ds-text-primary) 20%, transparent); }
+.hv--cockpit .hvc__tl-stop:hover .hvc__tl-name { color: var(--ds-green-700, var(--tone-green)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .hv--cockpit .ds-card,
+  .hv--cockpit .hvc__shortcuts--chips .hvc__shortcut,
+  .hv--cockpit .hvc__tl-stop { transition: none; }
+  .hv--cockpit .ds-card:hover,
+  .hv--cockpit .hvc__xmap-cell:hover,
+  .hv--cockpit .hvc__heat-cell:hover,
+  .hv--cockpit .hvc__tl-stop:hover { transform: none; }
+}
+
+/* ── Command density (ITERASI 21b): rapatkan driver tinggi + center isi panel
+   pendek agar void seimbang (bukan menumpuk di bawah → terlihat "kurang jadi"). */
+.hv--cockpit .hvc__mstat { padding: var(--ds-space-2) 0; }
+.hv--cockpit .hvc__mstats { gap: 0 var(--ds-space-3); }
+/* panel-panel isi-ringkas: pusatkan blok inti secara vertikal */
+.hv--cockpit .hvc__grid--cmd > .hvc__panel { justify-content: flex-start; }
+.hv--cockpit .hvc__xmap,
+.hv--cockpit .hvc__divp { margin-block: auto; }
+.hv--cockpit .hvc__xmap-grid { align-content: center; }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 22 (2026-06-01) — round 4 review fixes: void KPI, sel-0 konsisten,
+   divisi lebih berbobot, heatmap 'Selesai' teal (bukan abu mati), napas merah.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* (1) Void kartu KPI — tengahkan kolom kiri thd 3 bar divisi kanan */
+.hv--cockpit .hvc__kpi-split { align-items: center; }
+.hv--cockpit .hvc__kpi-left { justify-content: center; }
+
+/* (3) Sel "0" Execution Map — konsisten dgn sel berisi (angka + caption, muted) */
+.hvc__xmap-count--zero { font-size: var(--ds-text-18); font-weight: 700; color: var(--ds-text-tertiary); opacity: 0.6; }
+
+/* (4) Eksekusi per divisi — kolom spark dilebarkan (match width 60) + lebih jelas */
+.hv--cockpit .hvc__divrow { grid-template-columns: 8px 52px 1fr 62px auto; }
+.hvc__divrow-spark { opacity: 0.9; }
+
+/* (6) Heatmap 'Selesai' — teal kalem, bukan abu mati (selesai = capaian positif) */
+.hv--cockpit .hvc__heat-cell[data-col="selesai"][data-tone] {
+  background: color-mix(in srgb, #14B8A6 calc(var(--i,0) * 92%), var(--ds-surface-sunken));
+}
+[data-theme="dark"] .hv--cockpit .hvc__heat-cell[data-col="selesai"][data-tone] {
+  background: color-mix(in srgb, #2DD4BF calc(var(--i,0) * 72%), var(--ds-surface-sunken));
+}
+
+/* (5) Napas dari merah — lembutkan GLOW top-accent (kurangi neon) + turunkan
+   intensitas ambient merah kartu. Urgensi tetap dibawa angka & isi, bukan glow. */
+.hv--cockpit .hvc__hcard[data-tone]::after,
+.hv--cockpit .hvc__panel[data-tone]::after {
+  box-shadow: 0 1px 7px color-mix(in srgb, var(--tone) 40%, transparent);
+}
+.hv--cockpit .hvc__hcard[data-tone="red"]  { --tone-soft: rgba(239,68,68,0.18); }
+.hv--cockpit .hvc__panel[data-tone="red"]  { --tone-soft: rgba(239,68,68,0.16); }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 23 (2026-06-01) — P0 NARASI & HIERARKI: sapaan 1-baris slim,
+   VERDICT banner sebagai editorial lead, Decision Inbox naik ke hero
+   (ganti kartu Selisih), KPI dibuat dominan. "Wall of widgets" → cockpit.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* — Sapaan slim: 1 baris, kecil, di bawah topbar (verdict yang memimpin) — */
+.hvc__head--slim { flex-direction: row; align-items: baseline; justify-content: flex-start; gap: var(--ds-space-3); flex-wrap: wrap; padding-top: var(--ds-space-4); padding-bottom: var(--ds-space-2); }
+.hv--cockpit .hvc__head--slim .hv__greeting { font-size: clamp(1.05rem, 1.5vw, 1.35rem); font-weight: var(--ds-weight-regular); color: var(--ds-text-secondary); }
+.hv--cockpit .hvc__head--slim .hv__greeting-name { color: var(--ds-text-primary); font-weight: 700; }
+.hvc__head--slim .hvc__head-sub { font-size: var(--ds-text-12); color: var(--ds-text-tertiary); }
+
+/* — VERDICT banner — pemimpin visual: keadaan + sebab + aksi — */
+.hvc__verdict[data-tone="red"]   { --vt: #EF4444; }
+.hvc__verdict[data-tone="amber"] { --vt: #F59E0B; }
+.hvc__verdict[data-tone="green"] { --vt: #10B981; }
+.hvc__verdict[data-tone="neutral"] { --vt: #94A3B8; }
+.hvc__verdict {
+  display: flex; align-items: center; gap: var(--ds-space-3);
+  width: 100%; text-align: left; cursor: pointer; font-family: inherit;
+  padding: var(--ds-space-3) var(--ds-space-4);
+  border-radius: 16px;
+  background: linear-gradient(100deg, color-mix(in srgb, var(--vt) 11%, var(--ds-surface-card)) 0%, var(--ds-surface-card) 62%);
+  border: 1px solid color-mix(in srgb, var(--vt) 30%, var(--ds-border-subtle));
+  box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 12px 30px -16px color-mix(in srgb, var(--vt) 45%, transparent);
+  transition: transform .16s cubic-bezier(0.16,1,0.3,1), box-shadow .16s ease;
+}
+.hvc__verdict:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(16,24,40,0.06), 0 18px 40px -16px color-mix(in srgb, var(--vt) 55%, transparent); }
+.hvc__verdict-icon {
+  flex-shrink: 0; width: 34px; height: 34px; border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--vt) 16%, transparent); color: var(--vt);
+}
+.hvc__verdict-icon svg { width: 18px; height: 18px; }
+.hvc__verdict-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.hvc__verdict-label { font-size: var(--ds-text-12); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: color-mix(in srgb, var(--vt) 72%, var(--ds-text-primary)); }
+.hvc__verdict-sub { font-size: var(--ds-text-15); color: var(--ds-text-secondary); line-height: 1.35; }
+.hvc__verdict-sub b { color: var(--ds-text-primary); font-weight: 700; }
+.hvc__verdict-cta {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 14px; border-radius: 999px;
+  font-size: var(--ds-text-13); font-weight: 600; color: #fff;
+  background: var(--vt); box-shadow: 0 4px 12px -3px color-mix(in srgb, var(--vt) 55%, transparent);
+}
+.hvc__verdict-cta .hvc__arrow { transition: transform .14s ease; }
+.hvc__verdict:hover .hvc__verdict-cta .hvc__arrow { transform: translateX(3px); }
+[data-theme="dark"] .hvc__verdict {
+  background: linear-gradient(100deg, color-mix(in srgb, var(--vt) 18%, #16181F) 0%, #14161C 62%);
+  border-color: color-mix(in srgb, var(--vt) 34%, transparent);
+}
+@media (max-width: 768px) {
+  .hvc__verdict { flex-wrap: wrap; }
+  .hvc__verdict-cta { margin-left: 44px; }
+}
+
+/* — Hero grid: KPI dominan; Telat ramping; Inbox cukup lebar utk daftar — */
+.hv--cockpit .hvc__hud { grid-template-columns: 1.35fr 1fr 0.82fr 1.18fr; }
+@media (max-width: 1280px) { .hv--cockpit .hvc__hud { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 640px)  { .hv--cockpit .hvc__hud { grid-template-columns: 1fr; } }
+
+/* — Decision Inbox (kartu hero ④) — daftar keputusan, baris stack label/meta — */
+.hvc__hcard--inbox .hvc__inbox-body { gap: var(--ds-space-2); justify-content: flex-start; }
+.hvc__inbox-head { display: flex; align-items: center; justify-content: space-between; gap: var(--ds-space-2); }
+.hvc__inbox-list { display: flex; flex-direction: column; gap: 1px; margin-top: 1px; }
+.hvc__inbox-row {
+  display: grid; grid-template-columns: auto 1fr auto;
+  grid-template-areas: "dot label arrow" "dot meta arrow";
+  column-gap: 9px; row-gap: 1px; align-items: start;
+  padding: 6px 7px; border: 0; background: none; cursor: pointer; text-align: left;
+  border-radius: 9px; font-family: inherit; transition: background-color .12s ease;
+}
+.hvc__inbox-row:hover { background: color-mix(in srgb, var(--ds-text-primary) 4%, transparent); }
+.hvc__inbox-row > .hv__dot { grid-area: dot; margin-top: 6px; }
+.hvc__inbox-label { grid-area: label; font-size: var(--ds-text-13); color: var(--ds-text-secondary); line-height: 1.3; }
+.hvc__inbox-label strong { color: var(--ds-text-primary); font-weight: 700; }
+.hvc__inbox-meta { grid-area: meta; font-size: var(--ds-text-11); color: var(--ds-text-tertiary); }
+.hvc__inbox-arrow { grid-area: arrow; align-self: center; color: var(--ds-text-tertiary); font-size: var(--ds-text-14); transition: transform .12s ease; }
+.hvc__inbox-row:hover .hvc__inbox-arrow { transform: translateX(2px); color: var(--ds-text-secondary); }
+.hvc__inbox-empty { display: flex; align-items: center; gap: 7px; font-size: var(--ds-text-13); color: var(--ds-text-secondary); padding: var(--ds-space-2) 0; }
+.hvc__inbox-empty svg { color: var(--tone-green); }
+
+/* verdict ikut entrance rise */
+.hv--cockpit .hvc__verdict { animation: hvc-rise 520ms cubic-bezier(0.16,1,0.3,1) both; animation-delay: 10ms; }
+@media (prefers-reduced-motion: reduce) { .hv--cockpit .hvc__verdict { animation: none; } }
+
+/* ── ITERASI 24 (P1) — Intelligence strip: 1 baris padat insight·forecast·delta.
+   Tanpa panel baru → menjaga densitas. Divider middot (tanpa transform). */
+.hvc__intel {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 4px var(--ds-space-3);
+  padding: 2px var(--ds-space-1) 0;
+  font-size: var(--ds-text-13); color: var(--ds-text-tertiary);
+  line-height: 1.4;
+}
+.hvc__intel-seg { display: inline-flex; align-items: center; gap: 6px; }
+.hvc__intel-seg svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.85; }
+.hvc__intel-seg b { color: var(--ds-text-secondary); font-weight: 700; font-variant-numeric: tabular-nums; }
+.hvc__intel-seg[data-tone="green"] svg { color: var(--tone-green); }
+.hvc__intel-seg[data-tone="amber"] svg { color: var(--tone-amber); }
+.hvc__intel-seg[data-tone="red"]   svg { color: var(--tone-red); }
+.hvc__intel-delta[data-tone="green"] { color: var(--tone-green); }
+.hvc__intel-delta[data-tone="amber"] { color: var(--tone-amber); }
+.hvc__intel-delta[data-tone="red"]   { color: var(--tone-red); }
+.hvc__intel-deltawrap { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hvc__intel-deltawrap b[data-tone="red"]   { color: var(--tone-red); }
+.hvc__intel-deltawrap b[data-tone="green"] { color: var(--tone-green); }
+/* middot divider antar-segmen (no transform → aman) */
+.hvc__intel-seg + .hvc__intel-seg::before { content: '·'; margin-right: var(--ds-space-3); color: var(--ds-border-strong); font-weight: 700; }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 25 (P3) — microinteraction MURNI VISUAL (nol teks tambahan):
+   skeleton shimmer saat load, tactile :active (klik terasa solid),
+   sheen sekilas verdict saat muncul. Semua transient / background-position
+   (bukan transform persist) → aman dari ghosting [[feedback_no_transform_in_scroll]].
+   ════════════════════════════════════════════════════════════════════ */
+
+/* — Skeleton shimmer (premium loading, mirror layout baru) — */
+@keyframes hvc-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.hvc__sk { gap: var(--ds-space-4); }
+.hvc__sk-line, .hvc__sk-bar, .hvc__sk-card, .hvc__sk-panel {
+  background: linear-gradient(90deg,
+    var(--ds-surface-sunken) 25%,
+    color-mix(in srgb, var(--ds-surface-sunken) 55%, var(--ds-surface-hover)) 50%,
+    var(--ds-surface-sunken) 75%);
+  background-size: 200% 100%;
+  animation: hvc-shimmer 1.5s ease-in-out infinite;
+  border-radius: 12px;
+}
+.hvc__sk-bar { height: 62px; border-radius: 16px; }
+.hvc__sk-grid { display: grid; gap: var(--ds-space-3); }
+.hvc__sk-grid--hud { grid-template-columns: 1.35fr 1fr 0.82fr 1.18fr; }
+.hvc__sk-grid--cmd { grid-template-columns: repeat(4, 1fr); gap: var(--ds-space-4); }
+.hvc__sk-card { height: 152px; border-radius: 18px; }
+.hvc__sk-panel { height: 240px; border-radius: 18px; }
+@media (max-width: 1280px) { .hvc__sk-grid--hud, .hvc__sk-grid--cmd { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 640px)  { .hvc__sk-grid--hud, .hvc__sk-grid--cmd { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .hvc__sk-line, .hvc__sk-bar, .hvc__sk-card, .hvc__sk-panel { animation: none; } }
+
+/* — Tactile :active — setiap klik terasa solid (press-down singkat) — */
+.hv--cockpit .ds-card:active,
+.hv--cockpit button.hvc__hcard:active,
+.hv--cockpit .hvc__verdict:active,
+.hv--cockpit .hvc__shortcuts--chips .hvc__shortcut:active,
+.hv--cockpit .hvc__inbox-row:active,
+.hv--cockpit .hvc__tl-stop:active { transform: scale(0.99); transition-duration: .07s; }
+.hv--cockpit .hvc__xmap-cell:active,
+.hv--cockpit .hvc__heat-cell:active { transform: scale(0.975); transition-duration: .07s; }
+
+/* — Sheen verdict sekilas saat muncul (one-shot, background-position) — */
+.hvc__verdict { position: relative; overflow: hidden; }
+.hvc__verdict::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(105deg, transparent 32%, color-mix(in srgb, #fff 20%, transparent) 48%, transparent 60%);
+  background-size: 250% 100%;
+  animation: hvc-sheen 1.1s ease-out 0.3s 1 both;
+}
+@keyframes hvc-sheen {
+  0%   { background-position: 180% 0; opacity: 0; }
+  22%  { opacity: 1; }
+  100% { background-position: -70% 0; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .hvc__verdict::after { animation: none; opacity: 0; } }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 26 (P2) — DISIPLIN MERAH / ketenangan visual. Merah ambient
+   (heatmap, bar, glow dark) diredam → kurangi "alarm fatigue / semua kebakaran".
+   Sinyal FOKUS tetap penuh: verdict, angka besar, CTA, dot status. Nol teks.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Heatmap 'Terlambat': merah di-mute + intensitas dibatasi (tak full-saturate) */
+.hv--cockpit .hvc__heat-cell[data-tone="red"] {
+  background: color-mix(in srgb, #E0554E calc(10% + var(--i,0) * 70%), var(--ds-surface-sunken));
+}
+[data-theme="dark"] .hv--cockpit .hvc__heat-cell[data-tone="red"] {
+  background: color-mix(in srgb, #BE423C calc(14% + var(--i,0) * 58%), var(--ds-surface-sunken));
+}
+
+/* Bars 'Horizon': glow neon diturunkan → restraint premium (semua tone) */
+.hv--cockpit .ds-bars--rich .ds-bars__bar--green { box-shadow: 0 0 7px rgba(16,185,129,0.20), inset 0 1px 0 rgba(255,255,255,0.20); }
+.hv--cockpit .ds-bars--rich .ds-bars__bar--amber { box-shadow: 0 0 7px rgba(245,158,11,0.20), inset 0 1px 0 rgba(255,255,255,0.20); }
+.hv--cockpit .ds-bars--rich .ds-bars__bar--red   { box-shadow: 0 0 7px rgba(224,85,78,0.22),  inset 0 1px 0 rgba(255,255,255,0.18); }
+
+/* Dark: glow merah pekat di kartu/panel tone-red diredam → lebih tenang */
+[data-theme="dark"] .hv--cockpit .hvc__hcard[data-tone="red"],
+[data-theme="dark"] .hv--cockpit .hvc__panel[data-tone="red"] {
+  box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 10px 24px -12px rgba(0,0,0,0.5), 0 28px 56px -30px rgba(190,66,60,0.26);
+}
+/* Dark: tipiskan glow merah pada timeline & top-rank chip biar tak "gaming" */
+[data-theme="dark"] .hv--cockpit .hvc__tl-node[data-tone="red"] { box-shadow: 0 0 0 2.5px color-mix(in srgb, #EF4444 26%, transparent), 0 0 8px rgba(239,68,68,0.4); }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 27 (P4) — AKSESIBILITAS + BOARDROOM. Focus ring konsisten utk
+   navigasi keyboard; cap konten di ultrawide/4K agar tak melar (workspace
+   tetap full-bleed, hanya KONTEN yang di-center — sesuai aturan T4 CLAUDE.md).
+   ════════════════════════════════════════════════════════════════════ */
+
+/* — Focus ring konsisten (keyboard a11y) — semua elemen interaktif cockpit — */
+.hv--cockpit a:focus-visible,
+.hv--cockpit button:focus-visible,
+.hv--cockpit [tabindex]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--tone-green) 65%, transparent);
+  outline-offset: 2px;
+}
+[data-theme="dark"] .hv--cockpit a:focus-visible,
+[data-theme="dark"] .hv--cockpit button:focus-visible,
+[data-theme="dark"] .hv--cockpit [tabindex]:focus-visible {
+  outline-color: color-mix(in srgb, #34D399 70%, transparent);
+}
+
+/* — Boardroom/ultrawide: cap konten cockpit 1920px (center). ≤1920 viewport =
+   full-bleed (tak terpengaruh); hanya >~1920 (4K/ultrawide) yang di-center
+   agar kartu tak melebar absurd & tetap scannable. bg aurora tetap full-bleed. */
+.hv.hv--cockpit { max-width: 1920px; margin-inline: auto; }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 28 — TYPOGRAPHY & PROPORSI. Hierarki: angka hero (≈40px) dominan →
+   verdict (lead, via warna+ukuran sedang) → judul section (divider) → sapaan
+   modest → eyebrow/meta (11–13px). Judul section tak lagi out-shout angka.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Judul section: dari ~26px bold → ~21px (divider yang percaya diri, bukan hero) */
+.hv--cockpit .hvc__sec-title { font-size: clamp(1.1rem, 1.5vw, 1.35rem); font-weight: 700; letter-spacing: -0.01em; }
+.hv--cockpit .hvc__sec-title::before { width: 4px; height: 1em; box-shadow: 0 0 8px rgba(16,185,129,0.42); }
+
+/* Verdict = lead → teks sub sedikit lebih hadir (16px) drpd divider; label tetap kicker */
+.hvc__verdict-sub { font-size: var(--ds-text-16); line-height: 1.4; }
+
+/* Sapaan: nama-saja, modest & seimbang (tak lebih besar dari kebutuhan) */
+.hv--cockpit .hvc__head--slim .hv__greeting { font-size: clamp(1.1rem, 1.5vw, 1.3rem); }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 29 — JAWAB "apa yang saya kelola & siapa PIC-nya". Baris portofolio
+   (scope: nama direktorat · N program · M divisi · berjalan) + avatar PIC di
+   Top-5 Terlambat (hover = nama penuh). Data sudah ada (scope/summary/ownerName).
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Sapaan jadi 2 baris stack (nama + scope) — bukan inline (hindari "menggantung") */
+.hv--cockpit .hvc__head--slim { flex-direction: column; align-items: flex-start; gap: 2px; }
+.hvc__scope { font-size: var(--ds-text-12); color: var(--ds-text-tertiary); line-height: 1.3; }
+.hvc__scope b { color: var(--ds-text-secondary); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* PIC avatar di Top-5 — jawab "siapa yang harus saya hubungi" (neutral, hover=nama) */
+.hvc__topowner {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.02em;
+  background: color-mix(in srgb, var(--ds-text-primary) 8%, transparent);
+  color: var(--ds-text-secondary);
+}
+
+/* ── ITERASI 30 (#3) — tanda prioritas di Top-5 (muncul utk HIGH/CRITICAL). */
+.hvc__topprio {
+  margin-left: 7px; padding: 1px 7px; border-radius: 999px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.02em; vertical-align: middle;
+  background: color-mix(in srgb, var(--tone-amber) 16%, transparent); color: var(--tone-amber);
+}
+.hvc__topprio[data-prio="CRITICAL"] { background: color-mix(in srgb, var(--tone-red) 16%, transparent); color: var(--tone-red); }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 31 (V1) — KILL DEAD SPACE di Command Center. Kecilkan driver tinggi
+   (Execution Map bubble di-cap + grid content-height; Momentum dirapatkan),
+   rapatkan padding panel, center isi panel sparse → void hilang, baris padat.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Padding panel command lebih rapat (lg→space-4) */
+.hv--cockpit .hvc__grid--cmd > .ds-card { padding: var(--ds-space-4); }
+
+/* EXECUTION MAP: bubble ukuran tetap 58px, grid content-height & ter-center
+   (hilangkan 1fr rows yang melar saat panel tinggi) */
+.hv--cockpit .hvc__xmap { display: flex; }
+.hv--cockpit .hvc__xmap-grid {
+  grid-template-columns: auto repeat(3, 58px);
+  grid-template-rows: repeat(3, 58px) auto;
+  justify-content: center; align-content: center;
+  gap: var(--ds-space-2); margin: auto;
+}
+.hv--cockpit .hvc__xmap-cell { min-height: 0; }
+.hv--cockpit .hvc__xmap-count { font-size: var(--ds-text-16); }
+.hv--cockpit .hvc__xmap-cap { font-size: 8px; }
+
+/* MOMENTUM: rapatkan baris statistik */
+.hv--cockpit .hvc__mstat { padding: var(--ds-space-2) 0; }
+.hv--cockpit .hvc__mhead { margin-bottom: var(--ds-space-1); }
+
+/* HORIZON: center chart vertikal (void seimbang, bukan menumpuk bawah) */
+.hv--cockpit .hvc__grid--cmd .ds-bars { margin-block: auto; }
+
+/* V1 lanjut — EKSEKUSI PER DIVISI: baris lebih lega + ber-divider supaya 3 baris
+   (level direktur) mengisi panel; toggle rapat ke atas. */
+.hv--cockpit .hvc__divp { gap: var(--ds-space-2); }
+.hv--cockpit .hvc__divlist { gap: 0; }
+.hv--cockpit .hvc__divrow { padding-block: var(--ds-space-3); border-top: 1px solid var(--ds-border-subtle); border-radius: 0; }
+.hv--cockpit .hvc__divrow:first-child { border-top: 0; }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 32 (V2) — SISTEM GRID KONSISTEN lintas band. Hero & Command = 4
+   kolom sama (tepi 25/50/75%); Mid = 1/1.5/1.5: Rekap divisi ringkas (tepi
+   kiri snap 25% ⇒ align dgn band 4-kolom), sisanya dibagi rata ke Top 5 +
+   Aktivitas yg butuh ruang teks. GAP SERAGAM (space-4) agar tepi snap antar-band.
+   ════════════════════════════════════════════════════════════════════ */
+.hv--cockpit .hvc__hud       { grid-template-columns: repeat(4, 1fr); gap: var(--ds-space-4); }
+.hv--cockpit .hvc__grid--cmd { grid-template-columns: repeat(4, 1fr); gap: var(--ds-space-4); }
+.hv--cockpit .hvc__grid--mid { grid-template-columns: 1fr 1.5fr 1.5fr; gap: var(--ds-space-4); }
+/* Command Center = 3 panel di track 4-kolom (panel "By Division" dihapus
+   2026-06-02): Momentum span 2 mengisi sisa + jaga align tepi dgn HUD. */
+.hv--cockpit .hvc__grid--cmd > .hvc__panel--wide { grid-column: span 2; }
+/* KPI divbars boleh menyempit di kolom 25% (meter fleksibel) */
+.hvc__kpi-divbars { min-width: 0; }
+
+/* responsive — diulang SETELAH base agar menang cascade (token --bp-*) */
+@media (max-width: 1280px) {
+  .hv--cockpit .hvc__hud       { grid-template-columns: repeat(2, 1fr); }
+  .hv--cockpit .hvc__grid--cmd { grid-template-columns: repeat(2, 1fr); }
+  .hv--cockpit .hvc__grid--mid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 1024px) {
+  .hv--cockpit .hvc__grid--mid { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .hv--cockpit .hvc__hud,
+  .hv--cockpit .hvc__grid--cmd,
+  .hv--cockpit .hvc__grid--mid { grid-template-columns: 1fr; }
+  .hv--cockpit .hvc__grid--cmd > .hvc__panel--wide { grid-column: auto; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 33 (V3) — ANATOMI KARTU SERAGAM + VERDICT DIPADATKAN.
+   A. Nilai hero rata-ATAS → eyebrow & angka align horizontal lintas 4 kartu.
+   B. Verdict + intel = SATU banner (intel jadi sub-baris ber-divider di dalam,
+      bukan strip mengambang terpisah).
+   ════════════════════════════════════════════════════════════════════ */
+
+/* A — hero values top-aligned (ganti justify-center yang membuat angka mengambang) */
+.hv--cockpit .hvc__hcard--kpi .hvc__hcard-body,
+.hv--cockpit .hvc__hcard--exec .hvc__hcard-body,
+.hv--cockpit .hvc__hcard--late .hvc__hcard-body {
+  flex: 0 0 auto; justify-content: flex-start;
+}
+
+/* B — verdict banner = container ber-chrome + main(aksi) + intel(sub-baris) */
+.hvc__verdict-card[data-tone="red"]     { --vt: #EF4444; }
+.hvc__verdict-card[data-tone="amber"]   { --vt: #F59E0B; }
+.hvc__verdict-card[data-tone="green"]   { --vt: #10B981; }
+.hvc__verdict-card[data-tone="neutral"] { --vt: #94A3B8; }
+.hvc__verdict-card {
+  position: relative; overflow: hidden; border-radius: 16px;
+  background: linear-gradient(100deg, color-mix(in srgb, var(--vt) 11%, var(--ds-surface-card)) 0%, var(--ds-surface-card) 62%);
+  border: 1px solid color-mix(in srgb, var(--vt) 30%, var(--ds-border-subtle));
+  box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 12px 30px -16px color-mix(in srgb, var(--vt) 45%, transparent);
+}
+[data-theme="dark"] .hvc__verdict-card {
+  background: linear-gradient(100deg, color-mix(in srgb, var(--vt) 18%, #16181F) 0%, #14161C 62%);
+  border-color: color-mix(in srgb, var(--vt) 34%, transparent);
+}
+.hvc__verdict-main {
+  display: flex; align-items: center; gap: var(--ds-space-3);
+  width: 100%; text-align: left; cursor: pointer; font-family: inherit;
+  padding: var(--ds-space-3) var(--ds-space-4); background: none; border: 0;
+  transition: background-color .14s ease;
+}
+.hvc__verdict-main:hover  { background: color-mix(in srgb, var(--vt) 6%, transparent); }
+.hvc__verdict-main:active { background: color-mix(in srgb, var(--vt) 10%, transparent); }
+/* intel = sub-baris di DALAM banner (divider tone-tipis), teks align dgn judul verdict */
+.hvc__verdict-card .hvc__intel {
+  margin: 0;
+  padding: var(--ds-space-2) var(--ds-space-4) var(--ds-space-3) calc(var(--ds-space-4) + 34px + var(--ds-space-3));
+  border-top: 1px solid color-mix(in srgb, var(--vt) 16%, var(--ds-border-subtle));
+}
+/* entrance + sheen pindah ke card */
+.hv--cockpit .hvc__verdict-card { animation: hvc-rise 520ms cubic-bezier(0.16,1,0.3,1) both; animation-delay: 10ms; }
+.hvc__verdict-card::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(105deg, transparent 32%, color-mix(in srgb, #fff 20%, transparent) 48%, transparent 60%);
+  background-size: 250% 100%; animation: hvc-sheen 1.1s ease-out 0.3s 1 both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hv--cockpit .hvc__verdict-card { animation: none; }
+  .hvc__verdict-card::after { animation: none; }
+}
+@media (max-width: 768px) { .hvc__verdict-main { flex-wrap: wrap; } .hvc__verdict-main .hvc__verdict-cta { margin-left: 46px; } }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 34 (V4) — CHART CRAFT + EMPTY-STATE. Idiom ring disatukan ke GAUGE
+   (Momentum donut → gauge, sama dgn Exec Health). Nilai "0" jadi anggun (muted,
+   tak lagi tiga "0" tebal yang terkesan rusak/sepi).
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Momentum gauge: value pas utk diameter 84px */
+.hvc__mgauge .ds-gauge__value { font-size: var(--ds-text-24); }
+
+/* Empty-state "0" — muted neutral, mata fokus ke angka bermakna */
+.hv--cockpit .hvc__mstat-val[data-zero] { color: var(--ds-text-tertiary); opacity: 0.5; font-weight: 600; }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 35 (V5) — MICRO-TYPOGRAPHY + disiplin warna final.
+   Eyebrow seragam (hero=panel), semua angka tabular (tak jitter), unit
+   (%/poin) konsisten, tracking angka besar rapat. Sentuhan akhir.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Eyebrow SERAGAM lintas kartu & panel: 11px · 700 · 0.06em · tertiary · uppercase */
+.hv--cockpit .hvc__eyebrow,
+.hv--cockpit .hvc__hcard-eyebrow {
+  font-size: var(--ds-text-11); font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--ds-text-tertiary);
+}
+
+/* Semua angka = tabular (rata, tak "loncat" lebar saat berubah) */
+.hv--cockpit .hvc__hcard-big,
+.hv--cockpit .ds-gauge__value,
+.hv--cockpit .hvc__mstat-val,
+.hv--cockpit .hvc__heat-cell,
+.hv--cockpit .hvc__divrow-val,
+.hv--cockpit .hvc__kpi-divbar-val,
+.hv--cockpit .hvc__hcard-legend li b,
+.hv--cockpit .hvc__topdays,
+.hv--cockpit .hvc__count-badge,
+.hv--cockpit .hvc__scope b,
+.hv--cockpit .hvc__intel b,
+.hv--cockpit .hvc__verdict-sub b,
+.hv--cockpit .hvc__xmap-count {
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum";
+}
+
+/* Unit (% / poin) konsisten: kecil, muted, weight sedang */
+.hv--cockpit .hvc__hcard-unit,
+.hv--cockpit .ds-gauge__unit { color: var(--ds-text-tertiary); font-weight: 600; }
+
+/* Angka besar: tracking rapat seragam (kesan presisi) */
+.hv--cockpit .hvc__hcard-big,
+.hv--cockpit .ds-gauge__value { letter-spacing: -0.02em; }
+
+/* Disiplin warna: legend hero pakai dot, label tetap secondary (bukan tone) →
+   warna hanya pada dot+angka, teks netral (tenang). */
+.hv--cockpit .hvc__hcard-legend li { color: var(--ds-text-secondary); }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 36 (V6) — KALIBRASI DENSITAS layar besar. Kurangi udara berlebih
+   (angka hero & gauge sedikit lebih kecil, kartu hero lebih pendek, bubble &
+   gap lebih rapat) → lebih banyak muat above-the-fold. "Padat tapi bernapas".
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Angka hero: max ~40px → ~34px (tetap prominent, tak terasa "zoom") */
+.hv--cockpit .hvc__hcard-big { font-size: clamp(1.7rem, 2.0vw, 2.15rem); }
+
+/* Gauge value pas utk diameter baru (Exec 84, Momentum 76) */
+.hv--cockpit .hvc__execgauge .ds-gauge__value { font-size: 1.8rem; }
+.hv--cockpit .hvc__mgauge .ds-gauge__value { font-size: 1.4rem; }
+
+/* Kartu hero lebih pendek: body & footer rapat, min-height turun */
+.hv--cockpit .hvc__hcard { min-height: 108px; }
+.hv--cockpit .hvc__hcard-body { padding: var(--ds-space-3) var(--ds-space-4) var(--ds-space-2); gap: 2px; }
+.hv--cockpit .hvc__hcard-link { padding-top: var(--ds-space-1); padding-bottom: var(--ds-space-3); }
+
+/* Execution Map bubble lebih padat (58→50px) */
+.hv--cockpit .hvc__xmap-grid { grid-template-columns: auto repeat(3, 50px); grid-template-rows: repeat(3, 50px) auto; }
+
+/* Gap antar-kartu & antar-band lebih rapat (SAMA di semua band → align grid tetap) */
+.hv--cockpit .hvc__hud,
+.hv--cockpit .hvc__grid--cmd,
+.hv--cockpit .hvc__grid--mid { gap: var(--ds-space-3); }
+.hv.hv--cockpit { gap: var(--ds-space-4); }
+.hv--cockpit .hvc__section { gap: var(--ds-space-3); }
+
+/* Verdict lebih ramping */
+.hvc__verdict-main { padding: var(--ds-space-2) var(--ds-space-4); }
+.hvc__verdict-card .hvc__intel { padding-top: var(--ds-space-1); padding-bottom: var(--ds-space-2); }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 37 — VERDICT lebih tenang & ramping. Sebelumnya bg merah penuh +
+   border + ikon + CTA solid = "berteriak". Kini tint tipis, ikon/teks kecil,
+   padding rapat, CTA soft → memimpin via kejelasan, bukan kekerasan warna.
+   ════════════════════════════════════════════════════════════════════ */
+.hvc__verdict-card {
+  background: color-mix(in srgb, var(--vt) 5%, var(--ds-surface-card));
+  border: 1px solid color-mix(in srgb, var(--vt) 18%, var(--ds-border-subtle));
+  box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 6px 18px -14px color-mix(in srgb, var(--vt) 30%, transparent);
+}
+[data-theme="dark"] .hvc__verdict-card {
+  background: color-mix(in srgb, var(--vt) 11%, #14161C);
+  border-color: color-mix(in srgb, var(--vt) 24%, transparent);
+}
+/* ikon lebih kecil & kalem */
+.hvc__verdict-icon { width: 26px; height: 26px; border-radius: 8px; }
+.hvc__verdict-icon svg { width: 14px; height: 14px; }
+/* main lebih ramping */
+.hvc__verdict-main { padding: var(--ds-space-2) var(--ds-space-3); gap: var(--ds-space-2); }
+.hvc__verdict-label { font-size: var(--ds-text-11); letter-spacing: 0.05em; }
+.hvc__verdict-sub { font-size: var(--ds-text-14); }
+/* CTA: soft (tint + tone text), bukan merah solid */
+.hvc__verdict-cta {
+  background: color-mix(in srgb, var(--vt) 14%, transparent);
+  color: color-mix(in srgb, var(--vt) 70%, var(--ds-text-primary));
+  box-shadow: none; padding: 6px 13px; font-weight: 700;
+}
+.hvc__verdict-main:hover .hvc__verdict-cta { background: color-mix(in srgb, var(--vt) 22%, transparent); }
+[data-theme="dark"] .hvc__verdict-cta { color: color-mix(in srgb, var(--vt) 55%, #ffffff); }
+/* intel row divider lebih tipis */
+.hvc__verdict-card .hvc__intel { border-top-color: color-mix(in srgb, var(--vt) 12%, var(--ds-border-subtle)); }
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 38 — VERDICT "compact metric-led" (pilihan user 2026-06-02).
+   3 baris: header (ikon + judul + count + CTA kanan) → metrik kontras
+   (KPI lagging ⟷ Eksekusi leading, ✓/✗ ber-tone) → intel. Menggantikan
+   kalimat naratif panjang yg sulit dibaca di layar sempit. Stack rapi di HP.
+   ════════════════════════════════════════════════════════════════════ */
+.hvc__verdict-main { align-items: center; gap: var(--ds-space-2); padding: var(--ds-space-3); flex-wrap: wrap; }
+.hvc__verdict-headline { flex: 1 1 auto; min-width: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 6px; }
+.hvc__verdict-label {
+  font-size: var(--ds-text-15); font-weight: 800; letter-spacing: -0.01em; text-transform: none;
+  color: color-mix(in srgb, var(--vt) 75%, var(--ds-text-primary));
+}
+.hvc__verdict-detail { font-size: var(--ds-text-15); font-weight: 600; color: var(--ds-text-primary); }
+.hvc__verdict-cta { flex-shrink: 0; margin-left: auto; }
+
+/* baris metrik kontras (lagging KPI ⟷ leading execution) */
+.hvc__verdict-metrics {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--ds-space-3);
+  padding: 0 var(--ds-space-3) var(--ds-space-2); font-size: var(--ds-text-13); line-height: 1.4;
+}
+.hvc__vmetric { display: inline-flex; align-items: baseline; gap: 5px; color: var(--ds-text-tertiary); }
+.hvc__vmetric-k { font-weight: 600; color: var(--ds-text-secondary); }
+.hvc__vmetric b { font-weight: 800; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+.hvc__vmetric[data-tone="green"] b, .hvc__vmetric[data-tone="green"] .hvc__vmetric-s { color: var(--tone-green); }
+.hvc__vmetric[data-tone="amber"] b, .hvc__vmetric[data-tone="amber"] .hvc__vmetric-s { color: var(--tone-amber); }
+.hvc__vmetric[data-tone="red"]   b, .hvc__vmetric[data-tone="red"]   .hvc__vmetric-s { color: var(--tone-red); }
+.hvc__vmetric-s { font-size: var(--ds-text-12); }
+.hvc__vmetric + .hvc__vmetric::before { content: '·'; margin-right: var(--ds-space-3); color: var(--ds-border-strong); font-weight: 700; }
+
+/* intel: buang indent dalam (align ke padding kartu, seragam dgn metrik) */
+.hvc__verdict-card .hvc__intel { padding-left: var(--ds-space-3); padding-right: var(--ds-space-3); }
+
+/* Mobile ≤640: CTA turun ke baris sendiri TAPI hug-content (selebar teksnya),
+   rata-kiri sejajar ikon + baris metrik di bawah — BUKAN pill full-width dengan
+   teks mengambang di tengah (terlihat seperti bar kosong). flex-basis:100% =
+   paksa pindah baris; max-width:max-content = kotak menyusut ke konten. */
+@media (max-width: 640px) {
+  .hvc__verdict-cta { flex-basis: 100%; max-width: max-content; margin-left: 0; margin-top: var(--ds-space-1); justify-content: flex-start; }
+  .hvc__verdict-metrics { flex-direction: column; align-items: flex-start; gap: 3px; }
+  .hvc__verdict-metrics .hvc__vmetric + .hvc__vmetric::before { content: none; }
+  .hvc__verdict-card .hvc__intel { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .hvc__verdict-card .hvc__intel-seg + .hvc__intel-seg::before { content: none; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   ITERASI 39 — PALET TONE DISATUKAN + THEME-AWARE + IKON AA (analisis warna).
+   Masalah lama: verdict pakai hex TERANG (--vt: #EF4444/#F59E0B/#10B981) untuk
+   ikon+label+teks, sementara metrik/intel pakai token GELAP (--ds-*-600) → DUA
+   palet dalam 1 banner + ikon amber (#F59E0B) gagal kontras (~1.9:1).
+   Solusi: --tone-* = 1 palet tone aksesibel yg FLIP per tema (terang→teks gelap,
+   gelap→teks terang). --vt TETAP terang khusus tint/border DEKORATIF; semua
+   FOREGROUND (ikon/label/CTA/metrik/intel) pakai --tone-* via --vfg.
+   ════════════════════════════════════════════════════════════════════ */
+/* --tone-* = token global theme-aware (lihat design-system/tokens.css). */
+.hvc__verdict-card[data-tone="red"]     { --vfg: var(--tone-red); }
+.hvc__verdict-card[data-tone="amber"]   { --vfg: var(--tone-amber); }
+.hvc__verdict-card[data-tone="green"]   { --vfg: var(--tone-green); }
+.hvc__verdict-card[data-tone="neutral"] { --vfg: var(--tone-neutral); }
+
+/* #1 + #2 — FOREGROUND verdict pakai --vfg (satu palet; ikon amber kini AA-safe).
+   --vt tetap dipakai utk background tint ikon, border kartu, & tint CTA (dekoratif). */
+.hvc__verdict-icon  { color: var(--vfg); }
+.hvc__verdict-label { color: var(--vfg); }
+.hvc__verdict-cta   { color: var(--vfg); }
+[data-theme="dark"] .hvc__verdict-cta { color: var(--vfg); }
+
+/* #1 + #3 — metrik & intel sewarna verdict, theme-aware (ganti --ds-*-600) */
+.hvc__vmetric[data-tone="green"] b, .hvc__vmetric[data-tone="green"] .hvc__vmetric-s { color: var(--tone-green); }
+.hvc__vmetric[data-tone="amber"] b, .hvc__vmetric[data-tone="amber"] .hvc__vmetric-s { color: var(--tone-amber); }
+.hvc__vmetric[data-tone="red"]   b, .hvc__vmetric[data-tone="red"]   .hvc__vmetric-s { color: var(--tone-red); }
+.hvc__verdict-card .hvc__intel-seg[data-tone="green"] svg { color: var(--tone-green); }
+.hvc__verdict-card .hvc__intel-seg[data-tone="amber"] svg { color: var(--tone-amber); }
+.hvc__verdict-card .hvc__intel-seg[data-tone="red"]   svg { color: var(--tone-red); }
+.hvc__verdict-card .hvc__intel-delta[data-tone="green"],
+.hvc__verdict-card .hvc__intel-deltawrap b[data-tone="green"] { color: var(--tone-green); }
+.hvc__verdict-card .hvc__intel-delta[data-tone="amber"] { color: var(--tone-amber); }
+.hvc__verdict-card .hvc__intel-delta[data-tone="red"],
+.hvc__verdict-card .hvc__intel-deltawrap b[data-tone="red"]   { color: var(--tone-red); }
+
+/* ════════════════════════════════════════════════════════════════════
+   PHONE DENSITY PASS (≤640) — 2026-06-03
+   Tujuan: rasa "app native" (Livin/Grab) → muat lebih banyak kartu per layar
+   TANPA ubah IA/konten. Hanya merapatkan whitespace (gap/padding/min-height).
+   ATURAN: angka hero (.hvc__hcard-big, gauge) TIDAK dikecilkan — pakem eksekutif
+   = glanceable ≤3 detik. Tap target (link/tombol) tinggi tetap ≥44px. Desktop
+   tak tersentuh. Block di akhir file → menang source-order atas ≤640 lain.
+   ════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) { /* bp-allow: --bp-sm */
+  /* Ritme antar-seksi lebih rapat: 24/20 → 16; mulai lebih dekat ke topbar. */
+  .hv { padding-top: var(--ds-space-3); gap: var(--ds-space-4); }
+  .hv__greeting { font-size: var(--ds-text-17, 1.0625rem); }
+
+  /* Verdict "Action needed": padding utama + sub-baris intel dipadatkan. */
+  .hvc__verdict-main { padding: var(--ds-space-3); }
+  .hvc__verdict-card .hvc__intel { padding-top: var(--ds-space-2); padding-bottom: var(--ds-space-2); }
+
+  /* Hero cards: floor min-height turun (kartu pendek tak lagi dipaksa 158px),
+     padding internal & jarak antar-kartu dipangkas. Kartu berkonten panjang
+     (Exec gauge) tetap tumbuh natural — min-height cuma lantai, bukan clip. */
+  .hvc__maphero { gap: var(--ds-space-3); }
+  .hv--cockpit .hvc__hcard { min-height: 118px; }
+  .hvc__hcard-body { padding: var(--ds-space-3) var(--ds-space-3) var(--ds-space-2); }
+  .hvc__hcard-link { padding-top: var(--ds-space-2); padding-bottom: var(--ds-space-3); padding-left: var(--ds-space-3); }
+
+  /* ── 2-kolom selektif (pilihan user 2026-06-03, "Pasangan aman") ──────────
+     KPI ⟷ Delayed bersanding: keduanya stat-tile murni + sandingan
+     lagging⟷leading (pakem Kaplan-Norton). Exec Health (gauge+legend) &
+     Needs Decision (list) span penuh — butuh lebar. Action needed/verdict di
+     LUAR .hvc__hud → tetap full otomatis. Pakai `order` sebab urutan DOM =
+     KPI,Exec,Delayed,Decision; tanpa order, Exec(span-2) menyisakan sel kosong
+     di baris KPI. WAJIB prefix `.hv--cockpit` (spesifisitas 0,2,0): rule
+     `.hv--cockpit .hvc__hud{1fr}` di ≤640/≤768 (L2930/3190/3329) mengalahkan
+     `.hvc__hud` polos (0,1,0). Blok ini paling akhir → menang source-order. */
+  .hv--cockpit .hvc__hud { grid-template-columns: 1fr 1fr; gap: var(--ds-space-3); }
+  .hv--cockpit .hvc__hcard--kpi   { order: 1; }
+  .hv--cockpit .hvc__hcard--late  { order: 2; }
+  .hv--cockpit .hvc__hcard--exec  { order: 3; grid-column: 1 / -1; }
+  .hv--cockpit .hvc__hcard--inbox { order: 4; grid-column: 1 / -1; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   TOUCH INTERACTION (hover:none) — 2026-06-03
+   Di touch tak ada state hover: efek hover (lift/highlight) malah NYANGKUT
+   sesudah tap ("sticky-hover") → terlihat seperti bug. Gate `hover:none`
+   (bukan width — laptop-touch lebar pun ikut benar). Netralkan lift/bg lalu
+   ganti dgn `:active` press (umpan-balik tap instan, rasa native).
+   CATATAN: hanya selektor lift translateY/scale (base transform = none → aman
+   di-reset none). `.hvc__tl2-dot` SENGAJA tak disentuh (transform-nya
+   translateX(-50%) utk centering, bukan lift — reset none akan merusak posisi).
+   ════════════════════════════════════════════════════════════════════ */
+@media (hover: none) {
+  /* matikan lift/scale hover (sumber sticky-hover paling kentara) */
+  .hv--cockpit .hvc__stat:hover,
+  .hv--cockpit button.hvc__hcard:hover,
+  .hv--cockpit .hvc__tcard:hover,
+  .hv--cockpit .hvc__shortcut:hover,
+  .hv--cockpit .hvc__shortcuts--chips .hvc__shortcut:hover,
+  .hv--cockpit .hvc__hud-item--btn:hover,
+  .hv--cockpit .ds-card:hover,
+  .hv--cockpit .hvc__hb-chip:hover,
+  .hvc__verdict:hover { transform: none; }
+
+  /* matikan highlight background yang nyangkut (base = transparan/none) */
+  .hvc__inbox-row:hover,
+  .hvc__verdict-main:hover { background: transparent; }
+
+  /* :active — press momentary saat disentuh (menggantikan feedback hover) */
+  .hv--cockpit button.hvc__hcard:active,
+  .hv--cockpit .hvc__shortcut:active,
+  .hv--cockpit .hvc__hud-item--btn:active,
+  .hv--cockpit .hvc__stat:active { transform: scale(0.985); transition: transform .08s ease; }
+  .hvc__inbox-row:active,
+  .hvc__verdict-main:active { background: color-mix(in srgb, var(--ds-text-primary) 6%, transparent); }
+}

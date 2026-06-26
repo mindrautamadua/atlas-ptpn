@@ -1,0 +1,1908 @@
+/* ProgramsView — surface polish overlay.
+ *
+ * Strategy: don't modify legacy CSS. Wrap outer with .ds programs-v2 and
+ * use higher-specificity overrides for legacy classes. Business logic JSX
+ * untouched.
+ */
+
+.programs-v2 {
+  background: var(--ds-surface-page);
+  min-height: 100vh;
+  width: 100%;
+}
+
+.programs-v2__inner {
+  /* Tier 2 spacing: pad ke tokens (sebelumnya 24/28/40 hardcoded). */
+  max-width: 1400px;
+  margin: 0;
+  padding: var(--space-page-top) var(--space-page-x) var(--space-page-bot);
+  display: block;
+}
+
+/* ─── Hero header — editorial page identity ───────────────
+ *
+ * Pattern: title is the hero (editorial weight), subtitle quietly summarizes
+ * stats, primary CTA anchored right. No ornament, no chrome — content first.
+ */
+
+/* Tier 2 spacing: padding bottom 16px → --space-inline (14px), reduce
+ * minor — hero ke stat band breathing room cukup tanpa terlalu lebar. */
+.programs-v2 .programs-v2__hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-block);
+  padding: 0 0 var(--space-inline);
+  flex-wrap: wrap;
+}
+
+.programs-v2 .programs-v2__hero-text {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.programs-v2 .programs-v2__title {
+  margin: 0;
+  font-family: var(--ds-font-sans);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.022em;
+  color: var(--ds-text-primary);
+  line-height: 1.1;
+}
+
+.programs-v2 .programs-v2__subtitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ds-text-tertiary);
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+.programs-v2 .programs-v2__subtitle-warn {
+  color: var(--tone-red);
+  font-weight: 500;
+}
+
+.programs-v2 .programs-v2__hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.programs-v2 .programs-v2__cta {
+  height: 36px;
+  padding: 0 16px;
+  background: var(--ptpn-green);
+  color: var(--text-inverse);
+  border: 0;
+  border-radius: 8px;
+  font-family: var(--ds-font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms ease, transform 120ms ease;
+}
+
+.programs-v2 .programs-v2__cta:hover {
+  background: color-mix(in srgb, var(--ptpn-green) 88%, black);
+}
+
+.programs-v2 .programs-v2__cta:active {
+  transform: scale(0.98);
+}
+
+/* ─── Portfolio stats strip ──────────────────────────────────
+ * Hero summary di antara title bar dan tabs. Pattern A flat —
+ * hairline top/bottom border, divider antar stat cell pakai
+ * border-left, tidak ada card background. Health bar memberi
+ * bobot visual proporsional (yang tidak bisa di-konyey angka). */
+
+.programs-v2 .programs-v2__hero-stats {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  /* Bagian atas dari satu band dashboard flat — border-bottom dihapus supaya
+     menyatu dengan baris panel (.programs-insight) di bawahnya. */
+  margin: 4px 0 0;
+  padding: 18px 0;
+  border-top: 1px solid var(--ds-border-subtle);
+  flex-wrap: wrap;
+}
+/* Sel glance dibuat 3 kolom setara agar sejajar dgn 3 panel di bawah & tidak
+   menyisakan ruang kosong di kanan. */
+.programs-v2 .programs-v2__hero-stats > .programs-v2__stat {
+  flex: 1 1 0;
+}
+
+.programs-v2 .programs-v2__stat {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 28px;
+  min-width: 0;
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font-family: inherit;
+}
+.programs-v2 .programs-v2__stat + .programs-v2__stat {
+  border-left: 1px solid var(--ds-border-subtle);
+}
+.programs-v2 .programs-v2__stat:first-child { padding-left: 0; }
+.programs-v2 .programs-v2__stat:last-child { padding-right: 0; }
+
+.programs-v2 .programs-v2__stat--bar {
+  flex: 1 1 280px;
+  min-width: 240px;
+}
+.programs-v2 .programs-v2__stat--action {
+  cursor: pointer;
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+.programs-v2 .programs-v2__stat--action:hover { opacity: 0.72; }
+.programs-v2 .programs-v2__stat--action:active { transform: scale(0.98); }
+.programs-v2 .programs-v2__stat--action .programs-v2__stat-num {
+  color: var(--tone-amber);
+}
+
+.programs-v2 .programs-v2__stat-num {
+  font-family: var(--ds-font-sans);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ds-text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.programs-v2 .programs-v2__stat-num-unit {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ds-text-tertiary);
+  margin-left: 2px;
+}
+.programs-v2 .programs-v2__stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ds-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+}
+.programs-v2 .programs-v2__stat-label--top {
+  margin-bottom: 4px;
+}
+.programs-v2 .programs-v2__stat-arrow {
+  margin-left: 4px;
+  color: var(--ds-text-tertiary);
+  font-weight: 500;
+}
+
+/* ─── Health donut chart (Sprint 3) ─── */
+.programs-v2 .programs-v2__stat--donut {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 18px;
+  flex: 0 0 auto;
+  min-width: 240px;
+}
+.programs-v2 .programs-v2__donut {
+  width: 92px;
+  height: 92px;
+  flex-shrink: 0;
+  display: block;
+}
+.programs-v2 .programs-v2__donut-num {
+  font-family: var(--ds-font-sans);
+  font-size: 22px;
+  font-weight: 700;
+  fill: var(--ds-text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.programs-v2 .programs-v2__donut-label {
+  font-family: var(--ds-font-sans);
+  font-size: 9.5px;
+  font-weight: 600;
+  fill: var(--ds-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.programs-v2 .programs-v2__health-legend--column {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 0;
+}
+
+/* ─── Legacy stacked bar (Sprint 1) — kept for fallback compat ─── */
+.programs-v2 .programs-v2__health-bar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--ds-surface-sunken);
+  width: 100%;
+}
+.programs-v2 .programs-v2__health-seg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0;
+  height: 100%;
+  min-width: 6px;
+}
+.programs-v2 .programs-v2__health-seg + .programs-v2__health-seg {
+  border-left: 1.5px solid var(--ds-surface-card);
+}
+.programs-v2 .programs-v2__health-seg--green { background: var(--ds-green-500); }
+.programs-v2 .programs-v2__health-seg--yellow { background: var(--ds-amber-500); }
+.programs-v2 .programs-v2__health-seg--red { background: var(--ds-red-500); }
+
+.programs-v2 .programs-v2__health-legend {
+  display: flex;
+  gap: 14px;
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--ds-text-tertiary);
+  flex-wrap: wrap;
+}
+.programs-v2 .programs-v2__health-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-variant-numeric: tabular-nums;
+}
+.programs-v2 .programs-v2__health-legend-item strong {
+  color: var(--ds-text-primary);
+  font-weight: 600;
+  margin-left: 1px;
+}
+.programs-v2 .programs-v2__health-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.programs-v2 .programs-v2__health-dot--green { background: var(--ds-green-500); }
+.programs-v2 .programs-v2__health-dot--yellow { background: var(--ds-amber-500); }
+.programs-v2 .programs-v2__health-dot--red { background: var(--ds-red-500); }
+
+/* ─── Mini progress bar di stat cell ─── */
+.programs-v2 .programs-v2__progress-bar {
+  display: block;
+  height: 4px;
+  width: 80px;
+  background: var(--ds-surface-sunken);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.programs-v2 .programs-v2__progress-bar span {
+  display: block;
+  height: 100%;
+  background: var(--ds-brand-500);
+  transition: width 200ms ease;
+}
+
+/* ─── Responsive: stack on small screens ─── */
+@media (max-width: 720px) {
+  .programs-v2 .programs-v2__hero-stats {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  .programs-v2 .programs-v2__stat {
+    padding: 0;
+    border: 0 !important;
+  }
+  .programs-v2 .programs-v2__stat + .programs-v2__stat {
+    border: 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--ds-border-subtle) !important;
+  }
+}
+
+/* ─── Tabs — editorial underline pattern ─────────────────── */
+
+.programs-v2 .programs-v2__tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  margin: 0 0 24px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+
+.programs-v2 .programs-v2__tab {
+  position: relative;
+  height: 40px;
+  padding: 0 14px;
+  background: transparent;
+  border: 0;
+  font-family: var(--ds-font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ds-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 120ms ease;
+}
+
+.programs-v2 .programs-v2__tab:hover {
+  color: var(--ds-text-primary);
+}
+
+.programs-v2 .programs-v2__tab--active {
+  color: var(--ds-text-primary);
+  font-weight: 600;
+}
+
+.programs-v2 .programs-v2__tab--active::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: -1px;
+  height: 2px;
+  background: var(--ptpn-green);
+  border-radius: 2px 2px 0 0;
+}
+
+.programs-v2 .programs-v2__tab--muted {
+  margin-left: auto;
+  opacity: 0.65;
+}
+
+.programs-v2 .programs-v2__tab--muted:hover { opacity: 1; }
+
+/* Tab count (Pulse) — quiet token, not an alarm */
+.programs-v2 .programs-v2__tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  background: var(--ds-neutral-100);
+  color: var(--ds-text-secondary);
+}
+
+.programs-v2 .programs-v2__tab--active .programs-v2__tab-count {
+  background: var(--ds-neutral-200);
+  color: var(--ds-text-primary);
+}
+
+/* ─── Sub-toolbar controls — refined segmented toggle ────────
+ *
+ * Editorial pattern: outline border (no bg fill), tight buttons. Active
+ * button uses subtle neutral fill — not a heavy shadow. Quieter than the
+ * old "filled wrapper + white shadow card" pattern. */
+
+.programs-v2 .programs-subbar {
+  align-items: center;
+  gap: 12px;
+}
+
+.programs-v2 .programs-subbar .view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--ds-border-default);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.programs-v2 .programs-subbar .view-toggle-btn {
+  height: 30px;
+  padding: 0 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  font-family: var(--ds-font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ds-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.programs-v2 .programs-subbar .view-toggle-btn + .view-toggle-btn {
+  border-left: 1px solid var(--ds-border-default);
+}
+
+.programs-v2 .programs-subbar .view-toggle-btn:hover {
+  color: var(--ds-text-primary);
+  background: var(--ds-surface-hover);
+}
+
+.programs-v2 .programs-subbar .view-toggle-btn.active {
+  background: var(--ds-neutral-100);
+  color: var(--ds-text-primary);
+  font-weight: 600;
+}
+
+/* ─── Controls bar — filters left, view+search right ─────────
+ *
+ * Single horizontal strip consolidating what used to be two rows
+ * (filter chips + sub-toolbar). Filters on left grow naturally, view
+ * controls + search anchored right with margin-left:auto.
+ */
+
+.programs-v2 .programs-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 0 14px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  margin-bottom: 0;
+}
+
+.programs-v2 .programs-controls__filters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.programs-v2 .programs-controls__view {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Legacy class retained for any other tab that still uses it */
+.programs-v2 .programs-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 16px;
+  flex-wrap: wrap;
+}
+
+/* Filter chip — Linear/Vercel-style square pill, no dot prefix.
+   Tone tint hanya muncul saat active; default state cleaner & lebih modern
+   dari pola pill+dot (Bootstrap 2015 vibe). */
+.programs-v2 .programs-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  background: transparent;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: 6px;
+  font-family: var(--ds-font-sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ds-text-secondary);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.programs-v2 .programs-filter-chip:hover {
+  border-color: var(--ds-border-default);
+  background: var(--ds-surface-hover);
+  color: var(--ds-text-primary);
+}
+
+/* Dot prefix dihilangkan — tone sudah dikomunikasikan via active state.
+   Class tetap di-render di JSX untuk backwards compat, tapi visually hidden. */
+.programs-v2 .programs-filter-chip__dot {
+  display: none;
+}
+
+/* Active state — tone tint background + tone border + bolder text.
+   Tidak pakai box-shadow left accent (over-design); cukup contrast bg/border. */
+.programs-v2 .programs-filter-chip--active {
+  font-weight: 600;
+  background: var(--ds-neutral-100);
+  border-color: var(--ds-text-secondary);
+  color: var(--ds-text-primary);
+}
+
+.programs-v2 .programs-filter-chip--green.programs-filter-chip--active {
+  background: color-mix(in srgb, var(--ds-green-500) 14%, transparent);
+  border-color: color-mix(in srgb, var(--ds-green-500) 70%, transparent);
+  color: var(--tone-green);
+}
+
+.programs-v2 .programs-filter-chip--amber.programs-filter-chip--active {
+  background: color-mix(in srgb, var(--ds-amber-500) 16%, transparent);
+  border-color: color-mix(in srgb, var(--ds-amber-500) 70%, transparent);
+  color: var(--tone-amber);
+}
+
+.programs-v2 .programs-filter-chip--red.programs-filter-chip--active {
+  background: color-mix(in srgb, var(--ds-red-500) 14%, transparent);
+  border-color: color-mix(in srgb, var(--ds-red-500) 70%, transparent);
+  color: var(--tone-red);
+}
+
+.programs-v2 .programs-filter-chip--stale.programs-filter-chip--active,
+.programs-v2 .programs-filter-chip--neutral.programs-filter-chip--active {
+  background: var(--ds-neutral-100);
+  border-color: var(--ds-text-secondary);
+  color: var(--ds-text-primary);
+}
+
+/* Chip deep-link aktif (division/deadline/progress) — bisa di-clear (× ) */
+.programs-v2 .programs-filter-chip--removable {
+  background: var(--ds-neutral-100);
+  border-color: var(--ds-text-secondary);
+  color: var(--ds-text-primary);
+}
+.programs-v2 .programs-filter-chip__x { margin-left: 4px; opacity: 0.55; font-weight: 600; }
+.programs-v2 .programs-filter-chip--removable:hover .programs-filter-chip__x { opacity: 1; }
+
+/* Reset link — inline text button, only visible when filters are active */
+.programs-v2 .programs-filter-reset {
+  margin-left: 4px;
+  height: 28px;
+  padding: 0 8px;
+  background: transparent;
+  border: 0;
+  font-family: var(--ds-font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ds-text-secondary);
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+
+.programs-v2 .programs-filter-reset:hover {
+  color: var(--ds-text-primary);
+  text-decoration: underline;
+}
+
+/* Filter chip count badge — used by "Perlu Persetujuan" to show pending count */
+.programs-v2 .programs-filter-chip__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: 2px;
+  border-radius: 99px;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Search input — with icon affordance ────────────────────
+ * Pattern: thin outline with leading magnifier icon. Icon and input share
+ * background and focus ring as a single visual unit. */
+
+.programs-v2 .programs-search {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 1 1 240px;
+  max-width: 340px;
+  height: 32px;
+  padding: 0 12px 0 32px;
+  background: var(--ds-surface-card);
+  border: 1px solid var(--ds-border-default);
+  border-radius: 8px;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.programs-v2 .programs-search:focus-within {
+  border-color: var(--ds-text-secondary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ds-text-secondary) 12%, transparent);
+}
+
+.programs-v2 .programs-search__icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ds-text-tertiary);
+  pointer-events: none;
+}
+
+/* Phone (≤640): toolbar view-group ambil 1 baris penuh, search turun
+ * full-width di bawah segmented (sebelumnya flex-shrink:0 → search overflow
+ * tepi kanan). Fase 2 mobile, 2026-06-01. Desktop tak berubah. */
+@media (max-width: 640px) { /* bp-allow: --bp-sm */
+  .programs-v2 .programs-controls__view {
+    flex-shrink: 1;
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 8px;
+  }
+  .programs-v2 .programs-search {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+}
+
+.programs-v2 .programs-search__input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font-family: var(--ds-font-sans);
+  font-size: 13px;
+  color: var(--ds-text-primary);
+}
+
+.programs-v2 .programs-search__input::placeholder {
+  color: var(--ds-text-tertiary);
+}
+
+/* ─── Health chips (right side of toolbar) ─────────────── */
+
+.programs-v2 .health-chips {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.programs-v2 .health-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: var(--ds-radius-pill);
+  font-size: 11px;
+  font-weight: var(--ds-weight-medium);
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+  background: transparent;
+}
+
+.programs-v2 .health-chip--green {
+  background: var(--ds-green-50);
+  color: var(--tone-green);
+}
+
+.programs-v2 .health-chip--yellow {
+  background: var(--ds-amber-50);
+  color: var(--tone-amber);
+}
+
+.programs-v2 .health-chip--red {
+  background: var(--ds-red-50);
+  color: var(--tone-red);
+}
+
+/* ─── Stats inline ──────────────────────────────────────── */
+
+.programs-v2 .view-toolbar__stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding-left: 12px;
+  border-left: 1px solid var(--ds-border-subtle);
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.programs-v2 .view-toolbar__stats em {
+  color: var(--ds-text-tertiary);
+  font-style: normal;
+  font-weight: var(--ds-weight-regular);
+  margin-left: 2px;
+}
+
+.programs-v2 .view-toolbar__stats .text-red {
+  color: var(--tone-red);
+}
+
+/* ─── Role badge ────────────────────────────────────────── */
+
+.programs-v2 .role-monitoring-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-neutral-100);
+  font-size: 10px;
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ─── New Program button ────────────────────────────────── */
+
+.programs-v2 .toolbar-action-btn {
+  height: 32px;
+  padding: 0 14px;
+  background: var(--ds-brand-600);
+  color: var(--ds-text-on-brand);
+  border: 0;
+  border-radius: var(--ds-radius-md);
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-medium);
+  cursor: pointer;
+  transition: background var(--ds-duration-fast) var(--ds-ease-standard);
+  box-shadow: none;
+}
+
+.programs-v2 .toolbar-action-btn:hover {
+  background: var(--ds-brand-700);
+}
+
+/* ─── Sub-bar ───────────────────────────────────────────── */
+
+.programs-v2 .programs-subbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 0 16px;
+  margin-bottom: 8px;
+  background: transparent;
+  border: 0;
+  flex-wrap: wrap;
+}
+
+.programs-v2 .view-toolbar__search {
+  height: 30px;
+  padding: 0 12px;
+  background: var(--ds-surface-card);
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-md);
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-primary);
+  outline: none;
+  transition: border-color var(--ds-duration-fast) var(--ds-ease-standard);
+  flex: 1 1 240px;
+  max-width: 320px;
+}
+
+.programs-v2 .view-toolbar__search:focus {
+  border-color: var(--ds-brand-600);
+  box-shadow: 0 0 0 1px var(--ds-brand-600);
+}
+
+.programs-v2 .programs-approval-filter {
+  border: 1px solid var(--ds-amber-500);
+  background: var(--ds-amber-50);
+  color: var(--tone-amber);
+}
+
+.programs-v2 .programs-approval-filter:hover {
+  background: var(--ds-amber-50);
+  color: var(--tone-amber);
+}
+
+.programs-v2 .programs-approval-filter.active {
+  background: var(--ds-amber-500);
+  color: var(--ds-text-on-brand);
+  box-shadow: none;
+}
+
+.programs-v2 .programs-approval-filter__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: var(--ds-radius-pill);
+  background: rgba(255, 255, 255, 0.4);
+  margin-left: 4px;
+  font-size: 10px;
+  font-weight: var(--ds-weight-semibold);
+}
+
+.programs-v2 .programs-approval-filter:not(.active) .programs-approval-filter__count {
+  background: var(--ds-amber-500);
+  color: white;
+}
+
+/* ─── Workspace + main ──────────────────────────────────── */
+
+.programs-v2 .programs-workspace {
+  display: block;
+  background: transparent;
+  padding: 0;
+}
+
+.programs-v2 .programs-main {
+  background: transparent;
+}
+
+.programs-v2 .programs-tab-content {
+  padding: 0;
+  background: transparent;
+}
+
+/* ─── Section block (Portfolio Roster, etc) ─────────────── */
+
+/* Section block — editorial canvas (no card containment).
+ *
+ * Pure System default: rows/content render directly on page bg, separated
+ * from above by spacing + optional section header. No bg fill, no border,
+ * no card chrome. Sections distinguish themselves via heading typography
+ * and vertical rhythm, not box decoration.
+ *
+ * Specificity bump (:root prefix + light-mode selector) is necessary because
+ * responsive.css defines `:root:not([data-theme="dark"]) .section-block` with
+ * higher specificity than `.programs-v2 .section-block`. Both selectors
+ * below ensure the editorial override wins in either theme. */
+.programs-v2 .section-block,
+.programs-v2 .section-block--bare,
+:root:not([data-theme="dark"]) .programs-v2 .section-block,
+:root:not([data-theme="dark"]) .programs-v2 .section-block--bare,
+:root[data-theme="dark"] .programs-v2 .section-block,
+:root[data-theme="dark"] .programs-v2 .section-block--bare {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 28px;
+  box-shadow: none;
+}
+
+.programs-v2 .section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 0 12px;
+  border-bottom: 0;
+  background: transparent;
+}
+
+.programs-v2 .section-title {
+  margin: 0;
+  font-family: var(--ds-font-sans);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ds-text-primary);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.programs-v2 .section-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--ds-text-tertiary);
+  line-height: 1.4;
+}
+
+/* Section badge — quiet inline count, no pill bg */
+.programs-v2 .section-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ds-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  background: transparent;
+  padding: 0;
+}
+
+.programs-v2 .section-badge--red {
+  color: var(--tone-red);
+}
+
+/* ─── Risiko tab — gov-table editorial overrides ──────────────
+ *
+ * Workflow status badges in this table are de-colored: workflow stage is a
+ * different semantic axis than health (already shown in HEALTH column with
+ * colored pills). Workflow gets neutral treatment so eye sees state-vs-stage
+ * cleanly.
+ */
+
+.programs-v2 .gov-table {
+  font-size: 13px;
+}
+
+.programs-v2 .gov-table th {
+  background: transparent;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  padding: 10px 14px 10px 0;
+  text-align: left;
+  font-weight: 500;
+  color: var(--ds-text-tertiary);
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.programs-v2 .gov-table th:first-child { padding-left: 0; }
+
+.programs-v2 .gov-table td {
+  padding: 14px 14px 14px 0;
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+
+.programs-v2 .gov-table td:first-child { padding-left: 0; }
+
+.programs-v2 .gov-table tr:hover td {
+  background: var(--ds-surface-hover);
+}
+
+/* Workflow status badge — neutral, not colored. Eye reserves color for
+ * the HEALTH column on the same row. */
+.programs-v2 .gov-table .badge {
+  background: var(--ds-neutral-100);
+  color: var(--ds-text-secondary);
+  border: 0;
+  font-weight: 500;
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 99px;
+}
+
+/* ─── Pulse tab — section spacing tighter ───────────────────── */
+.programs-v2 .pulse-stack {
+  gap: 28px;
+}
+
+.programs-v2 .pulse-body {
+  padding-top: 4px;
+}
+
+/* ─── Timeline tab — roadmap-lane editorial override ──────────
+ *
+ * Drop card chrome (bg fill + border + radius) so lanes render directly on
+ * page canvas. Header keeps dot + label but loses its own bg fill — sits as
+ * a quiet section anchor. Specificity bumped to win against responsive.css
+ * theme-scoped overrides. */
+
+.programs-v2 .roadmap-lane,
+:root:not([data-theme="dark"]) .programs-v2 .roadmap-lane,
+:root[data-theme="dark"] .programs-v2 .roadmap-lane {
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--ds-border-subtle);
+  border-radius: 0;
+  overflow: visible;
+  margin-bottom: 12px;
+}
+
+.programs-v2 .roadmap-lane__header {
+  background: transparent;
+  border-bottom: 0;
+  padding: 12px 0 10px;
+}
+
+.programs-v2 .roadmap-lane__header--on-hold {
+  background: transparent;
+}
+
+.programs-v2 .roadmap-lane__label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ds-text-primary);
+}
+
+.programs-v2 .roadmap-body {
+  padding: 0;
+}
+
+/* ─── Program roster (list rows) ─────────────────────────── */
+
+.programs-v2 .program-roster {
+  display: flex;
+  flex-direction: column;
+}
+
+.programs-v2 .list-row {
+  display: flex;
+  align-items: stretch;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  transition: background var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+.programs-v2 .list-row:last-child {
+  border-bottom: 0;
+}
+
+.programs-v2 .list-row:hover {
+  background: var(--ds-surface-hover);
+}
+
+.programs-v2 .program-row--active {
+  background: var(--ds-brand-50);
+}
+
+/* Left-rule for status — subtle 2px inset, not full background tint */
+.programs-v2 .list-row--off-track {
+  box-shadow: inset 2px 0 0 0 var(--ds-red-500);
+}
+
+.programs-v2 .list-row--at-risk {
+  box-shadow: inset 2px 0 0 0 var(--ds-amber-500);
+}
+
+.programs-v2 .list-row--on-track {
+  box-shadow: none;
+}
+
+/* Column header — flex container yang mirror row layout (program-row__main
+ * + charter btn + kebab). Header-main pakai grid yang sama persis dengan
+ * program-row__main, dan spacer mengganti ruang charter+kebab supaya kolom
+ * lurus dari header sampai data terakhir. */
+.programs-v2 .program-roster__header {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ds-text-tertiary);
+}
+.programs-v2 .program-roster__header-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) 120px 200px 160px;
+  gap: 20px;
+  align-items: center;
+  /* Padding mirror persis dengan program-row__main supaya kolom 1 mulai di
+     x yang sama dan kolom terakhir berakhir di x yang sama. */
+  padding: 10px 14px 10px 18px;
+}
+.programs-v2 .program-roster__header-actions-spacer {
+  flex-shrink: 0;
+  /* Charter btn (~80px text+icon+padding) + 4px margin-right + kebab 44px = 128px.
+     Hardcode karena charter btn dimensi konsisten (fixed text "Charter" + arrow). */
+  width: 128px;
+}
+
+@media (max-width: 1280px) {
+  .programs-v2 .program-roster__header-main {
+    grid-template-columns: minmax(240px, 1fr) 110px 180px 150px;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .programs-v2 .program-roster__header-main {
+    grid-template-columns: minmax(220px, 1fr) 100px 140px 130px;
+    gap: 12px;
+  }
+}
+
+.programs-v2 .program-row__main {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) 120px 200px 160px;
+  gap: 20px;
+  align-items: center;
+  padding: 8px 14px 8px 18px;
+  background: transparent;
+  border: 0;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  flex: 1 1 0;
+  min-height: 56px;
+}
+
+@media (max-width: 1280px) {
+  .programs-v2 .program-row__main {
+    grid-template-columns: minmax(240px, 1fr) 110px 180px 150px;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .programs-v2 .program-row__main {
+    grid-template-columns: minmax(220px, 1fr) 100px 140px 130px;
+    gap: 12px;
+  }
+}
+
+/* Phone (≤640): dua masalah yang harus dibereskan bersama —
+   (a) grid 4-kolom punya lebar-min ~626px (kolom 1fr min 220 + 3 kolom fixed +
+       gap) → tak muat 390px, kolom state/progress terdorong keluar & ter-clip;
+   (b) .list-row itu flex-row: tombol Charter + kebab (~194px) mencuri lebar,
+       menyisakan ~160px utk konten → code-badge habiskan, JUDUL kebagian 0px.
+   Solusi: grid sel menumpuk vertikal (a), DAN list-row wrap supaya konten utama
+   full-width di baris-1 (judul muncul) & aksi turun ke baris-2 rata-kanan (b).
+   Header kolom disembunyikan (tak relevan saat sel menumpuk). */
+@media (max-width: 640px) {
+  .programs-v2 .program-roster__header { display: none; }
+  .programs-v2 .list-row--with-actions { flex-wrap: wrap; }
+  .programs-v2 .program-row__main {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    align-items: stretch;
+    padding: 12px 14px;
+    flex: 1 1 100%;
+  }
+  .programs-v2 .program-row__state,
+  .programs-v2 .program-row__progress { min-width: 0; width: 100%; }
+  .programs-v2 .program-row__charter-btn { margin-left: auto; }
+}
+
+.programs-v2 .program-row__identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.programs-v2 .code-badge,
+.programs-v2 .program-row__code {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  background: transparent;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
+  font-family: var(--ds-font-mono);
+  font-size: 11px;
+  font-weight: var(--ds-weight-regular);
+  color: var(--ds-text-secondary);
+  letter-spacing: 0;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.programs-v2 .program-row__info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.programs-v2 .program-row__info strong {
+  font-family: var(--ds-font-sans);
+  font-size: 15px;
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-primary);
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.programs-v2 .program-row__meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--ds-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.programs-v2 .program-row__meta-primary {
+  color: var(--ds-text-tertiary);
+  font-size: 12px;
+}
+
+.programs-v2 .program-deadline {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-tertiary);
+}
+
+.programs-v2 .program-deadline--warn {
+  color: var(--tone-amber);
+}
+
+.programs-v2 .program-deadline--danger,
+.programs-v2 .program-deadline--overdue {
+  color: var(--tone-red);
+}
+
+.programs-v2 .program-row__badge--blocker {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: var(--ds-weight-medium);
+  color: var(--tone-red);
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.programs-v2 .program-row__badge--blocker::before {
+  content: '·';
+  margin-right: 6px;
+  color: var(--ds-text-tertiary);
+}
+
+/* State column — single-line: just the status pill. Approval tag moved to
+ * identity meta line (workflow context belongs with metadata, not next to
+ * health pill). Single-line state lets row collapse to 50ish px instead of 70+. */
+.programs-v2 .program-row__state {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+/* Status pill — soft filled. Not loud (no full saturation), but solid
+ * enough to feel like a confident data label, not an outlined draft. */
+.programs-v2 .program-row__status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 99px;
+  font-size: 11.5px;
+  font-weight: 500;
+  border: 0;
+  white-space: nowrap;
+  letter-spacing: 0;
+}
+
+.programs-v2 .program-row__status-pill::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.programs-v2 .program-row__status-pill--green {
+  background: color-mix(in srgb, var(--ds-green-500) 14%, transparent);
+  color: var(--ds-green-700, #047857);
+}
+.programs-v2 .program-row__status-pill--green::before { background: var(--ds-green-500); }
+
+.programs-v2 .program-row__status-pill--yellow {
+  background: color-mix(in srgb, var(--ds-amber-500) 16%, transparent);
+  color: var(--ds-amber-700, #b45309);
+}
+.programs-v2 .program-row__status-pill--yellow::before { background: var(--ds-amber-500); }
+
+.programs-v2 .program-row__status-pill--red {
+  background: color-mix(in srgb, var(--ds-red-500) 14%, transparent);
+  color: var(--ds-red-700, #b91c1c);
+}
+.programs-v2 .program-row__status-pill--red::before { background: var(--ds-red-500); }
+
+.programs-v2 .program-row__state-sub {
+  font-size: 11px;
+  color: var(--ds-text-tertiary);
+  white-space: nowrap;
+}
+
+.programs-v2 .program-row__state-sub--empty {
+  visibility: hidden;
+}
+
+/* Approval tag — inline metadata token. Sits in the meta line alongside
+ * workstream count, deadline, blocker count. Color encodes approval state.
+ * Lowercase signals "secondary workflow context", not primary state. */
+.programs-v2 .program-row__approval-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--ds-font-sans);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  text-transform: lowercase;
+  letter-spacing: 0;
+}
+
+.programs-v2 .program-row__approval-tag--yellow { color: var(--tone-amber); }
+.programs-v2 .program-row__approval-tag--blue   { color: var(--ds-text-secondary); }
+.programs-v2 .program-row__approval-tag--red    { color: var(--tone-red); }
+
+/* Progress column — bar+value cluster atau "Belum dimulai" text.
+ * Konsisten LEFT-aligned: header "PROGRESS" sebar-data start di x yang
+ * sama. Bar mengisi sisa column dari kiri, value angka di kanan-bar. */
+.programs-v2 .program-row__progress {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.programs-v2 .program-row__progress-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.programs-v2 .program-row__eyebrow {
+  font-size: 9px;
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.programs-v2 .program-row__progress-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.programs-v2 .progress-bar-track,
+.programs-v2 .program-row__progress-track {
+  flex: 1 1 auto;
+  height: 5px;
+  background: var(--ds-neutral-100);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 0;
+  box-shadow: none;
+}
+
+.programs-v2 .progress-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 480ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.programs-v2 .progress-bar-fill.on-track  { background: var(--ds-green-500); }
+.programs-v2 .progress-bar-fill.at-risk   { background: var(--ds-amber-500); }
+.programs-v2 .progress-bar-fill.off-track { background: var(--ds-red-500); }
+
+.programs-v2 .program-row__progress-value {
+  font-family: var(--ds-font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-text-primary);
+  letter-spacing: -0.01em;
+  min-width: 44px;
+  text-align: right;
+}
+
+/* Empty progress — left-aligned di kolom (no margin-left: auto), sehingga
+ * teks "Belum dimulai" start di x yang sama dengan bar pada filled rows.
+ * Konsistensi visual antar baris penting untuk skanning. */
+.programs-v2 .program-row__progress-empty {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--ds-text-secondary);
+  font-style: normal;
+  opacity: 1;
+  white-space: nowrap;
+}
+
+/* Owner column — single line: name + optional copics chip */
+.programs-v2 .program-row__owner-block {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.programs-v2 .program-row__owner {
+  font-size: var(--ds-text-13);
+  font-weight: 500;
+  color: var(--ds-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* Eyebrow labels (PROGRESS / PIC) — removed in iter 3. CSS kept as
+ * defensive no-op in case other rows still reference the class. */
+.programs-v2 .program-row__eyebrow { display: none; }
+
+.programs-v2 .program-row__copics {
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-neutral-100);
+  font-size: 10px;
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-tertiary);
+  margin-left: 4px;
+}
+
+/* Kebab */
+.programs-v2 .program-row__kebab-wrap {
+  display: flex;
+  align-items: center;
+  width: 36px;
+  flex-shrink: 0;
+  padding-right: 8px;
+}
+
+.programs-v2 .program-row__kebab-btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--ds-radius-md);
+  font-size: 18px;
+  color: var(--ds-text-tertiary);
+  cursor: pointer;
+  transition: background var(--ds-duration-fast) var(--ds-ease-standard),
+              color var(--ds-duration-fast) var(--ds-ease-standard);
+  letter-spacing: -2px;
+  line-height: 1;
+}
+
+.programs-v2 .program-row__kebab-btn:hover {
+  background: var(--ds-neutral-100);
+  color: var(--ds-text-primary);
+}
+
+/* ─── M6.1: Filter banner (URL-driven from Context Panel) ─────────── */
+
+.programs-filter-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin: 12px 0;
+  background: var(--ds-brand-50);
+  border: 1px solid var(--ds-brand-100);
+  border-radius: var(--ds-radius-md);
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-secondary);
+  flex-wrap: wrap;
+}
+
+.programs-filter-banner__label {
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-primary);
+}
+
+.programs-filter-banner__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--ds-radius-pill);
+  font-size: var(--ds-text-11);
+  font-weight: var(--ds-weight-medium);
+  background: var(--ds-surface-card);
+  border: 1px solid var(--ds-border-subtle);
+}
+
+.programs-filter-banner__chip::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.programs-filter-banner__chip--green::before  { background: var(--green); }
+.programs-filter-banner__chip--yellow::before { background: var(--yellow); }
+.programs-filter-banner__chip--red::before    { background: var(--red); }
+
+.programs-filter-banner__reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+  padding: 2px 8px;
+  background: transparent;
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-md);
+  font-size: var(--ds-text-11);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-secondary);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.programs-filter-banner__reset:hover {
+  background: var(--ds-surface-card);
+  border-color: var(--ds-border-strong);
+  color: var(--ds-text-primary);
+}
+
+/* ── Peta Programs — portfolio scatter ───────────────────────────────────
+   Bidang dua-sumbu (progres × tekanan waktu). Pure SVG, di-scale via CSS.
+   Dipindah dari peta portfolio Home; di sini fokus seluruh portofolio. */
+.program-scatter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-3);
+  padding: var(--ds-space-2) 0 var(--ds-space-1);
+}
+
+.program-scatter__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* Plot tetap proporsional namun tidak terlalu jangkung di layar lebar. */
+  max-height: 560px;
+  overflow: visible;
+}
+
+.program-scatter__frame {
+  fill: none;
+  stroke: var(--ds-border-subtle);
+  stroke-width: 1;
+}
+.program-scatter__div {
+  stroke: var(--ds-border-subtle);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+
+/* Label kuadran — kalem, biar titik yang jadi bintang. */
+.program-scatter__zone {
+  font-size: 11px;
+  font-weight: var(--ds-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  fill: var(--ds-text-tertiary);
+  /* Halo tipis warna kanvas — label tetap terbaca walau ada titik di belakang. */
+  paint-order: stroke;
+  stroke: var(--ds-surface-card);
+  stroke-width: 3.5px;
+  stroke-linejoin: round;
+}
+.program-scatter__zone-n {
+  font-weight: var(--ds-weight-bold, 700);
+  font-size: 12px;
+}
+.program-scatter__zone--danger { fill: var(--ds-red-500); fill-opacity: 0.72; }
+.program-scatter__zone--push   { fill: var(--ds-amber-500); fill-opacity: 0.78; }
+.program-scatter__zone--safe   { fill: var(--ds-green-500); fill-opacity: 0.72; }
+.program-scatter__zone--early  { fill: var(--ds-text-tertiary); }
+
+.program-scatter__axt {
+  font-size: 10.5px;
+  font-weight: var(--ds-weight-medium);
+  fill: var(--ds-text-tertiary);
+  font-family: var(--ds-font-mono);
+}
+.program-scatter__axlabel {
+  font-size: 11px;
+  font-weight: var(--ds-weight-medium);
+  letter-spacing: 0.02em;
+  fill: var(--ds-text-secondary);
+}
+
+.program-scatter__dot {
+  cursor: pointer;
+  transition: r 120ms ease, fill-opacity 120ms ease, stroke-width 120ms ease;
+}
+.program-scatter__dot:focus-visible {
+  outline: 2px solid var(--ds-border-focus);
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+
+/* Kartu hover — kontras tinggi, melayang di atas sebaran. */
+.program-scatter__tip-bg {
+  fill: var(--ds-surface-card);
+  stroke: var(--ds-border-default);
+  stroke-width: 1;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.12));
+}
+.program-scatter__tip-code {
+  font-family: var(--ds-font-mono);
+  font-size: 10.5px;
+  font-weight: var(--ds-weight-medium);
+  fill: var(--ds-text-tertiary);
+  letter-spacing: 0.02em;
+}
+.program-scatter__tip-name {
+  font-size: 12.5px;
+  font-weight: var(--ds-weight-semibold);
+  fill: var(--ds-text-primary);
+}
+.program-scatter__tip-meta {
+  font-size: 11px;
+  fill: var(--ds-text-secondary);
+}
+
+.program-scatter__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-4);
+  padding: 0 var(--ds-space-1);
+}
+.program-scatter__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-secondary);
+}
+.program-scatter__legend-item i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.program-scatter__legend-hint {
+  margin-left: auto;
+  font-size: var(--ds-text-11);
+  color: var(--ds-text-tertiary);
+  font-style: italic;
+}
+
+/* ── Pager — paginasi List & Table ───────────────────────────────────────── */
+.programs-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--ds-space-3);
+  padding: var(--ds-space-4) var(--ds-space-1) var(--ds-space-2);
+  border-top: 1px solid var(--ds-border-subtle);
+  margin-top: var(--ds-space-2);
+}
+.programs-pager__range {
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-tertiary);
+}
+.programs-pager__range strong {
+  color: var(--ds-text-secondary);
+  font-weight: var(--ds-weight-semibold);
+}
+.programs-pager__nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.programs-pager__btn,
+.programs-pager__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  background: transparent;
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-md);
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-secondary);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.programs-pager__btn:hover:not(:disabled),
+.programs-pager__num:hover {
+  background: var(--ds-surface-sunken);
+  border-color: var(--ds-border-strong);
+  color: var(--ds-text-primary);
+}
+.programs-pager__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.programs-pager__num--active,
+.programs-pager__num--active:hover {
+  background: var(--ds-brand-600, var(--ds-green-500));
+  border-color: var(--ds-brand-600, var(--ds-green-500));
+  color: #fff;
+}
+.programs-pager__gap {
+  min-width: 18px;
+  text-align: center;
+  color: var(--ds-text-tertiary);
+  font-size: var(--ds-text-13);
+  user-select: none;
+}
+
+/* ── Portfolio insight row — 3 panel eksekusi (Horizon/Momentum/Divisi) ───
+   Auto-fit grid: wrap natural tanpa @media (tidak nambah breakpoint liar). */
+.programs-insight {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 0;
+  /* Bagian bawah band dashboard: flat, dipisah dari glance oleh satu hairline
+     (border-top), ditutup border-bottom. Tanpa kotak/shadow → satu bahasa
+     visual dengan strip & list (Pattern A). */
+  margin: 0 0 var(--ds-space-6);
+  padding: var(--ds-space-5) 0;
+  border-top: 1px solid var(--ds-border-subtle);
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+.programs-insight__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-3);
+  min-width: 0;
+  padding: 0 28px;
+}
+.programs-insight__panel:first-child { padding-left: 0; }
+.programs-insight__panel:last-child { padding-right: 0; }
+.programs-insight__panel + .programs-insight__panel {
+  border-left: 1px solid var(--ds-border-subtle);
+}
+.programs-insight__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ds-space-2);
+}
+.programs-insight__eyebrow {
+  font-size: var(--ds-text-11);
+  font-weight: var(--ds-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ds-text-secondary);
+}
+.programs-insight__hint {
+  font-size: var(--ds-text-11);
+  color: var(--ds-text-tertiary);
+}
+.programs-insight__empty {
+  margin: 0;
+  padding: var(--ds-space-4) 0;
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-tertiary);
+}
+
+/* Momentum — donut + tren */
+.programs-insight__momentum {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-4);
+}
+.programs-insight__mtrend {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.programs-insight__msub {
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-secondary);
+}
+.programs-insight__mcap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--ds-text-11);
+  color: var(--ds-text-tertiary);
+}
+.programs-insight__mstats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--ds-space-2) var(--ds-space-4);
+  padding-top: var(--ds-space-3);
+  border-top: 1px solid var(--ds-border-subtle);
+}
+.programs-insight__mstat {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.programs-insight__mstat-val {
+  font-size: var(--ds-text-16);
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-text-primary);
+}
+.programs-insight__mstat-val[data-tone="green"] { color: var(--ds-green-600, var(--ds-green-500)); }
+.programs-insight__mstat-val[data-tone="red"]   { color: var(--ds-red-600, var(--ds-red-500)); }
+.programs-insight__mstat-label {
+  font-size: var(--ds-text-11);
+  color: var(--ds-text-tertiary);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Health per divisi — stacked composition bar per baris */
+.programs-insight__divlist {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.programs-insight__divrow {
+  display: grid;
+  grid-template-columns: 48px 1fr 28px;
+  align-items: center;
+  gap: var(--ds-space-3);
+}
+.programs-insight__divcode {
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-text-11);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-secondary);
+  letter-spacing: 0.02em;
+}
+.programs-insight__divbar {
+  display: flex;
+  height: 9px;
+  border-radius: var(--ds-radius-pill);
+  overflow: hidden;
+  background: var(--ds-surface-sunken);
+}
+.programs-insight__seg {
+  display: block;
+  height: 100%;
+}
+.programs-insight__seg + .programs-insight__seg {
+  border-left: 1px solid var(--ds-surface-card);
+}
+.programs-insight__seg--green { background: var(--ds-green-500); }
+.programs-insight__seg--amber { background: var(--ds-amber-500); }
+.programs-insight__seg--red   { background: var(--ds-red-500); }
+.programs-insight__seg--done  { background: var(--ds-border-strong); }
+.programs-insight__divtotal {
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-text-primary);
+  text-align: right;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   PHONE DENSITY PASS (≤640) — 2026-06-03
+   Rapatkan whitespace agar lebih banyak baris program muat per layar (rasa
+   app native, selaras HomeView). Hanya gap/padding/min-height — tap target
+   baris tetap ≥44px. Selektor dead (hero-stats/insight — dashboard dihapus
+   2026-06-03) sengaja dilewati. Block di akhir file → menang source-order.
+   ════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) { /* bp-allow: --bp-sm */
+  .programs-v2 .programs-v2__tabs { margin-bottom: 14px; }
+  .programs-v2 .programs-controls { gap: 12px; padding-bottom: 12px; }
+  .programs-v2 .programs-subbar { padding-bottom: 12px; }
+  .programs-v2 .section-block { margin-bottom: 18px; }
+  .programs-v2 .section-header { gap: 12px; padding-bottom: 10px; }
+  /* Baris program: floor min-height 56→48 (tetap ≥44px tap), padding dirapat. */
+  .programs-v2 .program-row__main { min-height: 48px; padding: 7px 12px 7px 14px; }
+  .programs-v2 .program-roster__header-main { padding: 8px 12px 8px 14px; }
+  .programs-pager { padding-top: var(--ds-space-3); }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   TOUCH INTERACTION (hover:none) — 2026-06-03
+   Matikan highlight BARIS NAVIGASI yang nyangkut sesudah tap (base bg
+   transparan, tak punya state selected persisten). Chip/toggle/filter
+   SENGAJA tak digate — tap = jadi aktif, highlight-nya memang harus menetap.
+   Ganti dgn :active press momentary (umpan-balik tap, rasa native).
+   ════════════════════════════════════════════════════════════════════ */
+@media (hover: none) {
+  .programs-v2 .list-row:hover,
+  .programs-v2 .gov-table tr:hover td,
+  .programs-v2 .program-row__kebab-btn:hover { background: transparent; }
+  .programs-v2 .list-row:active { background: color-mix(in srgb, var(--ds-text-primary) 6%, transparent); }
+}

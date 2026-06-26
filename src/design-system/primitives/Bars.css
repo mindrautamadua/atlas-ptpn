@@ -1,0 +1,142 @@
+.ds-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-2);
+  width: 100%;
+}
+
+.ds-bars__plot {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--ds-space-2);
+}
+
+.ds-bars__col {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--ds-space-1);
+}
+
+.ds-bars__val {
+  font-size: var(--ds-text-11);
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-text-secondary);
+  line-height: 1;
+}
+
+.ds-bars__bar {
+  width: 64%;
+  max-width: 44px;
+  border-radius: var(--ds-radius-sm) var(--ds-radius-sm) 0 0;
+  transition: height 360ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ds-bars__bar--green   { background: var(--tone-green); }
+.ds-bars__bar--amber   { background: var(--tone-amber); }
+.ds-bars__bar--red     { background: var(--tone-red); }
+.ds-bars__bar--neutral { background: var(--ds-border-strong); }
+.ds-bars__bar--empty {
+  height: 2px !important;
+  background: var(--ds-border-subtle);
+  width: 64%;
+  max-width: 44px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-bars__bar { transition: none; }
+}
+
+/* ── Rich variant — vivid gradient fills, rounded tops, soft glow ── */
+.ds-bars--rich .ds-bars__bar {
+  width: 72%;
+  max-width: 48px;
+  border-radius: 7px 7px 3px 3px;
+}
+.ds-bars--rich .ds-bars__bar--green {
+  background: linear-gradient(180deg, #34D399 0%, #059669 100%);
+  box-shadow: 0 0 12px rgba(16,185,129,0.40), inset 0 1px 0 rgba(255,255,255,0.25);
+}
+.ds-bars--rich .ds-bars__bar--amber {
+  background: linear-gradient(180deg, #FBBF24 0%, #D97706 100%);
+  box-shadow: 0 0 12px rgba(245,158,11,0.40), inset 0 1px 0 rgba(255,255,255,0.25);
+}
+.ds-bars--rich .ds-bars__bar--red {
+  background: linear-gradient(180deg, #FB7185 0%, #DC2626 100%);
+  box-shadow: 0 0 12px rgba(248,113,113,0.45), inset 0 1px 0 rgba(255,255,255,0.25);
+}
+.ds-bars--rich .ds-bars__bar--neutral {
+  background: linear-gradient(180deg, #CBD5E1 0%, #94A3B8 100%);
+  box-shadow: 0 0 10px rgba(148,163,184,0.30);
+}
+.ds-bars--rich .ds-bars__val {
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-primary);
+}
+
+/* Dashed target reference line spanning the plot. */
+.ds-bars__target {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed var(--ds-border-strong);
+  pointer-events: none;
+}
+.ds-bars__target-label {
+  position: absolute;
+  right: 0;
+  top: -7px;
+  padding: 0 var(--ds-space-1);
+  background: var(--ds-surface-card);
+  font-size: var(--ds-text-11);
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-text-tertiary);
+}
+
+.ds-bars__labels {
+  display: flex;
+  gap: var(--ds-space-2);
+}
+.ds-bars__label {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: var(--ds-text-11);
+  color: var(--ds-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Drill-down column — hover lift + keyboard focus. */
+.ds-bars__col--btn {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+  border-radius: var(--ds-radius-sm);
+  transition: background-color 120ms ease;
+}
+.ds-bars__col--btn:hover { background: color-mix(in srgb, var(--ds-text-primary) 4%, transparent); }
+.ds-bars__col--btn:hover .ds-bars__bar { filter: brightness(1.08); }
+/* Touch (hover:none): tint kolom + brightness bar nyangkut sesudah tap → base. */
+@media (hover: none) {
+  .ds-bars__col--btn:hover { background: transparent; }
+  .ds-bars__col--btn:hover .ds-bars__bar { filter: none; }
+}
+.ds-bars__col--btn:focus-visible { outline: none; }
+.ds-bars__col--btn:focus-visible .ds-bars__bar {
+  outline: 2px solid color-mix(in srgb, var(--tone-green) 45%, transparent);
+  outline-offset: 1px;
+}
+
+/* No transform-based mount animation — `transform` inside the scroll container
+ * caused scroll-repaint ghosting (see HomeView.css note). The height transition
+ * on .ds-bars__bar (transient, on data change only) is fine. */

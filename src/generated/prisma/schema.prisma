@@ -1,0 +1,1712 @@
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["ptpn_kmr_app"]
+}
+
+model Directorate {
+  id                   Int                   @id @default(autoincrement())
+  code                 String                @unique(map: "directorate_code_unique") @db.VarChar(255)
+  name                 String                @db.VarChar(255)
+  shortName            String?               @db.VarChar(255)
+  corporateName        String?               @db.VarChar(255)
+  corporateCode        String?               @db.VarChar(255)
+  corporateId          String?               @db.VarChar(255)
+  domain               String?               @db.VarChar(255)
+  isActive             Boolean               @default(true)
+  createdAt            DateTime              @default(now()) @db.Timestamp(0)
+  updatedAt            DateTime              @default(now()) @updatedAt @db.Timestamp(0)
+  direktoratScorecards DirektoratScorecard[]
+  divisiScorecards     DivisiScorecard[]
+  organizationalUnits  OrganizationalUnit[]
+  positions            Position[]
+  users                User[]
+  kpiDivisiItems       KpiDivisiItem[]
+
+  @@schema("ptpn_kmr_app")
+}
+
+model OrganizationalUnit {
+  id                 Int                  @id @default(autoincrement())
+  code               String               @unique(map: "organizationalunit_code_unique") @db.VarChar(255)
+  name               String               @db.VarChar(255)
+  description        String?
+  unitType           String               @db.VarChar(255)
+  parentId           Int?
+  headId             Int?
+  budget             Decimal?             @db.Decimal(20, 4)
+  isActive           Boolean              @default(true)
+  createdAt          DateTime             @default(now()) @db.Timestamp(0)
+  directorateId      Int?
+  divisiScorecards   DivisiScorecard[]
+  monthlyReports     MonthlyReport[]
+  directorate        Directorate?         @relation(fields: [directorateId], references: [id], onUpdate: NoAction, map: "organizationalunit_directorateid_foreign")
+  parent             OrganizationalUnit?  @relation("OrganizationalUnitParent", fields: [parentId], references: [id], onUpdate: NoAction, map: "organizationalunit_parentid_foreign")
+  children           OrganizationalUnit[] @relation("OrganizationalUnitParent")
+  positions          Position[]
+  riskMonthlyReports RiskMonthlyReport[]
+  users              User[]
+  kpiDivisiItems     KpiDivisiItem[]
+
+  @@index([directorateId], map: "organizationalunit_directorateid_index")
+  @@index([parentId], map: "organizationalunit_parentid_index")
+  @@index([unitType], map: "organizationalunit_unittype_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model Position {
+  id                  Int                 @id @default(autoincrement())
+  code                String              @unique(map: "position_code_unique") @db.VarChar(255)
+  name                String              @db.VarChar(255)
+  levelCode           String              @db.VarChar(255)
+  roleType            String              @db.VarChar(255)
+  directorateId       Int?
+  divisionId          Int?
+  reportsToPositionId Int?
+  sourceUnitId        Int?                @unique(map: "position_sourceunitid_unique")
+  seatOrder           Int?
+  isActive            Boolean             @default(true)
+  createdAt           DateTime            @default(now()) @db.Timestamp(0)
+  updatedAt           DateTime            @default(now()) @updatedAt @db.Timestamp(0)
+  directorate         Directorate?        @relation(fields: [directorateId], references: [id], onUpdate: NoAction, map: "position_directorateid_foreign")
+  division            OrganizationalUnit? @relation(fields: [divisionId], references: [id], onUpdate: NoAction, map: "position_divisionid_foreign")
+  reportsToPosition   Position?           @relation("PositionReportsTo", fields: [reportsToPositionId], references: [id], onUpdate: NoAction, map: "position_reportstopositionid_foreign")
+  reportingPositions  Position[]          @relation("PositionReportsTo")
+  users               User[]
+  positionHistories   PositionHistory[]
+
+  @@index([directorateId], map: "position_directorateid_index")
+  @@index([divisionId], map: "position_divisionid_index")
+  @@index([levelCode], map: "position_levelcode_index")
+  @@index([reportsToPositionId], map: "position_reportstopositionid_index")
+  @@index([roleType], map: "position_roletype_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model RoleConfig {
+  role        String   @id @db.VarChar(255)
+  label       String   @db.VarChar(255)
+  description String   @default("") @db.VarChar(255)
+  line        String?  @db.VarChar(255)
+  bodLevel    String?  @db.VarChar(255)
+  badgeColor  String   @default("bg-gray-100 text-gray-600") @db.VarChar(255)
+  updatedAt   DateTime @default(now()) @updatedAt @db.Timestamp(0)
+
+  @@map("role_configs")
+  @@schema("ptpn_kmr_app")
+}
+
+model User {
+  id                      Int                      @id @default(autoincrement())
+  email                   String                   @unique(map: "user_email_unique") @db.VarChar(255)
+  name                    String                   @db.VarChar(255)
+  phone                   String?                  @db.VarChar(255)
+  roleType                String                   @db.VarChar(255)
+  unitId                  Int?
+  avatarUrl               String?                  @db.VarChar(255)
+  isActive                Boolean                  @default(true)
+  preferences             Json?                    @db.Json
+  createdAt               DateTime                 @default(now()) @db.Timestamp(0)
+  updatedAt               DateTime                 @default(now()) @updatedAt @db.Timestamp(0)
+  userId                  String?                  @unique(map: "user_userid_unique") @db.VarChar(255)
+  nik                     String?                  @unique(map: "user_nik_unique") @db.VarChar(255)
+  directorateId           Int?
+  positionId              Int?
+  managerUserId           Int?
+  positionTitle           String?                  @db.VarChar(255)
+  availableRoles          String?                  @db.VarChar(255)
+  passwordHash            String?                  @db.VarChar(255)
+  toursCompleted          Json?                    @db.Json
+  assignmentsReceived     Assignment[]             @relation("AssignmentAssignee")
+  assignmentsAssigned     Assignment[]             @relation("AssignmentAssigner")
+  assignmentAttachments   AssignmentAttachment[]
+  assignmentReviewActions AssignmentReviewAction[]
+  channelMembers          ChannelMember[]
+  channelMessages         ChannelMessage[]
+  channelMessageHiddens   ChannelMessageHidden[]
+  comments                Comment[]
+  escalationsEscalatedTo  EscalationRequest[]      @relation("EscalationEscalatedTo")
+  escalationsRequested    EscalationRequest[]      @relation("EscalationRequestedBy")
+  escalationsReroutedTo   EscalationRequest[]      @relation("EscalationReroutedTo")
+  FocusDisposition        FocusDisposition[]
+  formDrafts              FormDraft[]
+  kpiValueRevisions       KpiValueRevision[]
+  messageReminders        MessageReminder[]
+  monthlyReportsSubmitted MonthlyReport[]
+  monthlyReportApprovals  MonthlyReportApproval[]
+  monthlyReportFiles      MonthlyReportFile[]
+  notifications           Notification[]
+  programApprovalLogs     ProgramApprovalLog[]
+  programProgressLogs     ProgramProgressLog[]
+  riskReportsCreated      RiskMonthlyReport[]      @relation("RiskReportCreatedBy")
+  riskReportsSubmitted    RiskMonthlyReport[]      @relation("RiskReportSubmittedBy")
+  riskReportApprovals     RiskReportApproval[]
+  savedMessages           SavedMessage[]
+  savedSearches           SavedSearch[]
+  systemSettings          SystemSetting[]
+  directorate             Directorate?             @relation(fields: [directorateId], references: [id], onUpdate: NoAction, map: "user_directorateid_foreign")
+  manager                 User?                    @relation("UserManager", fields: [managerUserId], references: [id], onUpdate: NoAction, map: "user_manageruserid_foreign")
+  reports                 User[]                   @relation("UserManager")
+  position                Position?                @relation(fields: [positionId], references: [id], onUpdate: NoAction, map: "user_positionid_foreign")
+  unit                    OrganizationalUnit?      @relation(fields: [unitId], references: [id], onUpdate: NoAction, map: "user_unitid_foreign")
+  userSessions            UserSession[]
+  userStatus              UserStatus?
+  workItemStatusLogs      WorkItemStatusLog[]
+  entityPics              EntityPic[]
+  kpiKaryawanItems        KpiKaryawanItem[]
+  positionHistories       PositionHistory[]
+
+  @@index([directorateId], map: "user_directorateid_index")
+  @@index([managerUserId], map: "user_manageruserid_index")
+  @@index([nik], map: "user_nik_index")
+  @@index([positionId], map: "user_positionid_index")
+  @@index([roleType], map: "user_roletype_index")
+  @@index([unitId], map: "user_unitid_index")
+  @@index([userId], map: "user_userid_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model UserStatus {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @unique(map: "userstatus_userid_unique")
+  status         String   @db.VarChar(255)
+  statusEmoji    String?  @db.VarChar(255)
+  statusMessage  String?  @db.VarChar(255)
+  lastActivityAt DateTime @default(now()) @db.Timestamp(0)
+  updatedAt      DateTime @default(now()) @updatedAt @db.Timestamp(0)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "userstatus_userid_foreign")
+
+  @@schema("ptpn_kmr_app")
+}
+
+model UserSession {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  startedAt  DateTime  @default(now()) @db.Timestamp(0)
+  endedAt    DateTime? @db.Timestamp(0)
+  durationMs Int       @default(0)
+  lastPingAt DateTime  @default(now()) @db.Timestamp(0)
+  endReason  String?   @db.VarChar(255)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "usersession_userid_foreign")
+
+  @@index([endedAt], map: "usersession_endedat_index")
+  @@index([startedAt], map: "usersession_startedat_index")
+  @@index([userId], map: "usersession_userid_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model PositionHistory {
+  id             Int       @id @default(autoincrement())
+  userId         Int
+  positionId     Int
+  startDate      DateTime  @db.Timestamp(0)
+  endDate        DateTime? @db.Timestamp(0)
+  mutationType   String    @default("initial_assignment") @db.VarChar(255)
+  mutationReason String?   @db.VarChar(255)
+  skNumber       String?   @db.VarChar(255)
+  createdBy      Int?
+  createdAt      DateTime  @default(now()) @db.Timestamp(0)
+  position       Position  @relation(fields: [positionId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "position_history_positionid_foreign")
+  user           User      @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "position_history_userid_foreign")
+
+  @@map("position_history")
+  @@schema("ptpn_kmr_app")
+}
+
+model Program {
+  id                    Int                    @id @default(autoincrement())
+  code                  String                 @unique(map: "program_code_unique") @db.VarChar(255)
+  name                  String                 @db.VarChar(255)
+  description           String?
+  strategicObjective    String?
+  ownerId               Int
+  ownerUnitId           Int?
+  status                String                 @default("PLANNING") @db.VarChar(255)
+  priority              String                 @default("MEDIUM") @db.VarChar(255)
+  budgetIdr             Decimal?               @db.Decimal(20, 4)
+  budgetSpent           Decimal?               @default(0) @db.Decimal(20, 4)
+  startDate             DateTime               @db.Timestamp(0)
+  targetEndDate         DateTime               @db.Timestamp(0)
+  actualEndDate         DateTime?              @db.Timestamp(0)
+  progressPercent       Int                    @default(0)
+  strategicAlignment    Float?
+  healthStatus          String?                @db.VarChar(255)
+  linkedChannelId       Int?
+  createdAt             DateTime               @default(now()) @db.Timestamp(0)
+  updatedAt             DateTime               @default(now()) @updatedAt @db.Timestamp(0)
+  hasNoApmsKpi          Boolean                @default(false)
+  approvalStatus        String                 @default("ACTIVE") @db.VarChar(255)
+  rejectionNote         String?
+  submittedById         Int?
+  archivedAt            DateTime?              @db.Timestamp(0)
+  archivedById          Int?
+  kelompok              String?                @db.VarChar(255)
+  pilarStrategis        String?                @db.VarChar(255)
+  progresTerkini        String?
+  dukunganDibutuhkan    String?
+  autoHealthComputedAt  DateTime?              @db.Timestamp(0)
+  assignments           Assignment[]
+  escalationRequests    EscalationRequest[]
+  FocusDisposition      FocusDisposition[]
+  initiatives           Initiative[]
+  kpiDefinitions        KpiDefinition[]
+  programApprovalLogs   ProgramApprovalLog[]
+  programKpiLinks       ProgramKpiLink[]
+  programProgressLogs   ProgramProgressLog[]
+  monthlyReportPrograms MonthlyReportProgram[]
+
+  @@index([ownerUnitId], map: "Program_active_partial_idx", where: raw("(\"archivedAt\" IS NULL)"))
+  @@index([approvalStatus])
+  @@index([ownerUnitId, approvalStatus])
+  @@index([healthStatus], map: "program_healthstatus_index")
+  @@index([kelompok], map: "program_kelompok_index")
+  @@index([ownerId], map: "program_ownerid_index")
+  @@index([pilarStrategis], map: "program_pilarstrategis_index")
+  @@index([startDate], map: "program_startdate_index")
+  @@index([status], map: "program_status_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model Initiative {
+  id                 Int        @id @default(autoincrement())
+  code               String     @unique(map: "initiative_code_unique") @db.VarChar(255)
+  programId          Int
+  name               String     @db.VarChar(255)
+  description        String?
+  ownerId            Int
+  ownerUnitId        Int?
+  status             String     @default("BACKLOG") @db.VarChar(255)
+  priority           String     @default("MEDIUM") @db.VarChar(255)
+  startDate          DateTime?  @db.Timestamp(0)
+  targetCompletion   DateTime   @db.Timestamp(0)
+  actualCompletion   DateTime?  @db.Timestamp(0)
+  progressPercent    Int        @default(0)
+  milestones         Json?      @db.Json
+  healthStatus       String?    @db.VarChar(255)
+  riskLevel          String?    @db.VarChar(255)
+  linkedChannelId    Int?
+  createdAt          DateTime   @default(now()) @db.Timestamp(0)
+  updatedAt          DateTime   @default(now()) @updatedAt @db.Timestamp(0)
+  primaryPicPersonId Int?
+  budgetIdr          Decimal?   @db.Decimal(20, 4)
+  budgetSpent        Decimal?   @default(0) @db.Decimal(20, 4)
+  program            Program    @relation(fields: [programId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "initiative_programid_foreign")
+  phases             Phase[]
+  workItems          WorkItem[]
+
+  @@index([ownerId], map: "initiative_ownerid_index")
+  @@index([programId], map: "initiative_programid_index")
+  @@index([status], map: "initiative_status_index")
+  @@index([targetCompletion], map: "initiative_targetcompletion_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model Phase {
+  id           Int        @id @default(autoincrement())
+  code         String     @unique(map: "phase_code_unique") @db.VarChar(255)
+  initiativeId Int
+  order        Int        @default(0)
+  name         String     @db.VarChar(255)
+  description  String?
+  picUnitIds   Json?      @db.Json
+  status       String     @default("PLANNING") @db.VarChar(255)
+  color        String?    @db.VarChar(255)
+  startWeek    String?    @db.VarChar(255)
+  endWeek      String?    @db.VarChar(255)
+  healthStatus String?    @db.VarChar(255)
+  createdAt    DateTime   @default(now()) @db.Timestamp(0)
+  updatedAt    DateTime   @default(now()) @updatedAt @db.Timestamp(0)
+  initiative   Initiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "phase_initiativeid_foreign")
+  workItems    WorkItem[]
+
+  @@index([initiativeId], map: "phase_initiativeid_index")
+  @@index([order], map: "phase_order_index")
+  @@index([status], map: "phase_status_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model WorkItem {
+  id                 Int                 @id @default(autoincrement())
+  code               String              @unique(map: "workitem_code_unique") @db.VarChar(255)
+  initiativeId       Int
+  title              String              @db.VarChar(255)
+  description        String?
+  assignedTo         Int?
+  createdBy          Int
+  createdByUnitId    Int?
+  status             String              @default("BACKLOG") @db.VarChar(255)
+  priority           String              @default("MEDIUM") @db.VarChar(255)
+  percentComplete    Int                 @default(0)
+  startDate          DateTime?           @db.Timestamp(0)
+  targetCompletion   DateTime            @db.Timestamp(0)
+  actualCompletion   DateTime?           @db.Timestamp(0)
+  dependsOnIds       Json?               @db.Json
+  estimatedHours     Float?
+  actualHours        Float?              @default(0)
+  healthStatus       String?             @db.VarChar(255)
+  isBlocked          Boolean             @default(false)
+  blockedReason      String?
+  linkedThreadId     Int?
+  createdAt          DateTime            @default(now()) @db.Timestamp(0)
+  updatedAt          DateTime            @default(now()) @updatedAt @db.Timestamp(0)
+  actualWeeks        Json?               @db.Json
+  letterIndex        String?             @db.VarChar(255)
+  phaseId            Int?
+  picUnitIds         Json?               @db.Json
+  plannedWeeks       Json?               @db.Json
+  output             String?
+  blockers           Blocker[]
+  subTasks           SubTask[]
+  initiative         Initiative          @relation(fields: [initiativeId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "workitem_initiativeid_foreign")
+  phase              Phase?              @relation(fields: [phaseId], references: [id], onUpdate: NoAction, map: "workitem_phaseid_foreign")
+  workItemStatusLogs WorkItemStatusLog[]
+
+  @@index([assignedTo], map: "workitem_assignedto_index")
+  @@index([healthStatus], map: "workitem_healthstatus_index")
+  @@index([initiativeId], map: "workitem_initiativeid_index")
+  @@index([isBlocked], map: "workitem_isblocked_index")
+  @@index([phaseId], map: "workitem_phaseid_index")
+  @@index([status], map: "workitem_status_index")
+  @@index([targetCompletion], map: "workitem_targetcompletion_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model SubTask {
+  id          Int       @id @default(autoincrement())
+  workItemId  Int
+  title       String    @db.VarChar(255)
+  description String?
+  assignedTo  Int?
+  status      String    @default("PENDING") @db.VarChar(255)
+  isCompleted Boolean   @default(false)
+  completedAt DateTime? @db.Timestamp(0)
+  dueDate     DateTime? @db.Timestamp(0)
+  createdAt   DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime  @default(now()) @updatedAt @db.Timestamp(0)
+  workItem    WorkItem  @relation(fields: [workItemId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "subtask_workitemid_foreign")
+
+  @@index([assignedTo], map: "subtask_assignedto_index")
+  @@index([workItemId], map: "subtask_workitemid_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model Blocker {
+  id                Int       @id @default(autoincrement())
+  code              String    @unique(map: "blocker_code_unique") @db.VarChar(255)
+  workItemId        Int
+  title             String    @db.VarChar(255)
+  description       String?
+  severity          String    @db.VarChar(255)
+  createdBy         Int
+  createdByUnitId   Int?
+  assignedTo        Int?
+  status            String    @default("OPEN") @db.VarChar(255)
+  priority          String    @default("HIGH") @db.VarChar(255)
+  rootCause         String?
+  resolution        String?
+  resolvedAt        DateTime? @db.Timestamp(0)
+  resolutionTime    Int?
+  relatedBlockerIds Json?     @db.Json
+  linkedWorkItemIds Json?     @db.Json
+  linkedChannelId   Int?
+  createdAt         DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt         DateTime  @default(now()) @updatedAt @db.Timestamp(0)
+  workItem          WorkItem  @relation(fields: [workItemId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "blocker_workitemid_foreign")
+
+  @@index([assignedTo], map: "blocker_assignedto_index")
+  @@index([severity], map: "blocker_severity_index")
+  @@index([status], map: "blocker_status_index")
+  @@index([workItemId], map: "blocker_workitemid_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model KpiDefinition {
+  id                  Int                @id @default(autoincrement())
+  code                String             @unique(map: "kpidefinition_code_unique") @db.VarChar(255)
+  programId           Int?
+  initiativeId        Int?
+  name                String             @db.VarChar(255)
+  description         String?
+  metricType          String             @db.VarChar(255)
+  dataType            String             @db.VarChar(255)
+  targetValue         Decimal            @db.Decimal(20, 6)
+  actualValue         Decimal?           @db.Decimal(20, 6)
+  warningThreshold    Decimal?           @db.Decimal(20, 6)
+  criticalThreshold   Decimal?           @db.Decimal(20, 6)
+  unitOfMeasure       String?            @db.VarChar(255)
+  reviewFrequency     String             @default("MONTHLY") @db.VarChar(255)
+  lastMeasuredDate    DateTime?          @db.Timestamp(0)
+  ownerId             Int?
+  ownerUnitId         Int?
+  isLeadingIndicator  Boolean            @default(false)
+  leadingIndicatorFor String?            @db.VarChar(255)
+  isActive            Boolean            @default(true)
+  createdAt           DateTime           @default(now()) @db.Timestamp(0)
+  updatedAt           DateTime           @default(now()) @updatedAt @db.Timestamp(0)
+  program             Program?           @relation(fields: [programId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "kpidefinition_programid_foreign")
+  kpiValues           KpiValue[]
+  kpiValueRevisions   KpiValueRevision[]
+
+  @@index([isLeadingIndicator], map: "kpidefinition_isleadingindicator_index")
+  @@index([metricType], map: "kpidefinition_metrictype_index")
+  @@index([programId], map: "kpidefinition_programid_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model KpiValue {
+  id                Int                @id @default(autoincrement())
+  kpiDefinitionId   Int
+  measurementDate   DateTime           @db.Timestamp(0)
+  targetValue       Decimal?           @db.Decimal(20, 6)
+  actualValue       Decimal            @db.Decimal(20, 6)
+  status            String?            @db.VarChar(255)
+  variance          Decimal?           @db.Decimal(20, 6)
+  variancePercent   Float?
+  statusNotes       String?
+  measuredBy        Int?
+  createdAt         DateTime           @default(now()) @db.Timestamp(0)
+  updatedAt         DateTime           @default(now()) @updatedAt @db.Timestamp(0)
+  kpiDefinition     KpiDefinition      @relation(fields: [kpiDefinitionId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "kpivalue_kpidefinitionid_foreign")
+  kpiValueRevisions KpiValueRevision[]
+
+  @@unique([kpiDefinitionId, measurementDate], map: "kpivalue_kpidefinitionid_measurementdate_unique")
+  @@index([kpiDefinitionId], map: "kpivalue_kpidefinitionid_index")
+  @@index([measurementDate], map: "kpivalue_measurementdate_index")
+  @@index([status], map: "kpivalue_status_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model ProgramKpiLink {
+  id           Int      @id @default(autoincrement())
+  programId    Int
+  apmsKpiCode  String   @db.VarChar(255)
+  note         String?
+  createdAt    DateTime @default(now()) @db.Timestamp(0)
+  apmsKpiBobot Float?
+  apmsKpiName  String?  @db.VarChar(255)
+  program      Program  @relation(fields: [programId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "programkpilink_programid_foreign")
+
+  @@unique([programId, apmsKpiCode], map: "programkpilink_programid_apmskpicode_unique")
+  @@index([apmsKpiCode], map: "programkpilink_apmskpicode_index")
+  @@index([programId], map: "programkpilink_programid_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model Channel {
+  id                 Int              @id @default(autoincrement())
+  code               String           @unique(map: "channel_code_unique") @db.VarChar(255)
+  name               String           @db.VarChar(255)
+  description        String?
+  type               String           @db.VarChar(255)
+  createdBy          Int
+  ownerUnitId        Int?
+  topicType          String?          @db.VarChar(255)
+  linkedProgramId    Int?
+  linkedInitiativeId Int?
+  isArchived         Boolean          @default(false)
+  allowedPostTypes   String?          @db.VarChar(255)
+  allowThreads       Boolean          @default(true)
+  allowReactions     Boolean          @default(true)
+  createdAt          DateTime         @default(now()) @db.Timestamp(0)
+  updatedAt          DateTime         @default(now()) @updatedAt @db.Timestamp(0)
+  channelMembers     ChannelMember[]
+  channelMessages    ChannelMessage[]
+
+  @@index([isArchived], map: "channel_isarchived_index")
+  @@index([topicType], map: "channel_topictype_index")
+  @@index([type], map: "channel_type_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model ChannelMember {
+  channelId    Int
+  userId       Int
+  joinedAt     DateTime  @default(now()) @db.Timestamp(0)
+  lastViewedAt DateTime? @db.Timestamp(0)
+  isMuted      Boolean   @default(false)
+  isStarred    Boolean   @default(false)
+  channel      Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "channelmember_channelid_foreign")
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "channelmember_userid_foreign")
+
+  @@id([channelId, userId])
+  @@index([userId])
+  @@index([lastViewedAt], map: "channelmember_lastviewedat_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model ChannelMessage {
+  id                   Int                    @id @default(autoincrement())
+  channelId            Int
+  userId               Int
+  content              String
+  richContent          Json?                  @db.Json
+  attachments          Json?                  @db.Json
+  parentMessageId      Int?
+  replyCount           Int                    @default(0)
+  reactions            Json?                  @db.Json
+  isPinned             Boolean                @default(false)
+  isEdited             Boolean                @default(false)
+  editedAt             DateTime?              @db.Timestamp(0)
+  editedBy             Int?
+  searchableText       String?
+  createdAt            DateTime               @default(now()) @db.Timestamp(0)
+  updatedAt            DateTime               @default(now()) @updatedAt @db.Timestamp(0)
+  mentionedUserIds     Json?                  @db.Json
+  deletedForEveryoneAt DateTime?              @db.Timestamp(0)
+  deletedForEveryoneBy Int?
+  channel              Channel                @relation(fields: [channelId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "channelmessage_channelid_foreign")
+  parentMessage        ChannelMessage?        @relation("ChannelMessageParent", fields: [parentMessageId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "channelmessage_parentmessageid_foreign")
+  replies              ChannelMessage[]       @relation("ChannelMessageParent")
+  user                 User                   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "channelmessage_userid_foreign")
+  hiddenBy             ChannelMessageHidden[]
+  savedMessages        SavedMessage[]
+
+  @@index([channelId, createdAt], map: "channelmessage_channelid_createdat_index")
+  @@index([channelId], map: "channelmessage_channelid_index")
+  @@index([createdAt], map: "channelmessage_createdat_index")
+  @@index([deletedForEveryoneAt], map: "channelmessage_deletedforeveryoneat_index")
+  @@index([isPinned], map: "channelmessage_ispinned_index")
+  @@index([parentMessageId], map: "channelmessage_parentmessageid_index")
+  @@index([userId], map: "channelmessage_userid_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model ChannelMessageHidden {
+  messageId Int
+  userId    Int
+  hiddenAt  DateTime       @default(now()) @db.Timestamp(0)
+  message   ChannelMessage @relation(fields: [messageId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "channelmessagehidden_messageid_foreign")
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "channelmessagehidden_userid_foreign")
+
+  @@id([messageId, userId])
+  @@index([userId, hiddenAt], map: "channelmessagehidden_userid_hiddenat_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model Comment {
+  id               Int       @id @default(autoincrement())
+  entityType       String    @db.VarChar(255)
+  entityId         Int
+  commentText      String
+  createdBy        Int
+  parentCommentId  Int?
+  replyCount       Int       @default(0)
+  richContent      Json?     @db.Json
+  attachments      Json?     @db.Json
+  reactions        Json?     @db.Json
+  mentionedUserIds Json?     @db.Json
+  mentionChannels  Json?     @db.Json
+  isPinned         Boolean   @default(false)
+  isEdited         Boolean   @default(false)
+  editedAt         DateTime? @db.Timestamp(0)
+  searchableText   String?
+  createdAt        DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt        DateTime  @default(now()) @updatedAt @db.Timestamp(0)
+  creator          User      @relation(fields: [createdBy], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "comment_createdby_foreign")
+  parentComment    Comment?  @relation("CommentParent", fields: [parentCommentId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "comment_parentcommentid_foreign")
+  replies          Comment[] @relation("CommentParent")
+
+  @@index([createdAt], map: "comment_createdat_index")
+  @@index([createdBy], map: "comment_createdby_index")
+  @@index([entityType, entityId], map: "comment_entitytype_entityid_index")
+  @@index([isPinned], map: "comment_ispinned_index")
+  @@index([parentCommentId], map: "comment_parentcommentid_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model ActivityLog {
+  id              Int      @id @default(autoincrement())
+  entityType      String   @db.VarChar(255)
+  entityId        Int
+  action          String   @db.VarChar(255)
+  changedBy       Int
+  changedByUnitId Int?
+  changeTimestamp DateTime @default(now()) @db.Timestamp(0)
+  fieldChanged    String?  @db.VarChar(255)
+  oldValues       Json?    @db.Json
+  newValues       Json?    @db.Json
+  description     String?
+  createdAt       DateTime @default(now()) @db.Timestamp(0)
+
+  @@index([action], map: "activitylog_action_index")
+  @@index([changedBy], map: "activitylog_changedby_index")
+  @@index([changeTimestamp], map: "activitylog_changetimestamp_index")
+  @@index([entityType, entityId], map: "activitylog_entitytype_entityid_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model SavedSearch {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  name        String   @db.VarChar(255)
+  description String?
+  searchQuery String
+  filters     Json?    @db.Json
+  searchType  String   @db.VarChar(255)
+  isShared    Boolean  @default(false)
+  createdAt   DateTime @default(now()) @db.Timestamp(0)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "savedsearch_userid_foreign")
+
+  @@index([isShared], map: "savedsearch_isshared_index")
+  @@index([userId], map: "savedsearch_userid_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model Notification {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  type        String    @db.VarChar(255)
+  message     String
+  source      String    @db.VarChar(255)
+  createdAt   DateTime  @db.Timestamp(0)
+  readAt      DateTime? @db.Timestamp(0)
+  dismissedAt DateTime? @db.Timestamp(0)
+  resolvedAt  DateTime? @db.Timestamp(0)
+  expiresAt   DateTime? @db.Timestamp(0)
+  state       String    @default("UNREAD") @db.VarChar(255)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "notification_userid_foreign")
+
+  @@index([createdAt], map: "notification_createdat_index")
+  @@index([expiresAt], map: "notification_expiresat_index")
+  @@index([userId, createdAt], map: "notification_userid_createdat_index")
+  @@index([userId, dismissedAt], map: "notification_userid_dismissedat_index")
+  @@index([userId, resolvedAt], map: "notification_userid_resolvedat_index")
+  @@index([userId, state], map: "notification_userid_state_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model MessageReminder {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  channelId Int
+  messageId Int
+  remindAt  DateTime @db.Timestamp(0)
+  note      String?
+  notified  Boolean  @default(false)
+  createdAt DateTime @default(now()) @db.Timestamp(0)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "messagereminder_userid_foreign")
+
+  @@index([remindAt, notified], map: "messagereminder_remindat_notified_index")
+  @@index([userId], map: "messagereminder_userid_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model NotificationPreference {
+  id               Int      @id @default(autoincrement())
+  userId           Int
+  notificationType String   @db.VarChar(255)
+  channel          String   @db.VarChar(255)
+  enabled          Boolean  @default(true)
+  frequency        String   @db.VarChar(255)
+  createdAt        DateTime @default(now()) @db.Timestamp(0)
+
+  @@unique([userId, notificationType, channel], map: "notificationpreference_userid_notificationtype_channel_unique")
+  @@schema("ptpn_kmr_app")
+}
+
+model Meeting {
+  id                Int                 @id @default(autoincrement())
+  title             String              @db.VarChar(255)
+  description       String?
+  meetingType       String              @default("RAPAT_TIM") @db.VarChar(255)
+  startAt           DateTime            @db.Timestamp(0)
+  endAt             DateTime            @db.Timestamp(0)
+  location          String?             @db.VarChar(255)
+  organizerId       Int
+  linkedProgramId   Int?
+  status            String              @default("SCHEDULED") @db.VarChar(255)
+  notes             String?
+  postponedReason   String?
+  rescheduledFromAt DateTime?           @db.Timestamp(0)
+  createdAt         DateTime            @default(now()) @db.Timestamp(0)
+  updatedAt         DateTime            @default(now()) @updatedAt @db.Timestamp(0)
+  actionItems       MeetingActionItem[]
+  attendees         MeetingAttendee[]
+  decisions         MeetingDecision[]
+
+  @@index([linkedProgramId], map: "meeting_linkedprogramid_index")
+  @@index([organizerId], map: "meeting_organizerid_index")
+  @@index([startAt], map: "meeting_startat_index")
+  @@index([status], map: "meeting_status_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model MeetingAttendee {
+  id           Int       @id @default(autoincrement())
+  meetingId    Int
+  userId       Int
+  attendeeRole String    @default("REQUIRED") @db.VarChar(255)
+  rsvpStatus   String    @default("PENDING") @db.VarChar(255)
+  delegateToId Int?
+  delegateNote String?
+  respondedAt  DateTime? @db.Timestamp(0)
+  createdAt    DateTime  @default(now()) @db.Timestamp(0)
+  meeting      Meeting   @relation(fields: [meetingId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "meetingattendee_meetingid_foreign")
+
+  @@unique([meetingId, userId], map: "meetingattendee_meetingid_userid_unique")
+  @@index([meetingId], map: "meetingattendee_meetingid_index")
+  @@index([rsvpStatus], map: "meetingattendee_rsvpstatus_index")
+  @@index([userId], map: "meetingattendee_userid_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model MeetingDecision {
+  id        Int      @id @default(autoincrement())
+  meetingId Int
+  decision  String
+  decidedBy Int
+  createdAt DateTime @default(now()) @db.Timestamp(0)
+  meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "meetingdecision_meetingid_foreign")
+
+  @@index([decidedBy], map: "meetingdecision_decidedby_index")
+  @@index([meetingId], map: "meetingdecision_meetingid_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model MeetingActionItem {
+  id               Int       @id @default(autoincrement())
+  meetingId        Int
+  title            String    @db.VarChar(255)
+  description      String?
+  assignedToId     Int?
+  dueDate          DateTime? @db.Timestamp(0)
+  status           String    @default("OPEN") @db.VarChar(255)
+  linkedWorkItemId Int?
+  completedAt      DateTime? @db.Timestamp(0)
+  createdAt        DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt        DateTime  @default(now()) @updatedAt @db.Timestamp(0)
+  meeting          Meeting   @relation(fields: [meetingId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "meetingactionitem_meetingid_foreign")
+
+  @@index([assignedToId], map: "meetingactionitem_assignedtoid_index")
+  @@index([meetingId], map: "meetingactionitem_meetingid_index")
+  @@index([status], map: "meetingactionitem_status_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model FocusBlock {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String   @default("Focus Time") @db.VarChar(255)
+  startAt   DateTime @db.Timestamp(0)
+  endAt     DateTime @db.Timestamp(0)
+  note      String?
+  createdAt DateTime @default(now()) @db.Timestamp(0)
+
+  @@index([startAt], map: "focusblock_startat_index")
+  @@index([userId], map: "focusblock_userid_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model MonthlyReport {
+  id               Int                     @id @default(autoincrement())
+  unitId           Int
+  month            Int
+  year             Int
+  status           String                  @default("DRAFT") @db.VarChar(255)
+  narrativeSummary String?
+  highlights       String?
+  submittedById    Int?
+  submittedAt      DateTime?               @db.Timestamp(0)
+  createdAt        DateTime                @default(now()) @db.Timestamp(0)
+  updatedAt        DateTime                @default(now()) @updatedAt @db.Timestamp(0)
+  linkedProgramIds Json                    @default("[]") @db.Json
+  submittedBy      User?                   @relation(fields: [submittedById], references: [id], onUpdate: NoAction, map: "monthlyreport_submittedbyid_foreign")
+  unit             OrganizationalUnit      @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "monthlyreport_unitid_foreign")
+  approvals        MonthlyReportApproval[]
+  files            MonthlyReportFile[]
+  metrics          MonthlyReportMetric[]
+  programs         MonthlyReportProgram[]
+
+  @@unique([unitId, month, year], map: "monthlyreport_unitid_month_year_unique")
+  @@index([status], map: "monthlyreport_status_index")
+  @@index([unitId], map: "monthlyreport_unitid_index")
+  @@index([year, month], map: "monthlyreport_year_month_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model MonthlyReportMetric {
+  id        Int           @id @default(autoincrement())
+  reportId  Int
+  section   String        @default("KEUANGAN") @db.VarChar(255)
+  kategori  String        @db.VarChar(255)
+  label     String        @db.VarChar(255)
+  satuan    String?       @default("Rp Juta") @db.VarChar(255)
+  rkap      Decimal?      @db.Decimal(20, 4)
+  realisasi Decimal?      @db.Decimal(20, 4)
+  tahunLalu Decimal?      @db.Decimal(20, 4)
+  order     Int           @default(0)
+  createdAt DateTime      @default(now()) @db.Timestamp(0)
+  report    MonthlyReport @relation(fields: [reportId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "monthlyreportmetric_reportid_foreign")
+
+  @@index([kategori], map: "monthlyreportmetric_kategori_index")
+  @@index([reportId], map: "monthlyreportmetric_reportid_index")
+  @@index([section], map: "monthlyreportmetric_section_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model MonthlyReportFile {
+  id           Int           @id @default(autoincrement())
+  reportId     Int
+  filename     String        @db.VarChar(255)
+  originalName String        @db.VarChar(255)
+  filepath     String        @db.VarChar(255)
+  filesize     Int?
+  uploadedById Int
+  uploadedAt   DateTime      @default(now()) @db.Timestamp(0)
+  report       MonthlyReport @relation(fields: [reportId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "monthlyreportfile_reportid_foreign")
+  uploadedBy   User          @relation(fields: [uploadedById], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "monthlyreportfile_uploadedbyid_foreign")
+
+  @@index([reportId], map: "monthlyreportfile_reportid_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model MonthlyReportApproval {
+  id           Int           @id @default(autoincrement())
+  reportId     Int
+  approverId   Int
+  approverRole String        @db.VarChar(255)
+  action       String        @db.VarChar(255)
+  note         String?
+  createdAt    DateTime      @default(now()) @db.Timestamp(0)
+  approver     User          @relation(fields: [approverId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "monthlyreportapproval_approverid_foreign")
+  report       MonthlyReport @relation(fields: [reportId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "monthlyreportapproval_reportid_foreign")
+
+  @@index([approverId], map: "monthlyreportapproval_approverid_index")
+  @@index([approverRole], map: "monthlyreportapproval_approverrole_index")
+  @@index([reportId], map: "monthlyreportapproval_reportid_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model RiskMonthlyReport {
+  id              Int                      @id @default(autoincrement())
+  month           Int
+  year            Int
+  unitId          Int
+  status          String                   @default("DRAFT") @db.VarChar(255)
+  compositeRating String?                  @db.VarChar(255)
+  rmiScore        Decimal?                 @db.Decimal(10, 4)
+  createdById     Int
+  submittedById   Int?
+  submittedAt     DateTime?                @db.Timestamp(0)
+  approvedAt      DateTime?                @db.Timestamp(0)
+  createdAt       DateTime                 @default(now()) @db.Timestamp(0)
+  updatedAt       DateTime                 @default(now()) @updatedAt @db.Timestamp(0)
+  createdBy       User                     @relation("RiskReportCreatedBy", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "riskmonthlyreport_createdbyid_foreign")
+  submittedBy     User?                    @relation("RiskReportSubmittedBy", fields: [submittedById], references: [id], onUpdate: NoAction, map: "riskmonthlyreport_submittedbyid_foreign")
+  unit            OrganizationalUnit       @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "riskmonthlyreport_unitid_foreign")
+  approvals       RiskReportApproval[]
+  governance      RiskReportGovernance?
+  kris            RiskReportKRI[]
+  lossEvents      RiskReportLossEvent[]
+  mitigations     RiskReportMitigation[]
+  narratives      RiskReportNarrative[]
+  riskSnapshots   RiskReportRiskSnapshot[]
+  strategy        RiskReportStrategy?
+
+  @@unique([unitId, month, year], map: "riskmonthlyreport_unitid_month_year_unique")
+  @@index([status], map: "riskmonthlyreport_status_index")
+  @@index([unitId], map: "riskmonthlyreport_unitid_index")
+  @@index([year, month], map: "riskmonthlyreport_year_month_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model RiskReportRiskSnapshot {
+  id             Int                   @id @default(autoincrement())
+  reportId       Int
+  riskCode       String                @db.VarChar(255)
+  riskName       String                @db.VarChar(255)
+  category       String                @db.VarChar(255)
+  probabilitas   Int
+  dampak         Int
+  riskScore      Int
+  riskLevel      String                @db.VarChar(255)
+  status         String                @default("OPEN") @db.VarChar(255)
+  prevMonthScore Int?
+  scoreChange    String?               @db.VarChar(255)
+  ownerName      String                @db.VarChar(255)
+  notes          String?
+  order          Int                   @default(0)
+  kris           RiskReportKRI[]
+  mitigation     RiskReportMitigation?
+  report         RiskMonthlyReport     @relation(fields: [reportId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "riskreportrisksnapshot_reportid_foreign")
+
+  @@index([reportId], map: "riskreportrisksnapshot_reportid_index")
+  @@index([riskLevel], map: "riskreportrisksnapshot_risklevel_index")
+  @@index([status], map: "riskreportrisksnapshot_status_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model RiskReportKRI {
+  id                Int                    @id @default(autoincrement())
+  reportId          Int
+  riskSnapshotId    Int
+  kriCode           String                 @db.VarChar(255)
+  kriName           String                 @db.VarChar(255)
+  unit              String                 @db.VarChar(255)
+  targetValue       Decimal                @db.Decimal(20, 6)
+  actualValue       Decimal                @db.Decimal(20, 6)
+  thresholdWarning  Decimal                @db.Decimal(20, 6)
+  thresholdCritical Decimal                @db.Decimal(20, 6)
+  status            String                 @db.VarChar(255)
+  trend             String                 @db.VarChar(255)
+  prevMonthValue    Decimal?               @db.Decimal(20, 6)
+  higherIsBetter    Boolean                @default(true)
+  notes             String?
+  order             Int                    @default(0)
+  report            RiskMonthlyReport      @relation(fields: [reportId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "riskreportkri_reportid_foreign")
+  riskSnapshot      RiskReportRiskSnapshot @relation(fields: [riskSnapshotId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "riskreportkri_risksnapshotid_foreign")
+
+  @@index([reportId], map: "riskreportkri_reportid_index")
+  @@index([riskSnapshotId], map: "riskreportkri_risksnapshotid_index")
+  @@index([status], map: "riskreportkri_status_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model RiskReportMitigation {
+  id               Int                    @id @default(autoincrement())
+  reportId         Int
+  riskSnapshotId   Int                    @unique(map: "riskreportmitigation_risksnapshotid_unique")
+  plannedActions   Int
+  completedActions Int
+  completionRate   Decimal                @db.Decimal(8, 4)
+  budgetAllocated  Decimal?               @db.Decimal(20, 4)
+  budgetRealized   Decimal?               @db.Decimal(20, 4)
+  budgetAbsorption Decimal?               @db.Decimal(8, 4)
+  isOverdue        Boolean                @default(false)
+  overdueDays      Int?
+  notes            String?
+  report           RiskMonthlyReport      @relation(fields: [reportId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "riskreportmitigation_reportid_foreign")
+  riskSnapshot     RiskReportRiskSnapshot @relation(fields: [riskSnapshotId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "riskreportmitigation_risksnapshotid_foreign")
+
+  @@index([reportId], map: "riskreportmitigation_reportid_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model RiskReportLossEvent {
+  id              Int               @id @default(autoincrement())
+  reportId        Int
+  eventDate       DateTime          @db.Timestamp(0)
+  category        String            @db.VarChar(255)
+  description     String
+  impactAmount    Decimal?          @db.Decimal(20, 4)
+  isRecurring     Boolean           @default(false)
+  recoveryStatus  String            @default("UNRECOVERED") @db.VarChar(255)
+  recoveredAmount Decimal?          @db.Decimal(20, 4)
+  pic             String            @db.VarChar(255)
+  notes           String?
+  report          RiskMonthlyReport @relation(fields: [reportId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "riskreportlossevent_reportid_foreign")
+
+  @@index([category], map: "riskreportlossevent_category_index")
+  @@index([recoveryStatus], map: "riskreportlossevent_recoverystatus_index")
+  @@index([reportId], map: "riskreportlossevent_reportid_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model RiskReportStrategy {
+  id                 Int               @id @default(autoincrement())
+  reportId           Int               @unique(map: "riskreportstrategy_reportid_unique")
+  riskCapacity       Decimal           @db.Decimal(20, 4)
+  riskAppetite       Decimal           @db.Decimal(20, 4)
+  riskTolerance      Decimal           @db.Decimal(20, 4)
+  riskLimit          Decimal           @db.Decimal(20, 4)
+  totalExposure      Decimal           @db.Decimal(20, 4)
+  exposureVsCapacity Decimal           @db.Decimal(8, 4)
+  exposureVsAppetite Decimal           @db.Decimal(8, 4)
+  rasCompliant       Boolean
+  riskStance         String            @db.VarChar(255)
+  notes              String?
+  report             RiskMonthlyReport @relation(fields: [reportId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "riskreportstrategy_reportid_foreign")
+
+  @@schema("ptpn_kmr_app")
+}
+
+model RiskReportGovernance {
+  id                      Int               @id @default(autoincrement())
+  reportId                Int               @unique(map: "riskreportgovernance_reportid_unique")
+  riskRegisterCoverage    Decimal           @db.Decimal(8, 4)
+  risksWithoutOwner       Int
+  reportSubmissionRate    Decimal           @db.Decimal(8, 4)
+  organCompletenessRate   Decimal           @db.Decimal(8, 4)
+  workProgramRealization  Decimal           @db.Decimal(8, 4)
+  auditFollowUpRate       Decimal           @db.Decimal(8, 4)
+  erinUpdateRate          Decimal           @db.Decimal(8, 4)
+  internalControlFindings Int
+  criticalFindingsOpen    Int
+  notes                   String?
+  report                  RiskMonthlyReport @relation(fields: [reportId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "riskreportgovernance_reportid_foreign")
+
+  @@schema("ptpn_kmr_app")
+}
+
+model RiskReportNarrative {
+  id        Int               @id @default(autoincrement())
+  reportId  Int
+  section   String            @db.VarChar(255)
+  content   String
+  order     Int               @default(0)
+  createdAt DateTime          @default(now()) @db.Timestamp(0)
+  updatedAt DateTime          @default(now()) @updatedAt @db.Timestamp(0)
+  report    RiskMonthlyReport @relation(fields: [reportId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "riskreportnarrative_reportid_foreign")
+
+  @@index([reportId], map: "riskreportnarrative_reportid_index")
+  @@index([section], map: "riskreportnarrative_section_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model RiskReportApproval {
+  id           Int               @id @default(autoincrement())
+  reportId     Int
+  approverId   Int
+  approverRole String            @db.VarChar(255)
+  action       String            @db.VarChar(255)
+  note         String?
+  createdAt    DateTime          @default(now()) @db.Timestamp(0)
+  approver     User              @relation(fields: [approverId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "riskreportapproval_approverid_foreign")
+  report       RiskMonthlyReport @relation(fields: [reportId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "riskreportapproval_reportid_foreign")
+
+  @@index([approverId], map: "riskreportapproval_approverid_index")
+  @@index([approverRole], map: "riskreportapproval_approverrole_index")
+  @@index([reportId], map: "riskreportapproval_reportid_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model Assignment {
+  id                 Int                       @id @default(autoincrement())
+  code               String                    @unique(map: "assignment_code_unique") @db.VarChar(255)
+  title              String                    @db.VarChar(255)
+  description        String?
+  priority           String                    @default("MEDIUM") @db.VarChar(255)
+  status             String                    @default("DITUGASKAN") @db.VarChar(255)
+  dueDate            DateTime?                 @db.Timestamp(0)
+  assignerId         Int
+  assigneeId         Int
+  watcherIds         Json?                     @db.Json
+  relatedProgramId   Int?
+  attachments        Json?                     @db.Json
+  tags               Json?                     @db.Json
+  needsClarification Boolean                   @default(false)
+  clarificationNote  String?
+  acknowledgedAt     DateTime?                 @db.Timestamp(0)
+  startedAt          DateTime?                 @db.Timestamp(0)
+  completedAt        DateTime?                 @db.Timestamp(0)
+  cancelledAt        DateTime?                 @db.Timestamp(0)
+  cancelReason       String?
+  evidenceRequired   Boolean                   @default(true)
+  isPrivate          Boolean                   @default(false)
+  currentReviewerIdx Int?
+  revisionCount      Int                       @default(0)
+  rejectedAt         DateTime?                 @db.Timestamp(0)
+  rejectionReason    String?
+  createdAt          DateTime                  @default(now()) @db.Timestamp(0)
+  updatedAt          DateTime                  @default(now()) @updatedAt @db.Timestamp(0)
+  assignee           User                      @relation("AssignmentAssignee", fields: [assigneeId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "assignment_assigneeid_foreign")
+  assigner           User                      @relation("AssignmentAssigner", fields: [assignerId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "assignment_assignerid_foreign")
+  relatedProgram     Program?                  @relation(fields: [relatedProgramId], references: [id], onUpdate: NoAction, map: "assignment_relatedprogramid_foreign")
+  attachmentsList    AssignmentAttachment[]
+  reviewActions      AssignmentReviewAction[]
+  approvalEntries    AssignmentApprovalEntry[]
+
+  @@index([assigneeId, status], map: "assignment_assigneeid_status_index")
+  @@index([assignerId], map: "assignment_assignerid_index")
+  @@index([dueDate], map: "assignment_duedate_index")
+  @@index([relatedProgramId], map: "assignment_relatedprogramid_index")
+  @@index([status], map: "assignment_status_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model AssignmentAttachment {
+  id           Int        @id @default(autoincrement())
+  assignmentId Int
+  uploadedBy   Int
+  type         String     @db.VarChar(255)
+  filename     String?    @db.VarChar(255)
+  originalName String?    @db.VarChar(255)
+  filepath     String?    @db.VarChar(255)
+  filesize     Int?
+  url          String?    @db.VarChar(255)
+  description  String?
+  createdAt    DateTime   @default(now()) @db.Timestamp(0)
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "assignmentattachment_assignmentid_foreign")
+  uploader     User       @relation(fields: [uploadedBy], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "assignmentattachment_uploadedby_foreign")
+
+  @@index([assignmentId], map: "assignmentattachment_assignmentid_index")
+  @@index([uploadedBy], map: "assignmentattachment_uploadedby_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model AssignmentReviewAction {
+  id           Int        @id @default(autoincrement())
+  assignmentId Int
+  reviewerId   Int
+  action       String     @db.VarChar(255)
+  note         String?
+  revisionAt   Int        @default(0)
+  createdAt    DateTime   @default(now()) @db.Timestamp(0)
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "assignmentreviewaction_assignmentid_foreign")
+  reviewer     User       @relation(fields: [reviewerId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "assignmentreviewaction_reviewerid_foreign")
+
+  @@index([assignmentId], map: "assignmentreviewaction_assignmentid_index")
+  @@index([reviewerId], map: "assignmentreviewaction_reviewerid_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model AssignmentApprovalEntry {
+  id            Int        @id @default(autoincrement())
+  assignmentId  Int
+  userId        Int
+  role          String     @db.VarChar(255)
+  name          String     @db.VarChar(255)
+  positionTitle String?    @db.VarChar(255)
+  order         Int
+  status        String     @default("PENDING") @db.VarChar(255)
+  actedAt       DateTime?  @db.Timestamp(0)
+  note          String?
+  createdAt     DateTime   @default(now()) @db.Timestamp(0)
+  updatedAt     DateTime   @default(now()) @updatedAt @db.Timestamp(0)
+  assignment    Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "assignment_approval_entries_assignmentid_foreign")
+
+  @@index([assignmentId], map: "assignment_approval_entries_assignmentid_index")
+  @@index([assignmentId, order], map: "assignment_approval_entries_assignmentid_order_index")
+  @@index([status], map: "assignment_approval_entries_status_index")
+  @@map("assignment_approval_entries")
+  @@schema("ptpn_kmr_app")
+}
+
+model EntityPic {
+  id         Int      @id @default(autoincrement())
+  entityType String   @db.VarChar(255)
+  entityId   Int
+  userId     Int
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now()) @db.Timestamp(0)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "entity_pics_userid_foreign")
+
+  @@unique([entityType, entityId, userId], map: "entity_pics_entitytype_entityid_userid_unique")
+  @@index([entityType, entityId], map: "entity_pics_entitytype_entityid_index")
+  @@index([userId], map: "entity_pics_userid_index")
+  @@map("entity_pics")
+  @@schema("ptpn_kmr_app")
+}
+
+model MonthlyReportProgram {
+  reportId  Int
+  programId Int
+  program   Program       @relation(fields: [programId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "monthly_report_programs_programid_foreign")
+  report    MonthlyReport @relation(fields: [reportId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "monthly_report_programs_reportid_foreign")
+
+  @@id([reportId, programId])
+  @@index([programId], map: "monthly_report_programs_programid_index")
+  @@index([reportId], map: "monthly_report_programs_reportid_index")
+  @@map("monthly_report_programs")
+  @@schema("ptpn_kmr_app")
+}
+
+model BroadcastEvent {
+  id        Int      @id @default(autoincrement())
+  eventType String   @db.VarChar(255)
+  payload   Json     @db.Json
+  userIds   Json?
+  createdAt DateTime @default(now()) @db.Timestamp(0)
+
+  @@index([createdAt], map: "broadcast_events_createdat_index")
+  @@index([userIds], map: "broadcast_events_userids_gin", type: Gin)
+  @@map("broadcast_events")
+  @@schema("ptpn_kmr_app")
+}
+
+model SavedMessage {
+  id        Int            @id @default(autoincrement())
+  userId    Int
+  messageId Int
+  createdAt DateTime       @default(now()) @db.Timestamp(0)
+  message   ChannelMessage @relation(fields: [messageId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "savedmessage_messageid_foreign")
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "savedmessage_userid_foreign")
+
+  @@unique([userId, messageId], map: "savedmessage_userid_messageid_unique")
+  @@index([messageId], map: "savedmessage_messageid_index")
+  @@index([userId], map: "savedmessage_userid_index")
+  @@map("SavedMessage")
+  @@schema("ptpn_kmr_app")
+}
+
+model Job {
+  id          Int    @id @default(autoincrement())
+  queue       String @db.VarChar(255)
+  payload     String
+  attempts    Int    @db.SmallInt
+  reservedAt  Int?   @map("reserved_at")
+  availableAt Int    @map("available_at")
+  createdAt   Int    @map("created_at")
+
+  @@index([queue], map: "jobs_queue_index")
+  @@map("jobs")
+  @@schema("ptpn_kmr_app")
+}
+
+model JobBatch {
+  id           String  @id @db.VarChar(255)
+  name         String  @db.VarChar(255)
+  totalJobs    Int     @map("total_jobs")
+  pendingJobs  Int     @map("pending_jobs")
+  failedJobs   Int     @map("failed_jobs")
+  failedJobIds String  @map("failed_job_ids")
+  options      String?
+  cancelledAt  Int?    @map("cancelled_at")
+  createdAt    Int     @map("created_at")
+  finishedAt   Int?    @map("finished_at")
+
+  @@map("job_batches")
+  @@schema("ptpn_kmr_app")
+}
+
+model FailedJob {
+  id         Int      @id @default(autoincrement())
+  uuid       String   @unique(map: "failed_jobs_uuid_unique") @db.VarChar(255)
+  connection String
+  queue      String
+  payload    String
+  exception  String
+  failedAt   DateTime @default(now()) @map("failed_at") @db.Timestamp(0)
+
+  @@map("failed_jobs")
+  @@schema("ptpn_kmr_app")
+}
+
+model ProgramHealthSnapshot {
+  id           Int      @id @default(autoincrement())
+  snapshotDate DateTime @unique(map: "program_health_snapshots_snapshotdate_unique") @db.Date
+  total        Int      @default(0)
+  onTrack      Int      @default(0)
+  atRisk       Int      @default(0)
+  terlambat    Int      @default(0)
+  overdue      Int      @default(0)
+  selesai      Int      @default(0)
+  byDivisi     Json?    @db.Json
+  createdAt    DateTime @default(now()) @db.Timestamp(0)
+
+  @@map("program_health_snapshots")
+  @@schema("ptpn_kmr_app")
+}
+
+model ProgramApprovalLog {
+  id         Int      @id @default(autoincrement())
+  programId  Int
+  action     String   @db.VarChar(30)
+  fromStatus String?  @db.VarChar(40)
+  toStatus   String   @db.VarChar(40)
+  byUserId   Int
+  byUserName String?  @db.VarChar(120)
+  note       String?
+  createdAt  DateTime @default(now()) @db.Timestamp(0)
+  byUser     User     @relation(fields: [byUserId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "programapprovallog_byuserid_foreign")
+  program    Program  @relation(fields: [programId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "programapprovallog_programid_foreign")
+
+  @@index([programId], map: "programapprovallog_programid_index")
+  @@map("ProgramApprovalLog")
+  @@schema("ptpn_kmr_app")
+}
+
+model ProgramProgressLog {
+  id                 Int       @id @default(autoincrement())
+  programId          Int
+  period             String    @db.VarChar(20)
+  healthAtTime       String    @db.VarChar(20)
+  narrative          String
+  kendala            String?
+  dukunganDibutuhkan String?
+  createdById        Int
+  createdByName      String?   @db.VarChar(100)
+  createdAt          DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt          DateTime? @updatedAt @db.Timestamp(0)
+  correctiveAction   String?
+  nextStep           String?
+  isLate             Boolean   @default(false)
+  createdBy          User      @relation(fields: [createdById], references: [id], onUpdate: NoAction, map: "programprogresslog_createdbyid_foreign")
+  program            Program   @relation(fields: [programId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "programprogresslog_programid_foreign")
+
+  @@unique([programId, period], map: "programprogresslog_programid_period_unique")
+  @@index([isLate], map: "programprogresslog_islate_index")
+  @@map("ProgramProgressLog")
+  @@schema("ptpn_kmr_app")
+}
+
+model EscalationRequest {
+  id                Int                @id @default(autoincrement())
+  code              String             @unique(map: "escalationrequest_code_unique") @db.VarChar(255)
+  sourceType        String             @db.VarChar(255)
+  sourceId          Int?
+  requestedById     Int
+  requestedAt       DateTime           @default(now()) @db.Timestamp(0)
+  title             String             @db.VarChar(200)
+  description       String?
+  linkedProgramId   Int?
+  escalatedToId     Int
+  status            String             @default("REQUESTED") @db.VarChar(255)
+  committedAt       DateTime?          @db.Timestamp(0)
+  commitmentDueDate DateTime?          @db.Timestamp(0)
+  commitmentNote    String?
+  resolvedAt        DateTime?          @db.Timestamp(0)
+  resolutionNote    String?
+  reroutedToId      Int?
+  declinedReason    String?
+  createdAt         DateTime           @default(now()) @db.Timestamp(0)
+  updatedAt         DateTime           @default(now()) @updatedAt @db.Timestamp(0)
+  escalatedTo       User               @relation("EscalationEscalatedTo", fields: [escalatedToId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "escalationrequest_escalatedtoid_foreign")
+  linkedProgram     Program?           @relation(fields: [linkedProgramId], references: [id], onUpdate: NoAction, map: "escalationrequest_linkedprogramid_foreign")
+  requestedBy       User               @relation("EscalationRequestedBy", fields: [requestedById], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "escalationrequest_requestedbyid_foreign")
+  reroutedTo        User?              @relation("EscalationReroutedTo", fields: [reroutedToId], references: [id], onUpdate: NoAction, map: "escalationrequest_reroutedtoid_foreign")
+  FocusDisposition  FocusDisposition[]
+
+  @@index([createdAt], map: "escalationrequest_createdat_index")
+  @@index([escalatedToId, status], map: "escalationrequest_escalatedtoid_status_index")
+  @@index([linkedProgramId], map: "escalationrequest_linkedprogramid_index")
+  @@index([requestedById, status], map: "escalationrequest_requestedbyid_status_index")
+  @@index([sourceType, sourceId], map: "escalationrequest_sourcetype_sourceid_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model SystemSetting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique(map: "systemsetting_key_unique") @db.VarChar(150)
+  value       Json     @db.Json
+  category    String   @db.VarChar(60)
+  description String?
+  updatedById Int?
+  createdAt   DateTime @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime @default(now()) @updatedAt @db.Timestamp(0)
+  updatedBy   User?    @relation(fields: [updatedById], references: [id], onUpdate: NoAction, map: "systemsetting_updatedbyid_foreign")
+
+  @@index([category], map: "systemsetting_category_index")
+  @@map("SystemSetting")
+  @@schema("ptpn_kmr_app")
+}
+
+model DirektoratScorecard {
+  id            Int         @id @default(autoincrement())
+  directorateId Int
+  periode       String      @db.VarChar(7)
+  nilai         Decimal     @db.Decimal(6, 2)
+  createdAt     DateTime    @default(now()) @db.Timestamp(0)
+  updatedAt     DateTime    @default(now()) @updatedAt @db.Timestamp(0)
+  directorate   Directorate @relation(fields: [directorateId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "direktoratscorecard_directorateid_foreign")
+
+  @@unique([directorateId, periode], map: "direktoratscorecard_directorateid_periode_unique")
+  @@index([periode], map: "direktoratscorecard_periode_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model DivisiScorecard {
+  id            Int                @id @default(autoincrement())
+  unitId        Int
+  directorateId Int
+  periode       String             @db.VarChar(7)
+  nilai         Decimal            @db.Decimal(6, 2)
+  createdAt     DateTime           @default(now()) @db.Timestamp(0)
+  updatedAt     DateTime           @default(now()) @updatedAt @db.Timestamp(0)
+  directorate   Directorate        @relation(fields: [directorateId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "divisiscorecard_directorateid_foreign")
+  unit          OrganizationalUnit @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "divisiscorecard_unitid_foreign")
+
+  @@unique([unitId, periode], map: "divisiscorecard_unitid_periode_unique")
+  @@index([directorateId, periode], map: "divisiscorecard_directorateid_periode_index")
+  @@index([periode], map: "divisiscorecard_periode_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model WorkItemStatusLog {
+  id         Int      @id @default(autoincrement())
+  workItemId Int
+  fromStatus String?  @db.VarChar(40)
+  toStatus   String   @db.VarChar(40)
+  byUserId   Int
+  byUserName String?  @db.VarChar(120)
+  note       String?
+  createdAt  DateTime @default(now()) @db.Timestamp(0)
+  byUser     User     @relation(fields: [byUserId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "workitemstatuslog_byuserid_foreign")
+  workItem   WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "workitemstatuslog_workitemid_foreign")
+
+  @@index([createdAt], map: "workitemstatuslog_createdat_index")
+  @@index([workItemId], map: "workitemstatuslog_workitemid_index")
+  @@map("WorkItemStatusLog")
+  @@schema("ptpn_kmr_app")
+}
+
+model Session {
+  id           String  @id @db.VarChar(255)
+  userId       Int?    @map("user_id")
+  ipAddress    String? @map("ip_address") @db.VarChar(45)
+  userAgent    String? @map("user_agent")
+  payload      String
+  lastActivity Int     @map("last_activity")
+
+  @@index([lastActivity], map: "sessions_last_activity_index")
+  @@index([userId], map: "sessions_user_id_index")
+  @@map("sessions")
+  @@schema("ptpn_kmr_app")
+}
+
+model FormDraft {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  formKey      String   @db.VarChar(160)
+  entityType   String?  @db.VarChar(40)
+  entityId     Int?
+  payload      Json     @default("{}")
+  version      Int      @default(0)
+  clientId     String?  @db.VarChar(40)
+  lastEditedAt DateTime @default(now()) @db.Timestamp(0)
+  expiresAt    DateTime @db.Timestamp(0)
+  createdAt    DateTime @default(now()) @db.Timestamp(0)
+  updatedAt    DateTime @default(now()) @updatedAt @db.Timestamp(0)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "formdraft_userid_foreign")
+
+  @@unique([userId, formKey], map: "formdraft_userid_formkey_unique")
+  @@index([entityType, entityId], map: "formdraft_entitytype_entityid_index")
+  @@index([expiresAt], map: "formdraft_expiresat_index")
+  @@map("FormDraft")
+  @@schema("ptpn_kmr_app")
+}
+
+model KpiValueRevision {
+  id                  Int           @id @default(autoincrement())
+  kpiValueId          Int
+  kpiDefinitionId     Int
+  measurementDate     DateTime      @db.Timestamp(0)
+  previousActualValue Decimal       @db.Decimal(20, 6)
+  previousTargetValue Decimal?      @db.Decimal(20, 6)
+  previousStatusNotes String?
+  previousMeasuredBy  Int?
+  revisedBy           Int
+  revisedAt           DateTime      @default(now()) @db.Timestamp(0)
+  revisionNote        String?
+  kpiDefinition       KpiDefinition @relation(fields: [kpiDefinitionId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "kpivaluerevision_kpidefinitionid_foreign")
+  kpiValue            KpiValue      @relation(fields: [kpiValueId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "kpivaluerevision_kpivalueid_foreign")
+  reviser             User          @relation(fields: [revisedBy], references: [id], onUpdate: NoAction, map: "kpivaluerevision_revisedby_foreign")
+
+  @@index([kpiDefinitionId], map: "kpivaluerevision_kpidefinitionid_index")
+  @@index([kpiValueId], map: "kpivaluerevision_kpivalueid_index")
+  @@index([revisedAt], map: "kpivaluerevision_revisedat_index")
+  @@map("KpiValueRevision")
+  @@schema("ptpn_kmr_app")
+}
+
+model PerformancePeriod {
+  id                Int                @id @default(autoincrement())
+  tahun             Int                @db.SmallInt
+  bulan             Int                @db.SmallInt
+  label             String             @db.VarChar(20)
+  isActive          Boolean            @default(false) @map("is_active")
+  createdAt         DateTime?          @map("created_at") @db.Timestamp(0)
+  updatedAt         DateTime?          @updatedAt @map("updated_at") @db.Timestamp(0)
+  kpiDirekturValues KpiDirekturValue[]
+  kpiDivisiValues   KpiDivisiValue[]
+  kpiKaryawanValues KpiKaryawanValue[]
+  kpiKolegialValues KpiKolegialValue[]
+
+  @@unique([tahun, bulan], map: "performance_periods_tahun_bulan_unique")
+  @@map("performance_periods")
+  @@schema("ptpn_kmr_app")
+}
+
+model KpiKolegialItem {
+  id           Int                @id @default(autoincrement())
+  kode         String             @unique(map: "kpi_kolegial_items_kode_unique") @db.VarChar(30)
+  nama         String             @db.VarChar(255)
+  perspektif   String             @db.VarChar(40)
+  satuan       String             @db.VarChar(30)
+  polaritas    String             @default("maximize") @db.VarChar(10)
+  bobotDefault Decimal            @default(0) @map("bobot_default") @db.Decimal(5, 2)
+  definisi     String?
+  formula      String?            @db.VarChar(255)
+  sumberData   String?            @map("sumber_data") @db.VarChar(255)
+  createdAt    DateTime?          @map("created_at") @db.Timestamp(0)
+  updatedAt    DateTime?          @updatedAt @map("updated_at") @db.Timestamp(0)
+  values       KpiKolegialValue[]
+
+  @@map("kpi_kolegial_items")
+  @@schema("ptpn_kmr_app")
+}
+
+model KpiKolegialValue {
+  id                Int               @id @default(autoincrement())
+  kpiKolegialItemId Int               @map("kpi_kolegial_item_id")
+  periodId          Int               @map("period_id")
+  directorateCode   String            @map("directorate_code") @db.VarChar(10)
+  bobot             Decimal           @default(0) @db.Decimal(5, 2)
+  target            Decimal?          @db.Decimal(18, 4)
+  realisasi         Decimal?          @db.Decimal(18, 4)
+  skor              Decimal?          @db.Decimal(8, 4)
+  createdAt         DateTime?         @map("created_at") @db.Timestamp(0)
+  updatedAt         DateTime?         @updatedAt @map("updated_at") @db.Timestamp(0)
+  kpiKolegialItem   KpiKolegialItem   @relation(fields: [kpiKolegialItemId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "kpi_kolegial_values_kpi_kolegial_item_id_foreign")
+  period            PerformancePeriod @relation(fields: [periodId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "kpi_kolegial_values_period_id_foreign")
+
+  @@unique([kpiKolegialItemId, periodId, directorateCode], map: "kpi_kolegial_values_kpi_kolegial_item_id_period_id_directorate_")
+  @@map("kpi_kolegial_values")
+  @@schema("ptpn_kmr_app")
+}
+
+model KpiDirekturItem {
+  id              Int                @id @default(autoincrement())
+  kode            String             @unique(map: "kpi_direktur_items_kode_unique") @db.VarChar(30)
+  nama            String             @db.VarChar(255)
+  directorateCode String             @map("directorate_code") @db.VarChar(10)
+  perspektif      String             @db.VarChar(40)
+  satuan          String             @db.VarChar(30)
+  polaritas       String             @default("maximize") @db.VarChar(10)
+  bobot           Decimal            @default(0) @db.Decimal(5, 2)
+  definisi        String?
+  createdAt       DateTime?          @map("created_at") @db.Timestamp(0)
+  updatedAt       DateTime?          @updatedAt @map("updated_at") @db.Timestamp(0)
+  values          KpiDirekturValue[]
+
+  @@map("kpi_direktur_items")
+  @@schema("ptpn_kmr_app")
+}
+
+model KpiDirekturValue {
+  id                Int               @id @default(autoincrement())
+  kpiDirekturItemId Int               @map("kpi_direktur_item_id")
+  periodId          Int               @map("period_id")
+  target            Decimal?          @db.Decimal(18, 4)
+  realisasi         Decimal?          @db.Decimal(18, 4)
+  skor              Decimal?          @db.Decimal(8, 4)
+  createdAt         DateTime?         @map("created_at") @db.Timestamp(0)
+  updatedAt         DateTime?         @updatedAt @map("updated_at") @db.Timestamp(0)
+  kpiDirekturItem   KpiDirekturItem   @relation(fields: [kpiDirekturItemId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "kpi_direktur_values_kpi_direktur_item_id_foreign")
+  period            PerformancePeriod @relation(fields: [periodId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "kpi_direktur_values_period_id_foreign")
+
+  @@unique([kpiDirekturItemId, periodId], map: "kpi_direktur_values_kpi_direktur_item_id_period_id_unique")
+  @@map("kpi_direktur_values")
+  @@schema("ptpn_kmr_app")
+}
+
+model KpiKaryawanItem {
+  id        Int                @id @default(autoincrement())
+  kode      String             @db.VarChar(30)
+  nama      String             @db.VarChar(255)
+  userId    Int                @map("user_id")
+  unitCode  String?            @map("unit_code") @db.VarChar(20)
+  satuan    String             @db.VarChar(30)
+  polaritas String             @default("maximize") @db.VarChar(10)
+  bobot     Decimal            @default(0) @db.Decimal(5, 2)
+  definisi  String?
+  tahun     Int                @db.SmallInt
+  createdAt DateTime?          @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime?          @updatedAt @map("updated_at") @db.Timestamp(0)
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "kpi_karyawan_items_user_id_foreign")
+  values    KpiKaryawanValue[]
+
+  @@map("kpi_karyawan_items")
+  @@schema("ptpn_kmr_app")
+}
+
+model KpiKaryawanValue {
+  id                Int               @id @default(autoincrement())
+  kpiKaryawanItemId Int               @map("kpi_karyawan_item_id")
+  periodId          Int               @map("period_id")
+  target            Decimal?          @db.Decimal(18, 4)
+  realisasi         Decimal?          @db.Decimal(18, 4)
+  skor              Decimal?          @db.Decimal(8, 4)
+  createdAt         DateTime?         @map("created_at") @db.Timestamp(0)
+  updatedAt         DateTime?         @updatedAt @map("updated_at") @db.Timestamp(0)
+  kpiKaryawanItem   KpiKaryawanItem   @relation(fields: [kpiKaryawanItemId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "kpi_karyawan_values_kpi_karyawan_item_id_foreign")
+  period            PerformancePeriod @relation(fields: [periodId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "kpi_karyawan_values_period_id_foreign")
+
+  @@unique([kpiKaryawanItemId, periodId], map: "kpi_karyawan_values_kpi_karyawan_item_id_period_id_unique")
+  @@map("kpi_karyawan_values")
+  @@schema("ptpn_kmr_app")
+}
+
+model KpiDivisiItem {
+  id                 Int                @id @default(autoincrement())
+  unitId             Int                @map("unit_id")
+  directorateId      Int                @map("directorate_id")
+  kode               String             @db.VarChar(30)
+  nama               String             @db.VarChar(255)
+  strategicObjective String?            @map("strategic_objective") @db.VarChar(255)
+  perspektif         String             @db.VarChar(40)
+  satuan             String             @db.VarChar(30)
+  polaritas          String             @default("maximize") @db.VarChar(10)
+  bobot              Decimal            @default(0) @db.Decimal(5, 2)
+  formula            String?
+  sumberData         String?            @map("sumber_data") @db.VarChar(255)
+  tahun              Int                @db.SmallInt
+  urutan             Int                @default(0) @db.SmallInt
+  createdAt          DateTime?          @map("created_at") @db.Timestamp(0)
+  updatedAt          DateTime?          @updatedAt @map("updated_at") @db.Timestamp(0)
+  directorate        Directorate        @relation(fields: [directorateId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "kpi_divisi_items_directorate_id_foreign")
+  unit               OrganizationalUnit @relation(fields: [unitId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "kpi_divisi_items_unit_id_foreign")
+  values             KpiDivisiValue[]
+
+  @@unique([unitId, tahun, kode], map: "kpi_divisi_items_unit_id_tahun_kode_unique")
+  @@index([directorateId, tahun], map: "kpi_divisi_items_directorate_id_tahun_index")
+  @@map("kpi_divisi_items")
+  @@schema("ptpn_kmr_app")
+}
+
+model KpiDivisiValue {
+  id              Int               @id @default(autoincrement())
+  kpiDivisiItemId Int               @map("kpi_divisi_item_id")
+  periodId        Int               @map("period_id")
+  target          Decimal?          @db.Decimal(18, 4)
+  realisasi       Decimal?          @db.Decimal(18, 4)
+  skor            Decimal?          @db.Decimal(8, 4)
+  createdAt       DateTime?         @map("created_at") @db.Timestamp(0)
+  updatedAt       DateTime?         @updatedAt @map("updated_at") @db.Timestamp(0)
+  kpiDivisiItem   KpiDivisiItem     @relation(fields: [kpiDivisiItemId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "kpi_divisi_values_kpi_divisi_item_id_foreign")
+  period          PerformancePeriod @relation(fields: [periodId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "kpi_divisi_values_period_id_foreign")
+
+  @@unique([kpiDivisiItemId, periodId], map: "kpi_divisi_values_kpi_divisi_item_id_period_id_unique")
+  @@map("kpi_divisi_values")
+  @@schema("ptpn_kmr_app")
+}
+
+model Cache {
+  key        String @id @db.VarChar(255)
+  value      String
+  expiration Int
+
+  @@map("cache")
+  @@schema("ptpn_kmr_app")
+}
+
+model CacheLock {
+  key        String @id @db.VarChar(255)
+  owner      String @db.VarChar(255)
+  expiration Int
+
+  @@map("cache_locks")
+  @@schema("ptpn_kmr_app")
+}
+
+model FocusDisposition {
+  id                Int                @id @default(autoincrement())
+  userId            Int
+  programId         Int
+  tag               String             @db.VarChar(255)
+  action            String             @db.VarChar(255)
+  note              String?
+  escalationId      Int?
+  createdAt         DateTime           @default(now()) @db.Timestamp(0)
+  updatedAt         DateTime           @default(now()) @db.Timestamp(0)
+  EscalationRequest EscalationRequest? @relation(fields: [escalationId], references: [id], onUpdate: NoAction, map: "focusdisposition_escalationid_foreign")
+  Program           Program            @relation(fields: [programId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "focusdisposition_programid_foreign")
+  User              User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "focusdisposition_userid_foreign")
+
+  @@unique([userId, programId, tag], map: "focusdisposition_userid_programid_tag_unique")
+  @@index([userId, createdAt], map: "focusdisposition_userid_createdat_index")
+  @@schema("ptpn_kmr_app")
+}
+
+model migrations {
+  id        Int    @id @default(autoincrement())
+  migration String @db.VarChar(255)
+  batch     Int
+
+  @@schema("ptpn_kmr_app")
+}

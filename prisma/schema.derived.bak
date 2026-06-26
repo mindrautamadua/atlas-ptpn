@@ -1,0 +1,1751 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["ptpn_kmr_app"]
+}
+
+model Directorate {
+  id            BigInt   @id @default(autoincrement())
+  code          String   @unique
+  name          String
+  shortName     String?
+  corporateName String?
+  corporateCode String?
+  corporateId   String?
+  domain        String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  organizationalUnits  OrganizationalUnit[]
+  positions            Position[]
+  users                User[]
+  direktoratScorecards DirektoratScorecard[]
+  divisiScorecards     DivisiScorecard[]
+  kpiDivisiItems       KpiDivisiItem[]
+
+  @@schema("ptpn_kmr_app")
+}
+
+model OrganizationalUnit {
+  id            BigInt   @id @default(autoincrement())
+  code          String   @unique
+  name          String
+  description   String?  @db.Text
+  unitType      String
+  parentId      BigInt?
+  headId        BigInt?
+  budget        Decimal? @db.Decimal(20, 4)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  directorateId BigInt?
+
+  directorate Directorate?         @relation(fields: [directorateId], references: [id], onDelete: SetNull)
+  parent      OrganizationalUnit?  @relation("OrganizationalUnitParent", fields: [parentId], references: [id], onDelete: SetNull)
+  children    OrganizationalUnit[] @relation("OrganizationalUnitParent")
+
+  positions          Position[]
+  users              User[]
+  monthlyReports     MonthlyReport[]
+  riskMonthlyReports RiskMonthlyReport[]
+  divisiScorecards   DivisiScorecard[]
+  kpiDivisiItems     KpiDivisiItem[]
+
+  @@index([directorateId])
+  @@index([parentId])
+  @@index([unitType])
+  @@schema("ptpn_kmr_app")
+}
+
+model Position {
+  id                  BigInt   @id @default(autoincrement())
+  code                String   @unique
+  name                String
+  levelCode           String
+  roleType            String
+  directorateId       BigInt?
+  divisionId          BigInt?
+  reportsToPositionId BigInt?
+  sourceUnitId        BigInt?  @unique
+  seatOrder           BigInt?
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  directorate       Directorate?        @relation(fields: [directorateId], references: [id], onDelete: SetNull)
+  division          OrganizationalUnit? @relation(fields: [divisionId], references: [id], onDelete: SetNull)
+  reportsToPosition Position?           @relation("PositionReportsTo", fields: [reportsToPositionId], references: [id], onDelete: SetNull)
+  reportingPositions Position[]         @relation("PositionReportsTo")
+
+  users             User[]
+  positionHistories PositionHistory[]
+
+  @@index([directorateId])
+  @@index([divisionId])
+  @@index([reportsToPositionId])
+  @@index([levelCode])
+  @@index([roleType])
+  @@schema("ptpn_kmr_app")
+}
+
+model RoleConfig {
+  role        String   @id
+  label       String
+  description String   @default("")
+  line        String?
+  bodLevel    String?
+  badgeColor  String   @default("bg-gray-100 text-gray-600")
+  updatedAt   DateTime @updatedAt
+
+  @@map("role_configs")
+  @@schema("ptpn_kmr_app")
+}
+
+model User {
+  id             BigInt   @id @default(autoincrement())
+  email          String   @unique
+  name           String
+  phone          String?
+  roleType       String
+  unitId         BigInt?
+  avatarUrl      String?
+  isActive       Boolean  @default(true)
+  preferences    Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  userId         String?  @unique
+  nik            String?  @unique
+  directorateId  BigInt?
+  positionId     BigInt?
+  managerUserId  BigInt?
+  positionTitle  String?
+  availableRoles String?
+  passwordHash   String?
+  toursCompleted Json?
+
+  unit        OrganizationalUnit? @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  directorate Directorate?        @relation(fields: [directorateId], references: [id], onDelete: SetNull)
+  position    Position?           @relation(fields: [positionId], references: [id], onDelete: SetNull)
+  manager     User?               @relation("UserManager", fields: [managerUserId], references: [id], onDelete: SetNull)
+  reports     User[]              @relation("UserManager")
+
+  userStatus              UserStatus?
+  userSessions            UserSession[]
+  positionHistories       PositionHistory[]
+  channelMembers          ChannelMember[]
+  channelMessages         ChannelMessage[]
+  channelMessageHiddens   ChannelMessageHidden[]
+  comments                Comment[]
+  savedSearches           SavedSearch[]
+  notifications           Notification[]
+  messageReminders        MessageReminder[]
+  savedMessages           SavedMessage[]
+  monthlyReportsSubmitted MonthlyReport[]
+  monthlyReportFiles      MonthlyReportFile[]
+  monthlyReportApprovals  MonthlyReportApproval[]
+  riskReportsCreated      RiskMonthlyReport[]      @relation("RiskReportCreatedBy")
+  riskReportsSubmitted    RiskMonthlyReport[]      @relation("RiskReportSubmittedBy")
+  riskReportApprovals     RiskReportApproval[]
+  assignmentsAssigned     Assignment[]             @relation("AssignmentAssigner")
+  assignmentsReceived     Assignment[]             @relation("AssignmentAssignee")
+  assignmentAttachments   AssignmentAttachment[]
+  assignmentReviewActions AssignmentReviewAction[]
+  entityPics              EntityPic[]
+  programApprovalLogs     ProgramApprovalLog[]
+  programProgressLogs     ProgramProgressLog[]
+  escalationsRequested    EscalationRequest[]      @relation("EscalationRequestedBy")
+  escalationsEscalatedTo  EscalationRequest[]      @relation("EscalationEscalatedTo")
+  escalationsReroutedTo   EscalationRequest[]      @relation("EscalationReroutedTo")
+  systemSettings          SystemSetting[]
+  workItemStatusLogs      WorkItemStatusLog[]
+  kpiKaryawanItems        KpiKaryawanItem[]
+  kpiValueRevisions       KpiValueRevision[]
+  formDrafts              FormDraft[]
+
+  @@index([directorateId])
+  @@index([unitId])
+  @@index([positionId])
+  @@index([managerUserId])
+  @@index([userId])
+  @@index([nik])
+  @@index([roleType])
+  @@schema("ptpn_kmr_app")
+}
+
+model UserStatus {
+  id             BigInt   @id @default(autoincrement())
+  userId         BigInt   @unique
+  status         String
+  statusEmoji    String?
+  statusMessage  String?
+  lastActivityAt DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@schema("ptpn_kmr_app")
+}
+
+model UserSession {
+  id         BigInt    @id @default(autoincrement())
+  userId     BigInt
+  startedAt  DateTime  @default(now())
+  endedAt    DateTime?
+  durationMs BigInt    @default(0)
+  lastPingAt DateTime  @default(now())
+  endReason  String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([startedAt])
+  @@index([endedAt])
+  @@schema("ptpn_kmr_app")
+}
+
+model PositionHistory {
+  id             BigInt    @id @default(autoincrement())
+  userId         BigInt
+  positionId     BigInt
+  startDate      DateTime
+  endDate        DateTime?
+  mutationType   String    @default("initial_assignment")
+  mutationReason String?
+  skNumber       String?
+  createdBy      BigInt?
+  createdAt      DateTime  @default(now())
+
+  user     User     @relation(fields: [userId], references: [id])
+  position Position @relation(fields: [positionId], references: [id])
+
+  @@map("position_history")
+  @@schema("ptpn_kmr_app")
+}
+
+model Program {
+  id                   BigInt    @id @default(autoincrement())
+  code                 String    @unique
+  name                 String
+  description          String?   @db.Text
+  strategicObjective   String?   @db.Text
+  ownerId              BigInt
+  ownerUnitId          BigInt?
+  status               String    @default("PLANNING")
+  priority             String    @default("MEDIUM")
+  budgetIdr            Decimal?  @db.Decimal(20, 4)
+  budgetSpent          Decimal?  @default(0) @db.Decimal(20, 4)
+  startDate            DateTime
+  targetEndDate        DateTime
+  actualEndDate        DateTime?
+  progressPercent      Int       @default(0)
+  strategicAlignment   Float?
+  healthStatus         String?
+  linkedChannelId      BigInt?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  hasNoApmsKpi         Boolean   @default(false)
+  approvalStatus       String    @default("ACTIVE")
+  rejectionNote        String?   @db.Text
+  submittedById        BigInt?
+  archivedAt           DateTime?
+  archivedById         BigInt?
+  kelompok             String?
+  pilarStrategis       String?
+  progresTerkini       String?   @db.Text
+  dukunganDibutuhkan   String?   @db.Text
+  autoHealthComputedAt DateTime?
+
+  initiatives           Initiative[]
+  kpiDefinitions        KpiDefinition[]
+  programKpiLinks       ProgramKpiLink[]
+  assignments           Assignment[]
+  monthlyReportPrograms MonthlyReportProgram[]
+  programApprovalLogs   ProgramApprovalLog[]
+  programProgressLogs   ProgramProgressLog[]
+  escalationRequests    EscalationRequest[]
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([startDate])
+  @@index([healthStatus])
+  @@index([kelompok])
+  @@index([pilarStrategis])
+  @@schema("ptpn_kmr_app")
+}
+
+model Initiative {
+  id                 BigInt    @id @default(autoincrement())
+  code               String    @unique
+  programId          BigInt
+  name               String
+  description        String?   @db.Text
+  budgetIdr          Decimal?  @db.Decimal(20, 4)
+  budgetSpent        Decimal?  @default(0) @db.Decimal(20, 4)
+  ownerId            BigInt
+  ownerUnitId        BigInt?
+  status             String    @default("BACKLOG")
+  priority           String    @default("MEDIUM")
+  startDate          DateTime?
+  targetCompletion   DateTime
+  actualCompletion   DateTime?
+  progressPercent    Int       @default(0)
+  milestones         Json?
+  healthStatus       String?
+  riskLevel          String?
+  linkedChannelId    BigInt?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  primaryPicPersonId BigInt?
+
+  program   Program    @relation(fields: [programId], references: [id], onDelete: Cascade)
+  phases    Phase[]
+  workItems WorkItem[]
+
+  @@index([programId])
+  @@index([ownerId])
+  @@index([status])
+  @@index([targetCompletion])
+  @@schema("ptpn_kmr_app")
+}
+
+model Phase {
+  id           BigInt   @id @default(autoincrement())
+  code         String   @unique
+  initiativeId BigInt
+  order        Int      @default(0)
+  name         String
+  description  String?  @db.Text
+  picUnitIds   Json?
+  status       String   @default("PLANNING")
+  color        String?
+  startWeek    String?
+  endWeek      String?
+  healthStatus String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  initiative Initiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  workItems  WorkItem[]
+
+  @@index([initiativeId])
+  @@index([order])
+  @@index([status])
+  @@schema("ptpn_kmr_app")
+}
+
+model WorkItem {
+  id               BigInt    @id @default(autoincrement())
+  code             String    @unique
+  initiativeId     BigInt
+  title            String
+  description      String?   @db.Text
+  output           String?   @db.Text
+  assignedTo       BigInt?
+  createdBy        BigInt
+  createdByUnitId  BigInt?
+  status           String    @default("BACKLOG")
+  priority         String    @default("MEDIUM")
+  percentComplete  Int       @default(0)
+  startDate        DateTime?
+  targetCompletion DateTime
+  actualCompletion DateTime?
+  dependsOnIds     Json?
+  estimatedHours   Float?
+  actualHours      Float?    @default(0)
+  healthStatus     String?
+  isBlocked        Boolean   @default(false)
+  blockedReason    String?   @db.Text
+  linkedThreadId   BigInt?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  actualWeeks      Json?
+  letterIndex      String?
+  phaseId          BigInt?
+  picUnitIds       Json?
+  plannedWeeks     Json?
+
+  initiative Initiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  phase      Phase?     @relation(fields: [phaseId], references: [id], onDelete: SetNull)
+
+  subTasks           SubTask[]
+  blockers           Blocker[]
+  workItemStatusLogs WorkItemStatusLog[]
+
+  @@index([initiativeId])
+  @@index([phaseId])
+  @@index([assignedTo])
+  @@index([status])
+  @@index([targetCompletion])
+  @@index([healthStatus])
+  @@index([isBlocked])
+  @@schema("ptpn_kmr_app")
+}
+
+model SubTask {
+  id          BigInt    @id @default(autoincrement())
+  workItemId  BigInt
+  title       String
+  description String?   @db.Text
+  assignedTo  BigInt?
+  status      String    @default("PENDING")
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  @@index([workItemId])
+  @@index([assignedTo])
+  @@schema("ptpn_kmr_app")
+}
+
+model Blocker {
+  id                BigInt    @id @default(autoincrement())
+  code              String    @unique
+  workItemId        BigInt
+  title             String
+  description       String?   @db.Text
+  severity          String
+  createdBy         BigInt
+  createdByUnitId   BigInt?
+  assignedTo        BigInt?
+  status            String    @default("OPEN")
+  priority          String    @default("HIGH")
+  rootCause         String?   @db.Text
+  resolution        String?   @db.Text
+  resolvedAt        DateTime?
+  resolutionTime    Int?
+  relatedBlockerIds Json?
+  linkedWorkItemIds Json?
+  linkedChannelId   BigInt?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  @@index([workItemId])
+  @@index([assignedTo])
+  @@index([status])
+  @@index([severity])
+  @@schema("ptpn_kmr_app")
+}
+
+model KpiDefinition {
+  id                  BigInt    @id @default(autoincrement())
+  code                String    @unique
+  programId           BigInt?
+  initiativeId        BigInt?
+  name                String
+  description         String?   @db.Text
+  metricType          String
+  dataType            String
+  targetValue         Decimal   @db.Decimal(20, 6)
+  actualValue         Decimal?  @db.Decimal(20, 6)
+  warningThreshold    Decimal?  @db.Decimal(20, 6)
+  criticalThreshold   Decimal?  @db.Decimal(20, 6)
+  unitOfMeasure       String?
+  reviewFrequency     String    @default("MONTHLY")
+  lastMeasuredDate    DateTime?
+  ownerId             BigInt?
+  ownerUnitId         BigInt?
+  isLeadingIndicator  Boolean   @default(false)
+  leadingIndicatorFor String?
+  isActive            Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  program           Program?           @relation(fields: [programId], references: [id], onDelete: Cascade)
+  kpiValues         KpiValue[]
+  kpiValueRevisions KpiValueRevision[]
+
+  @@index([programId])
+  @@index([metricType])
+  @@index([isLeadingIndicator])
+  @@schema("ptpn_kmr_app")
+}
+
+model KpiValue {
+  id              BigInt   @id @default(autoincrement())
+  kpiDefinitionId BigInt
+  measurementDate DateTime
+  targetValue     Decimal? @db.Decimal(20, 6)
+  actualValue     Decimal  @db.Decimal(20, 6)
+  status          String?
+  variance        Decimal? @db.Decimal(20, 6)
+  variancePercent Float?
+  statusNotes     String?  @db.Text
+  measuredBy      BigInt?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  kpiDefinition     KpiDefinition      @relation(fields: [kpiDefinitionId], references: [id], onDelete: Cascade)
+  kpiValueRevisions KpiValueRevision[]
+
+  @@unique([kpiDefinitionId, measurementDate])
+  @@index([kpiDefinitionId])
+  @@index([measurementDate])
+  @@index([status])
+  @@schema("ptpn_kmr_app")
+}
+
+model ProgramKpiLink {
+  id           BigInt   @id @default(autoincrement())
+  programId    BigInt
+  apmsKpiCode  String
+  note         String?  @db.Text
+  createdAt    DateTime @default(now())
+  apmsKpiBobot Float?
+  apmsKpiName  String?
+
+  program Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([programId, apmsKpiCode])
+  @@index([programId])
+  @@index([apmsKpiCode])
+  @@schema("ptpn_kmr_app")
+}
+
+model Channel {
+  id                 BigInt   @id @default(autoincrement())
+  code               String   @unique
+  name               String
+  description        String?  @db.Text
+  type               String
+  createdBy          BigInt
+  ownerUnitId        BigInt?
+  topicType          String?
+  linkedProgramId    BigInt?
+  linkedInitiativeId BigInt?
+  isArchived         Boolean  @default(false)
+  allowedPostTypes   String?
+  allowThreads       Boolean  @default(true)
+  allowReactions     Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  channelMembers  ChannelMember[]
+  channelMessages ChannelMessage[]
+
+  @@index([topicType])
+  @@index([type])
+  @@index([isArchived])
+  @@schema("ptpn_kmr_app")
+}
+
+model ChannelMember {
+  channelId    BigInt
+  userId       BigInt
+  joinedAt     DateTime  @default(now())
+  lastViewedAt DateTime?
+  isMuted      Boolean   @default(false)
+  isStarred    Boolean   @default(false)
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([channelId, userId])
+  @@index([lastViewedAt])
+  @@index([userId], map: "ChannelMember_userId_idx")
+  @@schema("ptpn_kmr_app")
+}
+
+model ChannelMessage {
+  id                   BigInt    @id @default(autoincrement())
+  channelId            BigInt
+  userId               BigInt
+  content              String    @db.Text
+  richContent          Json?
+  attachments          Json?
+  parentMessageId      BigInt?
+  replyCount           Int       @default(0)
+  reactions            Json?
+  isPinned             Boolean   @default(false)
+  isEdited             Boolean   @default(false)
+  editedAt             DateTime?
+  editedBy             BigInt?
+  searchableText       String?   @db.Text
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  mentionedUserIds     Json?
+  deletedForEveryoneAt DateTime?
+  deletedForEveryoneBy BigInt?
+
+  channel       Channel         @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentMessage ChannelMessage? @relation("ChannelMessageParent", fields: [parentMessageId], references: [id], onDelete: Cascade)
+  replies       ChannelMessage[] @relation("ChannelMessageParent")
+
+  hiddenBy      ChannelMessageHidden[]
+  savedMessages SavedMessage[]
+
+  @@index([channelId])
+  @@index([userId])
+  @@index([parentMessageId])
+  @@index([isPinned])
+  @@index([createdAt])
+  @@index([channelId, createdAt])
+  @@index([deletedForEveryoneAt])
+  @@schema("ptpn_kmr_app")
+}
+
+model ChannelMessageHidden {
+  messageId BigInt
+  userId    BigInt
+  hiddenAt  DateTime @default(now())
+
+  message ChannelMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([messageId, userId])
+  @@index([userId, hiddenAt])
+  @@schema("ptpn_kmr_app")
+}
+
+model Comment {
+  id               BigInt    @id @default(autoincrement())
+  entityType       String
+  entityId         BigInt
+  commentText      String    @db.Text
+  createdBy        BigInt
+  parentCommentId  BigInt?
+  replyCount       Int       @default(0)
+  richContent      Json?
+  attachments      Json?
+  reactions        Json?
+  mentionedUserIds Json?
+  mentionChannels  Json?
+  isPinned         Boolean   @default(false)
+  isEdited         Boolean   @default(false)
+  editedAt         DateTime?
+  searchableText   String?   @db.Text
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  creator       User      @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  parentComment Comment?  @relation("CommentParent", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies       Comment[] @relation("CommentParent")
+
+  @@index([entityType, entityId])
+  @@index([createdBy])
+  @@index([isPinned])
+  @@index([parentCommentId])
+  @@index([createdAt])
+  @@schema("ptpn_kmr_app")
+}
+
+model ActivityLog {
+  id              BigInt   @id @default(autoincrement())
+  entityType      String
+  entityId        BigInt
+  action          String
+  changedBy       BigInt
+  changedByUnitId BigInt?
+  changeTimestamp DateTime @default(now())
+  fieldChanged    String?
+  oldValues       Json?
+  newValues       Json?
+  description     String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([changedBy])
+  @@index([changeTimestamp])
+  @@index([action])
+  @@schema("ptpn_kmr_app")
+}
+
+model SavedSearch {
+  id          BigInt   @id @default(autoincrement())
+  userId      BigInt
+  name        String
+  description String?  @db.Text
+  searchQuery String   @db.Text
+  filters     Json?
+  searchType  String
+  isShared    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isShared])
+  @@schema("ptpn_kmr_app")
+}
+
+model Notification {
+  id          BigInt    @id @default(autoincrement())
+  userId      BigInt
+  type        String
+  message     String    @db.Text
+  source      String
+  createdAt   DateTime
+  readAt      DateTime?
+  dismissedAt DateTime?
+  resolvedAt  DateTime?
+  expiresAt   DateTime?
+  state       String    @default("UNREAD")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, state])
+  @@index([userId, dismissedAt])
+  @@index([userId, resolvedAt])
+  @@index([expiresAt])
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@schema("ptpn_kmr_app")
+}
+
+model MessageReminder {
+  id        BigInt   @id @default(autoincrement())
+  userId    BigInt
+  channelId BigInt
+  messageId BigInt
+  remindAt  DateTime
+  note      String?  @db.Text
+  notified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([remindAt, notified])
+  @@schema("ptpn_kmr_app")
+}
+
+model NotificationPreference {
+  id               BigInt   @id @default(autoincrement())
+  userId           BigInt
+  notificationType String
+  channel          String
+  enabled          Boolean  @default(true)
+  frequency        String
+  createdAt        DateTime @default(now())
+
+  @@unique([userId, notificationType, channel])
+  @@schema("ptpn_kmr_app")
+}
+
+model Meeting {
+  id                BigInt    @id @default(autoincrement())
+  title             String
+  description       String?   @db.Text
+  meetingType       String    @default("RAPAT_TIM")
+  startAt           DateTime
+  endAt             DateTime
+  location          String?
+  organizerId       BigInt
+  linkedProgramId   BigInt?
+  status            String    @default("SCHEDULED")
+  notes             String?   @db.Text
+  postponedReason   String?   @db.Text
+  rescheduledFromAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  attendees   MeetingAttendee[]
+  decisions   MeetingDecision[]
+  actionItems MeetingActionItem[]
+
+  @@index([organizerId])
+  @@index([startAt])
+  @@index([status])
+  @@index([linkedProgramId])
+  @@schema("ptpn_kmr_app")
+}
+
+model MeetingAttendee {
+  id           BigInt    @id @default(autoincrement())
+  meetingId    BigInt
+  userId       BigInt
+  attendeeRole String    @default("REQUIRED")
+  rsvpStatus   String    @default("PENDING")
+  delegateToId BigInt?
+  delegateNote String?   @db.Text
+  respondedAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, userId])
+  @@index([meetingId])
+  @@index([userId])
+  @@index([rsvpStatus])
+  @@schema("ptpn_kmr_app")
+}
+
+model MeetingDecision {
+  id        BigInt   @id @default(autoincrement())
+  meetingId BigInt
+  decision  String   @db.Text
+  decidedBy BigInt
+  createdAt DateTime @default(now())
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId])
+  @@index([decidedBy])
+  @@schema("ptpn_kmr_app")
+}
+
+model MeetingActionItem {
+  id               BigInt    @id @default(autoincrement())
+  meetingId        BigInt
+  title            String
+  description      String?   @db.Text
+  assignedToId     BigInt?
+  dueDate          DateTime?
+  status           String    @default("OPEN")
+  linkedWorkItemId BigInt?
+  completedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId])
+  @@index([assignedToId])
+  @@index([status])
+  @@schema("ptpn_kmr_app")
+}
+
+model FocusBlock {
+  id        BigInt   @id @default(autoincrement())
+  userId    BigInt
+  title     String   @default("Focus Time")
+  startAt   DateTime
+  endAt     DateTime
+  note      String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([startAt])
+  @@schema("ptpn_kmr_app")
+}
+
+model MonthlyReport {
+  id               BigInt    @id @default(autoincrement())
+  unitId           BigInt
+  month            Int
+  year             Int
+  status           String    @default("DRAFT")
+  narrativeSummary String?   @db.Text
+  highlights       String?   @db.Text
+  submittedById    BigInt?
+  submittedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  linkedProgramIds Json      @default("[]")
+
+  unit        OrganizationalUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  submittedBy User?              @relation(fields: [submittedById], references: [id], onDelete: SetNull)
+
+  metrics   MonthlyReportMetric[]
+  files     MonthlyReportFile[]
+  approvals MonthlyReportApproval[]
+  programs  MonthlyReportProgram[]
+
+  @@unique([unitId, month, year])
+  @@index([unitId])
+  @@index([status])
+  @@index([year, month])
+  @@schema("ptpn_kmr_app")
+}
+
+model MonthlyReportMetric {
+  id        BigInt   @id @default(autoincrement())
+  reportId  BigInt
+  section   String   @default("KEUANGAN")
+  kategori  String
+  label     String
+  satuan    String?  @default("Rp Juta")
+  rkap      Decimal? @db.Decimal(20, 4)
+  realisasi Decimal? @db.Decimal(20, 4)
+  tahunLalu Decimal? @db.Decimal(20, 4)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  report MonthlyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@index([section])
+  @@index([kategori])
+  @@schema("ptpn_kmr_app")
+}
+
+model MonthlyReportFile {
+  id           BigInt   @id @default(autoincrement())
+  reportId     BigInt
+  filename     String
+  originalName String
+  filepath     String
+  filesize     Int?
+  uploadedById BigInt
+  uploadedAt   DateTime @default(now())
+
+  report     MonthlyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  uploadedBy User          @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@schema("ptpn_kmr_app")
+}
+
+model MonthlyReportApproval {
+  id           BigInt   @id @default(autoincrement())
+  reportId     BigInt
+  approverId   BigInt
+  approverRole String
+  action       String
+  note         String?  @db.Text
+  createdAt    DateTime @default(now())
+
+  report   MonthlyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  approver User          @relation(fields: [approverId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@index([approverId])
+  @@index([approverRole])
+  @@schema("ptpn_kmr_app")
+}
+
+model RiskMonthlyReport {
+  id              BigInt    @id @default(autoincrement())
+  month           Int
+  year            Int
+  unitId          BigInt
+  status          String    @default("DRAFT")
+  compositeRating String?
+  rmiScore        Decimal?  @db.Decimal(10, 4)
+  createdById     BigInt
+  submittedById   BigInt?
+  submittedAt     DateTime?
+  approvedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  createdBy   User               @relation("RiskReportCreatedBy", fields: [createdById], references: [id])
+  submittedBy User?              @relation("RiskReportSubmittedBy", fields: [submittedById], references: [id], onDelete: SetNull)
+  unit        OrganizationalUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  riskSnapshots RiskReportRiskSnapshot[]
+  kris          RiskReportKRI[]
+  mitigations   RiskReportMitigation[]
+  lossEvents    RiskReportLossEvent[]
+  strategy      RiskReportStrategy?
+  governance    RiskReportGovernance?
+  narratives    RiskReportNarrative[]
+  approvals     RiskReportApproval[]
+
+  @@unique([unitId, month, year])
+  @@index([unitId])
+  @@index([status])
+  @@index([year, month])
+  @@schema("ptpn_kmr_app")
+}
+
+model RiskReportRiskSnapshot {
+  id             BigInt  @id @default(autoincrement())
+  reportId       BigInt
+  riskCode       String
+  riskName       String
+  category       String
+  probabilitas   Int
+  dampak         Int
+  riskScore      Int
+  riskLevel      String
+  status         String  @default("OPEN")
+  prevMonthScore Int?
+  scoreChange    String?
+  ownerName      String
+  notes          String? @db.Text
+  order          Int     @default(0)
+
+  report     RiskMonthlyReport     @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  kris       RiskReportKRI[]
+  mitigation RiskReportMitigation?
+
+  @@index([reportId])
+  @@index([riskLevel])
+  @@index([status])
+  @@schema("ptpn_kmr_app")
+}
+
+model RiskReportKRI {
+  id                BigInt   @id @default(autoincrement())
+  reportId          BigInt
+  riskSnapshotId    BigInt
+  kriCode           String
+  kriName           String
+  unit              String
+  targetValue       Decimal  @db.Decimal(20, 6)
+  actualValue       Decimal  @db.Decimal(20, 6)
+  thresholdWarning  Decimal  @db.Decimal(20, 6)
+  thresholdCritical Decimal  @db.Decimal(20, 6)
+  status            String
+  trend             String
+  prevMonthValue    Decimal? @db.Decimal(20, 6)
+  higherIsBetter    Boolean  @default(true)
+  notes             String?  @db.Text
+  order             Int      @default(0)
+
+  report       RiskMonthlyReport      @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  riskSnapshot RiskReportRiskSnapshot @relation(fields: [riskSnapshotId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@index([riskSnapshotId])
+  @@index([status])
+  @@schema("ptpn_kmr_app")
+}
+
+model RiskReportMitigation {
+  id               BigInt   @id @default(autoincrement())
+  reportId         BigInt
+  riskSnapshotId   BigInt   @unique
+  plannedActions   Int
+  completedActions Int
+  completionRate   Decimal  @db.Decimal(8, 4)
+  budgetAllocated  Decimal? @db.Decimal(20, 4)
+  budgetRealized   Decimal? @db.Decimal(20, 4)
+  budgetAbsorption Decimal? @db.Decimal(8, 4)
+  isOverdue        Boolean  @default(false)
+  overdueDays      Int?
+  notes            String?  @db.Text
+
+  report       RiskMonthlyReport      @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  riskSnapshot RiskReportRiskSnapshot @relation(fields: [riskSnapshotId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@schema("ptpn_kmr_app")
+}
+
+model RiskReportLossEvent {
+  id              BigInt   @id @default(autoincrement())
+  reportId        BigInt
+  eventDate       DateTime
+  category        String
+  description     String   @db.Text
+  impactAmount    Decimal? @db.Decimal(20, 4)
+  isRecurring     Boolean  @default(false)
+  recoveryStatus  String   @default("UNRECOVERED")
+  recoveredAmount Decimal? @db.Decimal(20, 4)
+  pic             String
+  notes           String?  @db.Text
+
+  report RiskMonthlyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@index([category])
+  @@index([recoveryStatus])
+  @@schema("ptpn_kmr_app")
+}
+
+model RiskReportStrategy {
+  id                 BigInt  @id @default(autoincrement())
+  reportId           BigInt  @unique
+  riskCapacity       Decimal @db.Decimal(20, 4)
+  riskAppetite       Decimal @db.Decimal(20, 4)
+  riskTolerance      Decimal @db.Decimal(20, 4)
+  riskLimit          Decimal @db.Decimal(20, 4)
+  totalExposure      Decimal @db.Decimal(20, 4)
+  exposureVsCapacity Decimal @db.Decimal(8, 4)
+  exposureVsAppetite Decimal @db.Decimal(8, 4)
+  rasCompliant       Boolean
+  riskStance         String
+  notes              String? @db.Text
+
+  report RiskMonthlyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@schema("ptpn_kmr_app")
+}
+
+model RiskReportGovernance {
+  id                      BigInt  @id @default(autoincrement())
+  reportId                BigInt  @unique
+  riskRegisterCoverage    Decimal @db.Decimal(8, 4)
+  risksWithoutOwner       Int
+  reportSubmissionRate    Decimal @db.Decimal(8, 4)
+  organCompletenessRate   Decimal @db.Decimal(8, 4)
+  workProgramRealization  Decimal @db.Decimal(8, 4)
+  auditFollowUpRate       Decimal @db.Decimal(8, 4)
+  erinUpdateRate          Decimal @db.Decimal(8, 4)
+  internalControlFindings Int
+  criticalFindingsOpen    Int
+  notes                   String? @db.Text
+
+  report RiskMonthlyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@schema("ptpn_kmr_app")
+}
+
+model RiskReportNarrative {
+  id        BigInt   @id @default(autoincrement())
+  reportId  BigInt
+  section   String
+  content   String   @db.Text
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  report RiskMonthlyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@index([section])
+  @@schema("ptpn_kmr_app")
+}
+
+model RiskReportApproval {
+  id           BigInt   @id @default(autoincrement())
+  reportId     BigInt
+  approverId   BigInt
+  approverRole String
+  action       String
+  note         String?  @db.Text
+  createdAt    DateTime @default(now())
+
+  report   RiskMonthlyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  approver User              @relation(fields: [approverId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@index([approverId])
+  @@index([approverRole])
+  @@schema("ptpn_kmr_app")
+}
+
+model Assignment {
+  id                 BigInt    @id @default(autoincrement())
+  code               String    @unique
+  title              String
+  description        String?   @db.Text
+  priority           String    @default("MEDIUM")
+  status             String    @default("DITUGASKAN")
+  dueDate            DateTime?
+  assignerId         BigInt
+  assigneeId         BigInt
+  watcherIds         Json?
+  relatedProgramId   BigInt?
+  attachments        Json?
+  tags               Json?
+  needsClarification Boolean   @default(false)
+  clarificationNote  String?   @db.Text
+  acknowledgedAt     DateTime?
+  startedAt          DateTime?
+  completedAt        DateTime?
+  cancelledAt        DateTime?
+  cancelReason       String?   @db.Text
+  evidenceRequired   Boolean   @default(true)
+  isPrivate          Boolean   @default(false)
+  currentReviewerIdx Int?
+  revisionCount      Int       @default(0)
+  rejectedAt         DateTime?
+  rejectionReason    String?   @db.Text
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  assigner       User     @relation("AssignmentAssigner", fields: [assignerId], references: [id])
+  assignee       User     @relation("AssignmentAssignee", fields: [assigneeId], references: [id])
+  relatedProgram Program? @relation(fields: [relatedProgramId], references: [id], onDelete: SetNull)
+
+  attachmentsList AssignmentAttachment[]
+  reviewActions   AssignmentReviewAction[]
+  approvalEntries AssignmentApprovalEntry[]
+
+  @@index([assigneeId, status])
+  @@index([assignerId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([relatedProgramId])
+  @@schema("ptpn_kmr_app")
+}
+
+model AssignmentAttachment {
+  id           BigInt   @id @default(autoincrement())
+  assignmentId BigInt
+  uploadedBy   BigInt
+  type         String
+  filename     String?
+  originalName String?
+  filepath     String?
+  filesize     Int?
+  url          String?
+  description  String?  @db.Text
+  createdAt    DateTime @default(now())
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  uploader   User       @relation(fields: [uploadedBy], references: [id])
+
+  @@index([assignmentId])
+  @@index([uploadedBy])
+  @@schema("ptpn_kmr_app")
+}
+
+model AssignmentReviewAction {
+  id           BigInt   @id @default(autoincrement())
+  assignmentId BigInt
+  reviewerId   BigInt
+  action       String
+  note         String?  @db.Text
+  revisionAt   Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  reviewer   User       @relation(fields: [reviewerId], references: [id])
+
+  @@index([assignmentId])
+  @@index([reviewerId])
+  @@schema("ptpn_kmr_app")
+}
+
+model AssignmentApprovalEntry {
+  id            BigInt    @id @default(autoincrement())
+  assignmentId  BigInt
+  userId        BigInt
+  role          String
+  name          String
+  positionTitle String?
+  order         Int
+  status        String    @default("PENDING")
+  actedAt       DateTime?
+  note          String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@map("assignment_approval_entries")
+  @@index([assignmentId])
+  @@index([assignmentId, order])
+  @@index([status])
+  @@schema("ptpn_kmr_app")
+}
+
+model EntityPic {
+  id         BigInt   @id @default(autoincrement())
+  entityType String
+  entityId   BigInt
+  userId     BigInt
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("entity_pics")
+  @@unique([entityType, entityId, userId])
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@schema("ptpn_kmr_app")
+}
+
+model MonthlyReportProgram {
+  reportId  BigInt
+  programId BigInt
+
+  report  MonthlyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  program Program       @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@id([reportId, programId])
+  @@map("monthly_report_programs")
+  @@index([reportId])
+  @@index([programId])
+  @@schema("ptpn_kmr_app")
+}
+
+model BroadcastEvent {
+  id        BigInt   @id @default(autoincrement())
+  eventType String
+  payload   Json
+  userIds   Json?
+  createdAt DateTime @default(now())
+
+  @@map("broadcast_events")
+  @@index([createdAt])
+  @@schema("ptpn_kmr_app")
+}
+
+model SavedMessage {
+  id        BigInt   @id @default(autoincrement())
+  userId    BigInt
+  messageId BigInt
+  createdAt DateTime @default(now())
+
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message ChannelMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@map("SavedMessage")
+  @@unique([userId, messageId])
+  @@index([userId])
+  @@index([messageId])
+  @@schema("ptpn_kmr_app")
+}
+
+model Job {
+  id          BigInt @id @default(autoincrement())
+  queue       String
+  payload     String @db.Text
+  attempts    Int    @db.SmallInt
+  reservedAt  Int?   @map("reserved_at")
+  availableAt Int    @map("available_at")
+  createdAt   Int    @map("created_at")
+
+  @@map("jobs")
+  @@index([queue])
+  @@schema("ptpn_kmr_app")
+}
+
+model JobBatch {
+  id           String  @id
+  name         String
+  totalJobs    Int     @map("total_jobs")
+  pendingJobs  Int     @map("pending_jobs")
+  failedJobs   Int     @map("failed_jobs")
+  failedJobIds String  @map("failed_job_ids") @db.Text
+  options      String? @db.Text
+  cancelledAt  Int?    @map("cancelled_at")
+  createdAt    Int     @map("created_at")
+  finishedAt   Int?    @map("finished_at")
+
+  @@map("job_batches")
+  @@schema("ptpn_kmr_app")
+}
+
+model FailedJob {
+  id         BigInt   @id @default(autoincrement())
+  uuid       String   @unique
+  connection String   @db.Text
+  queue      String   @db.Text
+  payload    String   @db.Text
+  exception  String   @db.Text
+  failedAt   DateTime @default(now()) @map("failed_at")
+
+  @@map("failed_jobs")
+  @@schema("ptpn_kmr_app")
+}
+
+model ProgramHealthSnapshot {
+  id           BigInt   @id @default(autoincrement())
+  snapshotDate DateTime @unique @db.Date
+  total        Int      @default(0)
+  onTrack      Int      @default(0)
+  atRisk       Int      @default(0)
+  terlambat    Int      @default(0)
+  overdue      Int      @default(0)
+  selesai      Int      @default(0)
+  byDivisi     Json?
+  createdAt    DateTime @default(now())
+
+  @@map("program_health_snapshots")
+  @@schema("ptpn_kmr_app")
+}
+
+model ProgramApprovalLog {
+  id         BigInt   @id @default(autoincrement())
+  programId  BigInt
+  action     String   @db.VarChar(30)
+  fromStatus String?  @db.VarChar(40)
+  toStatus   String   @db.VarChar(40)
+  byUserId   BigInt
+  byUserName String?  @db.VarChar(120)
+  note       String?  @db.Text
+  createdAt  DateTime @default(now())
+
+  program Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+  byUser  User    @relation(fields: [byUserId], references: [id], onDelete: Cascade)
+
+  @@map("ProgramApprovalLog")
+  @@index([programId])
+  @@schema("ptpn_kmr_app")
+}
+
+model ProgramProgressLog {
+  id                 BigInt    @id @default(autoincrement())
+  programId          BigInt
+  period             String    @db.VarChar(20)
+  healthAtTime       String    @db.VarChar(20)
+  narrative          String    @db.Text
+  kendala            String?   @db.Text
+  correctiveAction   String?   @db.Text
+  nextStep           String?   @db.Text
+  dukunganDibutuhkan String?   @db.Text
+  isLate             Boolean   @default(false)
+  createdById        BigInt
+  createdByName      String?   @db.VarChar(100)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime? @updatedAt
+
+  program   Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+  createdBy User    @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@map("ProgramProgressLog")
+  @@unique([programId, period])
+  @@index([isLate])
+  @@schema("ptpn_kmr_app")
+}
+
+model EscalationRequest {
+  id                BigInt    @id @default(autoincrement())
+  code              String    @unique
+  sourceType        String
+  sourceId          BigInt?
+  requestedById     BigInt
+  requestedAt       DateTime  @default(now())
+  title             String    @db.VarChar(200)
+  description       String?   @db.Text
+  linkedProgramId   BigInt?
+  escalatedToId     BigInt
+  status            String    @default("REQUESTED")
+  committedAt       DateTime?
+  commitmentDueDate DateTime?
+  commitmentNote    String?   @db.Text
+  resolvedAt        DateTime?
+  resolutionNote    String?   @db.Text
+  reroutedToId      BigInt?
+  declinedReason    String?   @db.Text
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  requestedBy   User     @relation("EscalationRequestedBy", fields: [requestedById], references: [id], onDelete: Cascade)
+  escalatedTo   User     @relation("EscalationEscalatedTo", fields: [escalatedToId], references: [id], onDelete: Cascade)
+  reroutedTo    User?    @relation("EscalationReroutedTo", fields: [reroutedToId], references: [id], onDelete: SetNull)
+  linkedProgram Program? @relation(fields: [linkedProgramId], references: [id], onDelete: SetNull)
+
+  @@index([escalatedToId, status])
+  @@index([requestedById, status])
+  @@index([sourceType, sourceId])
+  @@index([linkedProgramId])
+  @@index([createdAt])
+  @@schema("ptpn_kmr_app")
+}
+
+model SystemSetting {
+  id          BigInt   @id @default(autoincrement())
+  key         String   @unique @db.VarChar(150)
+  value       Json
+  category    String   @db.VarChar(60)
+  description String?  @db.Text
+  updatedById BigInt?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  updatedBy User? @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("SystemSetting")
+  @@index([category])
+  @@schema("ptpn_kmr_app")
+}
+
+model DirektoratScorecard {
+  id            BigInt   @id @default(autoincrement())
+  directorateId BigInt
+  periode       String   @db.VarChar(7)
+  nilai         Decimal  @db.Decimal(6, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  directorate Directorate @relation(fields: [directorateId], references: [id], onDelete: Cascade)
+
+  @@unique([directorateId, periode])
+  @@index([periode])
+  @@schema("ptpn_kmr_app")
+}
+
+model DivisiScorecard {
+  id            BigInt   @id @default(autoincrement())
+  unitId        BigInt
+  directorateId BigInt
+  periode       String   @db.VarChar(7)
+  nilai         Decimal  @db.Decimal(6, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  unit        OrganizationalUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  directorate Directorate        @relation(fields: [directorateId], references: [id], onDelete: Cascade)
+
+  @@unique([unitId, periode])
+  @@index([directorateId, periode])
+  @@index([periode])
+  @@schema("ptpn_kmr_app")
+}
+
+model WorkItemStatusLog {
+  id         BigInt   @id @default(autoincrement())
+  workItemId BigInt
+  fromStatus String?  @db.VarChar(40)
+  toStatus   String   @db.VarChar(40)
+  byUserId   BigInt
+  byUserName String?  @db.VarChar(120)
+  note       String?  @db.Text
+  createdAt  DateTime @default(now())
+
+  workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  byUser   User     @relation(fields: [byUserId], references: [id], onDelete: Cascade)
+
+  @@map("WorkItemStatusLog")
+  @@index([workItemId])
+  @@index([createdAt])
+  @@schema("ptpn_kmr_app")
+}
+
+model Session {
+  id           String  @id
+  userId       BigInt? @map("user_id")
+  ipAddress    String? @map("ip_address") @db.VarChar(45)
+  userAgent    String? @map("user_agent") @db.Text
+  payload      String  @db.Text
+  lastActivity Int     @map("last_activity")
+
+  @@map("sessions")
+  @@index([userId])
+  @@index([lastActivity])
+  @@schema("ptpn_kmr_app")
+}
+
+model FormDraft {
+  id           BigInt   @id @default(autoincrement())
+  userId       BigInt
+  formKey      String   @db.VarChar(160)
+  entityType   String?  @db.VarChar(40)
+  entityId     BigInt?
+  payload      Json     @default("{}")
+  version      Int      @default(0)
+  clientId     String?  @db.VarChar(40)
+  lastEditedAt DateTime @default(now())
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("FormDraft")
+  @@unique([userId, formKey])
+  @@index([expiresAt])
+  @@index([entityType, entityId])
+  @@schema("ptpn_kmr_app")
+}
+
+model KpiValueRevision {
+  id                  BigInt   @id @default(autoincrement())
+  kpiValueId          BigInt
+  kpiDefinitionId     BigInt
+  measurementDate     DateTime
+  previousActualValue Decimal  @db.Decimal(20, 6)
+  previousTargetValue Decimal? @db.Decimal(20, 6)
+  previousStatusNotes String?  @db.Text
+  previousMeasuredBy  BigInt?
+  revisedBy           BigInt
+  revisedAt           DateTime @default(now())
+  revisionNote        String?  @db.Text
+
+  kpiValue      KpiValue      @relation(fields: [kpiValueId], references: [id], onDelete: Cascade)
+  kpiDefinition KpiDefinition @relation(fields: [kpiDefinitionId], references: [id], onDelete: Cascade)
+  reviser       User          @relation(fields: [revisedBy], references: [id], onDelete: Restrict)
+
+  @@map("KpiValueRevision")
+  @@index([kpiValueId])
+  @@index([kpiDefinitionId])
+  @@index([revisedAt])
+  @@schema("ptpn_kmr_app")
+}
+
+model PerformancePeriod {
+  id        BigInt   @id @default(autoincrement())
+  tahun     Int      @db.SmallInt
+  bulan     Int      @db.SmallInt
+  label     String   @db.VarChar(20)
+  isActive  Boolean  @default(false) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  kpiKolegialValues KpiKolegialValue[]
+  kpiDirekturValues KpiDirekturValue[]
+  kpiKaryawanValues KpiKaryawanValue[]
+  kpiDivisiValues   KpiDivisiValue[]
+
+  @@map("performance_periods")
+  @@unique([tahun, bulan])
+  @@schema("ptpn_kmr_app")
+}
+
+model KpiKolegialItem {
+  id           BigInt   @id @default(autoincrement())
+  kode         String   @unique @db.VarChar(30)
+  nama         String
+  perspektif   String   @db.VarChar(40)
+  satuan       String   @db.VarChar(30)
+  polaritas    String   @default("maximize") @db.VarChar(10)
+  bobotDefault Decimal  @default(0) @map("bobot_default") @db.Decimal(5, 2)
+  definisi     String?  @db.Text
+  formula      String?
+  sumberData   String?  @map("sumber_data")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  values KpiKolegialValue[]
+
+  @@map("kpi_kolegial_items")
+  @@schema("ptpn_kmr_app")
+}
+
+model KpiKolegialValue {
+  id                BigInt   @id @default(autoincrement())
+  kpiKolegialItemId BigInt   @map("kpi_kolegial_item_id")
+  periodId          BigInt   @map("period_id")
+  directorateCode   String   @map("directorate_code") @db.VarChar(10)
+  bobot             Decimal  @default(0) @db.Decimal(5, 2)
+  target            Decimal? @db.Decimal(18, 4)
+  realisasi         Decimal? @db.Decimal(18, 4)
+  skor              Decimal? @db.Decimal(8, 4)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  kpiKolegialItem KpiKolegialItem   @relation(fields: [kpiKolegialItemId], references: [id], onDelete: Cascade)
+  period          PerformancePeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+
+  @@map("kpi_kolegial_values")
+  @@unique([kpiKolegialItemId, periodId, directorateCode])
+  @@schema("ptpn_kmr_app")
+}
+
+model KpiDirekturItem {
+  id              BigInt   @id @default(autoincrement())
+  kode            String   @unique @db.VarChar(30)
+  nama            String
+  directorateCode String   @map("directorate_code") @db.VarChar(10)
+  perspektif      String   @db.VarChar(40)
+  satuan          String   @db.VarChar(30)
+  polaritas       String   @default("maximize") @db.VarChar(10)
+  bobot           Decimal  @default(0) @db.Decimal(5, 2)
+  definisi        String?  @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  values KpiDirekturValue[]
+
+  @@map("kpi_direktur_items")
+  @@schema("ptpn_kmr_app")
+}
+
+model KpiDirekturValue {
+  id                BigInt   @id @default(autoincrement())
+  kpiDirekturItemId BigInt   @map("kpi_direktur_item_id")
+  periodId          BigInt   @map("period_id")
+  target            Decimal? @db.Decimal(18, 4)
+  realisasi         Decimal? @db.Decimal(18, 4)
+  skor              Decimal? @db.Decimal(8, 4)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  kpiDirekturItem KpiDirekturItem   @relation(fields: [kpiDirekturItemId], references: [id], onDelete: Cascade)
+  period          PerformancePeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+
+  @@map("kpi_direktur_values")
+  @@unique([kpiDirekturItemId, periodId])
+  @@schema("ptpn_kmr_app")
+}
+
+model KpiKaryawanItem {
+  id        BigInt   @id @default(autoincrement())
+  kode      String   @db.VarChar(30)
+  nama      String
+  userId    BigInt   @map("user_id")
+  unitCode  String?  @map("unit_code") @db.VarChar(20)
+  satuan    String   @db.VarChar(30)
+  polaritas String   @default("maximize") @db.VarChar(10)
+  bobot     Decimal  @default(0) @db.Decimal(5, 2)
+  definisi  String?  @db.Text
+  tahun     Int      @db.SmallInt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  values KpiKaryawanValue[]
+
+  @@map("kpi_karyawan_items")
+  @@schema("ptpn_kmr_app")
+}
+
+model KpiKaryawanValue {
+  id                BigInt   @id @default(autoincrement())
+  kpiKaryawanItemId BigInt   @map("kpi_karyawan_item_id")
+  periodId          BigInt   @map("period_id")
+  target            Decimal? @db.Decimal(18, 4)
+  realisasi         Decimal? @db.Decimal(18, 4)
+  skor              Decimal? @db.Decimal(8, 4)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  kpiKaryawanItem KpiKaryawanItem   @relation(fields: [kpiKaryawanItemId], references: [id], onDelete: Cascade)
+  period          PerformancePeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+
+  @@map("kpi_karyawan_values")
+  @@unique([kpiKaryawanItemId, periodId])
+  @@schema("ptpn_kmr_app")
+}
+
+model KpiDivisiItem {
+  id                 BigInt   @id @default(autoincrement())
+  unitId             BigInt   @map("unit_id")
+  directorateId      BigInt   @map("directorate_id")
+  kode               String   @db.VarChar(30)
+  nama               String
+  strategicObjective String?  @map("strategic_objective")
+  perspektif         String   @db.VarChar(40)
+  satuan             String   @db.VarChar(30)
+  polaritas          String   @default("maximize") @db.VarChar(10)
+  bobot              Decimal  @default(0) @db.Decimal(5, 2)
+  formula            String?  @db.Text
+  sumberData         String?  @map("sumber_data")
+  tahun              Int      @db.SmallInt
+  urutan             Int      @default(0) @db.SmallInt
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  unit        OrganizationalUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  directorate Directorate        @relation(fields: [directorateId], references: [id], onDelete: Cascade)
+  values      KpiDivisiValue[]
+
+  @@map("kpi_divisi_items")
+  @@unique([unitId, tahun, kode])
+  @@index([directorateId, tahun])
+  @@schema("ptpn_kmr_app")
+}
+
+model KpiDivisiValue {
+  id              BigInt   @id @default(autoincrement())
+  kpiDivisiItemId BigInt   @map("kpi_divisi_item_id")
+  periodId        BigInt   @map("period_id")
+  target          Decimal? @db.Decimal(18, 4)
+  realisasi       Decimal? @db.Decimal(18, 4)
+  skor            Decimal? @db.Decimal(8, 4)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  kpiDivisiItem KpiDivisiItem     @relation(fields: [kpiDivisiItemId], references: [id], onDelete: Cascade)
+  period        PerformancePeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+
+  @@map("kpi_divisi_values")
+  @@unique([kpiDivisiItemId, periodId])
+  @@schema("ptpn_kmr_app")
+}
+
+model Cache {
+  key        String @id
+  value      String @db.Text
+  expiration Int
+
+  @@map("cache")
+  @@schema("ptpn_kmr_app")
+}
+
+model CacheLock {
+  key        String @id
+  owner      String
+  expiration Int
+
+  @@map("cache_locks")
+  @@schema("ptpn_kmr_app")
+}

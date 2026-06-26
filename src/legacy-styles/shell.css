@@ -1,0 +1,2397 @@
+/* ─── AppShell — SEAMLESS CANVAS (2026-06-01) ────────────────────────────
+ * Sidebar + workspace sit edge-to-edge on one surface (--app-bg). The only
+ * chrome is the sidebar's right hairline + the inner content cards. Replaces
+ * the Stripe floating-panel pattern (12px gutter over --shell-canvas). */
+.app-shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  column-gap: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+  transition: grid-template-columns 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--app-bg);
+  animation: app-shell-enter 380ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+/* HATI-HATI 2026-05-19: keyframe ini DULU pakai transform: scale(0.99) → scale(1).
+ * Dengan animation-fill-mode: both, `scale(1)` PERSISTS setelah animasi selesai —
+ * per spec CSS, transform non-`none` membuat .app-shell jadi containing block
+ * untuk position:fixed descendants. Modal-backdrop dengan inset:0 jadi ter-scope
+ * ke .app-shell (bukan viewport). Sidebar+topbar tidak ter-dim.
+ *
+ * Fix: pakai opacity-only entrance. Animation-fill-mode: backwards (bukan both)
+ * — `from` state diapply SEBELUM start (anti FOUC), tapi setelah end kembali ke
+ * base (tidak retain `to` state).
+ *
+ * Jangan re-introduce transform di sini tanpa juga update modal-backdrop ke
+ * pakai React Portal. */
+@keyframes app-shell-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.app-shell--collapsed {
+  grid-template-columns: var(--sidebar-width-collapsed) 1fr;
+}
+
+/* Responsive: auto-collapse sidebar di viewport ≤1024px (T1 laptop kantor
+ * dan di bawahnya). Logic JS di AppShell.tsx menambahkan class
+ * .app-shell--collapsed otomatis via media query JS — CSS ini hanya
+ * memastikan grid-template tetap collapsed kalau JS handler belum aktif.
+ * Toggle button disembunyikan supaya tidak confusing (state manual masih
+ * persisted ke localStorage untuk preference saat resize ke viewport lebar).
+ * Lihat docs/responsive-audit-2026-05.md §3.1. */
+@media (max-width: 1024px) {
+  .app-shell { grid-template-columns: var(--sidebar-width-collapsed) 1fr; }
+  .sidebar__collapse-toggle { display: none; }
+
+  /* Topbar: hemat ruang di viewport sempit.
+   * - Period meta ("Q2 · W4 Mei · W21") hidden — info internal team
+   * - Cmdk placeholder + kbd hidden, button jadi icon-only */
+  /* Prefix `.topbar ` = bump specificity (0,2,0 > 0,1,0). WAJIB: aturan dasar
+   * .topbar__cmdk (≈878) & .topbar__avatar-btn (≈1096) ada LEBIH BAWAH di file,
+   * jadi tanpa prefix ini override mobile kalah source-order → pill cmdk tetap
+   * 200px di phone & topbar overflow (avatar hijau kepotong di kanan). 2026-06-02 */
+  .topbar .topbar__meta-period,
+  .topbar .topbar__meta-sep { display: none; }
+  .topbar .topbar__cmdk {
+    width: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+  .topbar .topbar__cmdk-placeholder,
+  .topbar .topbar__cmdk kbd { display: none; }
+  /* User chip jadi avatar-only di viewport sempit — hemat ruang topbar */
+  .topbar .topbar__avatar-name,
+  .topbar .topbar__avatar-chev { display: none; }
+  .topbar .topbar__avatar-btn { padding: 2px; }
+}
+
+/* Viewport sangat sempit (tablet portrait): tambahan reduksi */
+@media (max-width: 768px) {
+  /* Date string panjang ("Selasa, 19 Mei 2026") — sembunyikan supaya
+   * topbar tidak overflow. Live indicator masih nampak. */
+  .topbar__meta-date { display: none; }
+}
+
+/* ══ Phone off-canvas shell (≤640 = --bp-sm) — Fase 1 mobile, 2026-06-01 ══════
+ * Di phone, sidebar KELUAR dari grid lalu jadi drawer slide-in di atas scrim;
+ * hamburger di topbar yang toggle. Desktop ≥641 sama sekali tidak berubah.
+ * Drawer transform ada di `.sidebar` (BUKAN `.app-shell`) supaya tidak bikin
+ * containing block untuk position:fixed — lihat catatan keras di blok
+ * @keyframes app-shell-enter di atas. Rencana: docs/mobile-phone-support-plan-2026-06.md */
+
+/* Hamburger: hidden di desktop, flex di phone (via media di bawah). */
+.topbar__hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-right: auto; /* dorong sisa actions topbar ke kanan */
+  flex-shrink: 0;
+  border: 1px solid var(--panel-border);
+  border-radius: 9px;
+  background: var(--surface-2);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+.topbar__hamburger:hover { background: var(--surface-3, var(--surface-2)); }
+.topbar__hamburger:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* Scrim — selalu di DOM saat phone, opacity-toggle (anti layout thrash). */
+.app-shell__scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 240ms ease;
+  z-index: var(--z-nav-scrim);
+}
+
+@media (max-width: 640px) { /* bp-allow: --bp-sm */
+  /* Sidebar keluar grid → workspace full-width. */
+  .app-shell--mobile { grid-template-columns: 1fr; }
+
+  .app-shell--mobile .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(82vw, 300px);
+    transform: translateX(-100%);
+    transition: transform 240ms cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: var(--z-nav-drawer);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+  .app-shell--mobile.app-shell--nav-open .sidebar { transform: translateX(0); }
+
+  .app-shell--nav-open .app-shell__scrim {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Hamburger topbar TIDAK dipakai di phone — digantikan tab "Menu" di bottom
+   * tab bar (jangkauan jempol). Biarkan display:none (base). */
+
+  /* Topbar lebih ringkas di phone: tinggi 44→40 (reclaim 4px di puncak konten —
+     keluhan "boros ruang"). --topbar-height di-override di shell supaya
+     .workspace__content padding-top ikut otomatis. Tombol di dalamnya (cmdk
+     36px, bell, avatar) tetap muat nyaman. Respect notch + gap rapat. */
+  .app-shell--mobile { --topbar-height: 40px; }
+  .topbar {
+    padding-left: max(14px, env(safe-area-inset-left, 0px));
+    padding-right: max(14px, env(safe-area-inset-right, 0px));
+    gap: 8px;
+  }
+  /* "Live" indicator: buang label teks (sisakan dot pulsing) — di phone status
+     realtime low-value & makan lebar. Prefix `.topbar` WAJIB (0,2,0): base
+     `.topbar__live{font-size:11px}` ada LEBIH BAWAH di file (≈L918) → tanpa
+     prefix kalah source-order & "Live" tetap tampil. Dot 6px fixed, tak
+     terdampak font-size:0. */
+  .topbar .topbar__live { font-size: 0; gap: 0; padding: 0 2px; }
+
+  /* ── Bottom tab bar (Mobile UX, 2026-06-02) ─────────────────────────────
+   * Navigasi utama jangkauan-jempol. Fixed di bawah, opaque, safe-area aware.
+   * Konten workspace dikasih padding-bottom supaya tak ketutup. */
+  .mobile-tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-tabbar);
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    background: var(--app-bg);
+    border-top: 1px solid var(--sidebar-border-strong);
+    box-shadow: 0 -2px 14px rgba(15, 20, 40, 0.07);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .mobile-tabbar__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 54px; /* ≥44px touch target */
+    padding: 7px 4px 6px;
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    text-decoration: none;
+    cursor: pointer;
+    font: inherit;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 120ms ease;
+  }
+  .mobile-tabbar__item--active { color: var(--ptpn-green); }
+  .mobile-tabbar__item:active { background: var(--sidebar-hover); }
+  .mobile-tabbar__icon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+  }
+  .mobile-tabbar__icon svg { width: 21px; height: 21px; }
+  .mobile-tabbar__label {
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.01em;
+  }
+  .mobile-tabbar__badge {
+    position: absolute;
+    top: -5px;
+    right: -8px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--gray);
+    color: #fff;
+    font-size: 9.5px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    box-shadow: 0 0 0 2px var(--app-bg);
+  }
+  .mobile-tabbar__badge--urgent { background: var(--red); }
+
+  /* Konten clear dari tab bar (tinggi bar ~54 + safe area). */
+  .app-shell--mobile .workspace__content {
+    padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ══ Sidebar — FLUSH LIGHT RAIL (2026-06-01) ═════════════════════════════
+ * Seamless with the canvas; divided only by a right hairline. Light surface
+ * in light theme, dark navy in dark theme (token-driven). No radius / drop
+ * shadow — it is no longer a floating panel. */
+.sidebar {
+  /* Base color via `background-color` (NOT a gradient) so the theme swap
+   * animates the SAME longhand as topbar/workspace (--app-bg). A gradient
+   * here animated `background-image` on a different track → sidebar snapped
+   * while topbar/main eased = "tidak berimbang" (fix 2026-06-02). Depth is
+   * a THEME-INDEPENDENT translucent overlay: identical in light & dark, so
+   * background-image never changes during the swap → zero snap; only the
+   * base color travels, in lockstep with the rest of the shell. */
+  background-color: var(--sidebar-bg);
+  background-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.16) 100%);
+  color: var(--sidebar-text);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: var(--z-sidebar);
+  height: 100%;
+  border-radius: 0;
+  border: 0;
+  border-right: 1px solid var(--sidebar-border-strong);
+  box-shadow: var(--shell-sidebar-shadow);
+}
+
+/* ⑥ Brand header — premium dark identity area with workspace tagline.
+ * Collapse button anchored top-right (Linear pattern) — saves footer space. */
+.sidebar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  /* Decoupled from --topbar-height: brand block needs more breathing room
+   * than a pure utility topbar. 60px gives ~14px padding top/bottom around
+   * the 32px content. Linear/Stripe sidebar headers use similar height. */
+  height: 60px;
+  padding: 0 8px 0 14px;
+  flex-shrink: 0;
+  gap: 8px;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--ptpn-green) 4%, transparent) 0%,
+    transparent 60%);
+}
+/* Collapse toggle — top-right of sidebar header. Icon-only, hover-reveal. */
+.sidebar__collapse-toggle {
+  width: 26px;
+  height: 26px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--sidebar-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 140ms cubic-bezier(0.4, 0, 0.2, 1), background 140ms cubic-bezier(0.4, 0, 0.2, 1), color 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sidebar__header:hover .sidebar__collapse-toggle,
+.sidebar__collapse-toggle:focus-visible { opacity: 1; }
+.sidebar__collapse-toggle:hover {
+  background: var(--sidebar-hover);
+  color: var(--sidebar-text-strong);
+}
+.sidebar__collapse-toggle:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.app-shell--collapsed .sidebar__collapse-toggle {
+  opacity: 0.55; /* always visible when collapsed so user knows how to expand */
+}
+.app-shell--collapsed .sidebar__collapse-toggle:hover { opacity: 1; }
+.app-shell--collapsed .sidebar__collapse-toggle svg {
+  transform: scaleX(-1);
+}
+.sidebar__brand { display: flex; align-items: center; gap: 9px; flex: 1; min-width: 0; transition: gap 160ms cubic-bezier(0.4, 0, 0.2, 1); }
+.sidebar__brand-mark {
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, var(--ptpn-green) 0%, color-mix(in srgb, var(--ptpn-green) 70%, #0a4d20 30%) 100%);
+  color: #ffffff;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  flex-shrink: 0;
+  box-shadow:
+    0 6px 16px color-mix(in srgb, var(--ptpn-green) 40%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.22),
+    inset 0 -1px 0 rgba(0,0,0,0.18);
+  position: relative;
+}
+.sidebar__brand-mark::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.16) 0%, transparent 55%);
+  pointer-events: none;
+}
+.sidebar__brand-name {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+  gap: 5px;
+  transition: opacity 150ms cubic-bezier(0.4, 0, 0.2, 1) 70ms;
+}
+.sidebar__brand-title {
+  font-size: 14px;
+  font-weight: 700;
+  /* Solid theme-aware ink (2026-06-01) — was a white→green gradient clip that
+   * vanished on the light rail. --sidebar-text-strong is dark on light, light
+   * on dark. */
+  color: var(--sidebar-text-strong);
+  white-space: nowrap;
+  letter-spacing: 0.10em;
+  line-height: 1.15;
+  font-feature-settings: 'cv11' on, 'ss01' on;
+}
+.sidebar__brand-tagline {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sidebar-text-muted);
+  line-height: 1.15;
+  white-space: nowrap;
+  font-feature-settings: 'tnum';
+}
+.sidebar__brand-sub {
+  display: none;
+}
+
+.sidebar__item:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Nav */
+.sidebar__nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 200ms ease;
+}
+.sidebar__nav:hover { scrollbar-color: var(--sidebar-overlay-strong) transparent; }
+.sidebar__nav::-webkit-scrollbar { width: 4px; }
+.sidebar__nav::-webkit-scrollbar-track { background: transparent; }
+.sidebar__nav::-webkit-scrollbar-thumb { background: transparent; border-radius: 4px; transition: background 200ms ease; }
+.sidebar__nav:hover::-webkit-scrollbar-thumb { background: var(--sidebar-overlay-strong); }
+.sidebar__nav:hover::-webkit-scrollbar-thumb:hover { background: var(--sidebar-text-muted); }
+.sidebar__group { display: flex; flex-direction: column; gap: 3px; }
+
+/* Fokus — ungrouped top item */
+.sidebar__fokus-wrap {
+  padding-bottom: 4px;
+}
+
+/* ④ Group separation — pure breathing room. PDCA color bar + uppercase label
+ * already deliver clear section break; hairline divider would add noise. */
+.sidebar__group--separated {
+  margin-top: 18px;
+}
+/* Admin sits in a settings tier — visually demoted from daily-nav groups */
+.sidebar__group--admin {
+  margin-top: 26px;
+}
+.sidebar__group--admin .sidebar__group-label {
+  opacity: 0.55;
+}
+.sidebar__group-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--sidebar-text-muted);
+  padding: 0 14px 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 150ms cubic-bezier(0.4, 0, 0.2, 1) 70ms;
+  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+/* Modernisasi 2026-06-01: bar warna PDCA dihapus — sisa skema PDCA yang sudah
+ * usang (sidebar kini intent-based, bukan PDCA) + kombinasi caps/spasi-lebar/
+ * dot-warna = sinyal template-admin lama. Label diperhalus (spasi rapat,
+ * opacity turun) ala Linear/Vercel. ::before disisakan kalau perlu divider. */
+
+/* Nav item — Linear/Notion-style restraint:
+ *   - default: muted text + faint icon
+ *   - hover:   subtle neutral bg, no border tint
+ *   - active:  slightly darker neutral bg + bold text + full-opacity icon
+ *   No brand color at any state. Color reserved for badges (counts) only. */
+.sidebar__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  color: var(--sidebar-text);
+  text-decoration: none;
+  font-size: var(--type-small);
+  font-weight: 500;
+  overflow: hidden;
+  transition: background 140ms cubic-bezier(0.4, 0, 0.2, 1), color 140ms cubic-bezier(0.4, 0, 0.2, 1), transform 140ms cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  font-feature-settings: 'cv11' on, 'tnum';
+}
+.sidebar__item:hover {
+  background: var(--sidebar-hover);
+  color: var(--sidebar-text-strong);
+  transform: translateX(2px);
+}
+.sidebar__item--active {
+  background: linear-gradient(135deg,
+    var(--sidebar-active-bg) 0%,
+    color-mix(in srgb, var(--sidebar-active-bg) 60%, transparent) 100%);
+  color: var(--sidebar-text-active);
+  font-weight: 600;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.sidebar__item--active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 2.5px;
+  border-radius: 0 2px 2px 0;
+  background: var(--ptpn-green);
+  /* Glow neon dihapus 2026-06-01 — terbaca "gamer/2020". Bar tipis solid =
+   * aksen identitas yang cukup, lebih restrained (Linear-style). */
+}
+.sidebar__item--active:hover {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--ptpn-green) 36%, transparent) 0%,
+    color-mix(in srgb, var(--ptpn-green) 22%, transparent) 100%);
+  color: var(--sidebar-text-active);
+  transform: none;
+}
+.sidebar__item-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.55;
+  color: var(--sidebar-text);
+  transition: opacity 140ms cubic-bezier(0.4, 0, 0.2, 1), color 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sidebar__item:hover .sidebar__item-icon {
+  opacity: 1;
+  color: var(--sidebar-text-strong);
+}
+.sidebar__item--active .sidebar__item-icon {
+  opacity: 1;
+  color: var(--sidebar-text-active);
+}
+.sidebar__item-label {
+  flex: 1;
+  min-width: 0;
+  opacity: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: opacity 150ms cubic-bezier(0.4, 0, 0.2, 1) 70ms;
+}
+/* Sub-group label (legacy) — flattened in M6.6, KPI items now sit directly
+ * under "Performance" group label. Style retained for any future use. */
+.sidebar__subgroup-label {
+  display: none;
+}
+
+/* Utility-tier items within a workspace group (Profile, Settings — personal,
+ * not collab). Visually demoted via opacity; full strength on hover/active. */
+.sidebar__item--utility { opacity: 0.7; }
+.sidebar__item--utility:hover,
+.sidebar__item--utility.sidebar__item--active { opacity: 1; }
+
+/* Footer — rak utilitas ikon-only (2026-06-01): Bantuan & Panduan + toggle tema.
+ * Expanded = baris rata kiri (ikon pertama sejajar kolom ikon nav ~26px dari tepi);
+ * collapsed = tumpuk vertikal + center. Sengaja kalem (muted, no fill/border). */
+.sidebar__footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--sidebar-border);
+  padding: 6px 8px 8px 10px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+}
+.app-shell--collapsed .sidebar__footer {
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 6px 8px;
+  gap: 4px;
+}
+.sidebar__util-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sidebar-text-muted);
+  opacity: 0.7;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 140ms cubic-bezier(0.4, 0, 0.2, 1), color 140ms cubic-bezier(0.4, 0, 0.2, 1), opacity 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sidebar__util-btn:hover {
+  background: var(--sidebar-overlay);
+  color: var(--sidebar-text-strong);
+  opacity: 1;
+}
+.sidebar__util-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.sidebar__util-btn--active { color: var(--sidebar-text-active); opacity: 1; }
+.sidebar__util-btn svg { width: 16px; height: 16px; }
+
+/* ③ Badge — count metadata. Two flavors:
+ *    - default (count): subtle muted pill — informational
+ *    - urgent (unread/action): brand green pill — calls attention */
+.sidebar__badge {
+  margin-left: auto;
+  background: var(--sidebar-overlay);
+  color: var(--sidebar-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  min-width: 18px;
+  text-align: center;
+  border-radius: 9px;
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: opacity 150ms cubic-bezier(0.4, 0, 0.2, 1) 70ms, background 140ms cubic-bezier(0.4, 0, 0.2, 1), color 140ms cubic-bezier(0.4, 0, 0.2, 1);
+  font-feature-settings: 'tnum' on;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.sidebar__item:hover .sidebar__badge {
+  background: var(--sidebar-overlay-strong);
+  color: var(--sidebar-text-strong);
+}
+.sidebar__item--active .sidebar__badge {
+  background: var(--sidebar-active-bg-strong);
+  color: var(--sidebar-text-active);
+}
+/* Urgent variant — brand green saturated, glow */
+.sidebar__badge--urgent {
+  background: var(--ptpn-green);
+  color: #ffffff;
+  box-shadow: 0 0 0 1px rgba(110,231,161,0.32), 0 2px 6px color-mix(in srgb, var(--ptpn-green) 50%, transparent);
+}
+.sidebar__item:hover .sidebar__badge--urgent {
+  background: color-mix(in srgb, var(--ptpn-green) 92%, white);
+  color: #ffffff;
+}
+
+/* Tooltip (collapsed) — dark theme styling matching sidebar surface */
+.sidebar__tooltip {
+  position: fixed;
+  z-index: var(--z-tooltip);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 188px;
+  max-width: 246px;
+  padding: 12px 14px;
+  background: linear-gradient(180deg, var(--sidebar-popover-bg) 0%, var(--sidebar-popover-bg-end) 100%);
+  border: 1px solid var(--sidebar-popover-border);
+  border-radius: 12px;
+  transform: translateY(-50%);
+  pointer-events: auto;
+  white-space: normal;
+  box-shadow: var(--sidebar-popover-shadow);
+}
+.sidebar__tooltip::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: 11px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent 60%);
+  pointer-events: none;
+}
+.sidebar__tooltip-copy,
+.sidebar__tooltip-icon,
+.sidebar__tooltip-arrow {
+  position: relative;
+  z-index: 1;
+}
+.sidebar__tooltip-copy {
+  min-width: 0;
+}
+.sidebar__tooltip-copy > strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  line-height: 1.2;
+  color: var(--sidebar-text-strong);
+  letter-spacing: -0.01em;
+}
+.sidebar__tooltip-copy > strong > kbd {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--sidebar-text-muted);
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--sidebar-overlay);
+  border: 1px solid var(--sidebar-popover-border);
+  white-space: nowrap;
+}
+.sidebar__tooltip-copy > span {
+  display: block;
+  font-size: 0.79rem;
+  line-height: 1.45;
+  color: var(--sidebar-text);
+  margin-top: 4px;
+}
+.sidebar__tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  background: rgba(110,231,161,0.14);
+  color: var(--sidebar-text-active);
+  box-shadow: inset 0 0 0 1px rgba(110,231,161,0.20);
+}
+.sidebar__tooltip-icon svg {
+  width: 15px;
+  height: 15px;
+}
+.sidebar__tooltip-arrow {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  background: var(--sidebar-popover-bg-end);
+  border: 1px solid var(--sidebar-popover-border);
+  transform: translateY(-50%) rotate(45deg);
+}
+.sidebar__tooltip--right .sidebar__tooltip-arrow {
+  left: -6px;
+  border-top: none;
+  border-right: none;
+}
+.sidebar__tooltip--left .sidebar__tooltip-arrow {
+  right: -6px;
+  border-bottom: none;
+  border-left: none;
+}
+
+/* Collapsed state */
+/* ════ Collapsed mode — semua elemen TRUE-CENTER di sidebar 60px ════════
+ * Strategy: hide hidden-flex-items via `display: none` (bukan width:0),
+ * set gap:0 supaya tidak ada residual space, padding rata kiri-kanan. */
+.app-shell--collapsed .sidebar__header {
+  padding: 0;
+  justify-content: center;
+}
+.app-shell--collapsed .sidebar__brand {
+  gap: 0;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 100%;
+}
+.app-shell--collapsed .sidebar__brand-name {
+  display: none;
+}
+/* Collapse-toggle disembunyikan saat collapsed — brand mark itself jadi
+ * click-target untuk expand (cursor pointer + hover scale). User juga punya
+ * keyboard shortcut ⌘\ sebagai alternatif. */
+.app-shell--collapsed .sidebar__collapse-toggle {
+  display: none;
+}
+.app-shell--collapsed .sidebar__group-label,
+.app-shell--collapsed .sidebar__subgroup-label {
+  opacity: 0;
+  height: 0;
+  padding: 0;
+  transition: opacity 100ms cubic-bezier(0.4, 0, 0.2, 1), height 0s 100ms, padding 0s 100ms;
+}
+.app-shell--collapsed .sidebar__nav {
+  gap: 4px;
+  padding: 12px 6px 8px;
+}
+.app-shell--collapsed .sidebar__item {
+  gap: 0;
+  justify-content: center;
+  padding: 9px 0;
+  min-height: 38px;
+  border-radius: 9px;
+  margin: 0;
+}
+/* Collapsed: hide green bar (too thin to read at 60px width), use full bg accent instead */
+.app-shell--collapsed .sidebar__item--active::before { display: none; }
+.app-shell--collapsed .sidebar__item--active {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--ptpn-green) 32%, transparent) 0%,
+    color-mix(in srgb, var(--ptpn-green) 18%, transparent) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    0 0 0 1px color-mix(in srgb, var(--ptpn-green) 30%, transparent);
+}
+/* Brand mark di collapsed — sama dengan expanded (28px), centered properly.
+ * Click → expand sidebar (handler di AppShell.tsx). */
+.app-shell--collapsed .sidebar__brand-mark {
+  cursor: pointer;
+  transition: transform 160ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.app-shell--collapsed .sidebar__brand-mark:hover {
+  transform: scale(1.05);
+  box-shadow:
+    0 8px 20px color-mix(in srgb, var(--ptpn-green) 50%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.28);
+}
+.app-shell--collapsed .sidebar__item-label,
+.app-shell--collapsed .sidebar__badge {
+  display: none;
+}
+
+/* ══ Workspace — FLOATING PANEL pattern ════════════════════════════════
+ * Lifted panel with rounded corners + hairline border + subtle shadow.
+ * Canvas (--app-bg) shows through as gutter via app-shell padding. */
+.workspace {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+  /* Containing block for the absolute floating topbar (2026-06-01). Scopes only
+   * position:absolute — modals use position:fixed and stay viewport-relative. */
+  position: relative;
+  /* TRANSFORM DIHAPUS 2026-05-19: sebelumnya `transform: translate(0,0)`
+   * memaksa workspace jadi containing block untuk `position: fixed` children,
+   * sehingga modal-backdrop ter-scope ke workspace saja (sidebar tidak ikut
+   * di-dim). Sesuai feedback Pak — modal global harus cover viewport penuh.
+   * Tanpa transform, position:fixed kembali ke perilaku standar (viewport-
+   * relative). Side-panel + toast notif juga jadi viewport-anchored (better). */
+  /* Workspace is now an INVISIBLE flex container holding two separate
+     floating cards (topbar + workspace__content) with a gap between them.
+     Card chrome moved onto each child below. */
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  border-radius: 0;
+  gap: 0;
+  min-width: 0;
+}
+
+/* Dark mode — workspace MATCHES canvas. With identical background and
+ * pitch-black surroundings, the panel border + shadow + inset highlight
+ * (which work great in light mode) become visible WHITE LINES against
+ * dark — visual noise that distracts. Strip them entirely; workspace is
+ * just a content area in dark mode. Cards inside (--panel) provide the
+ * only visible elevation hierarchy. */
+[data-theme="dark"] .workspace {
+  background: var(--app-bg);
+  border: 0;
+  box-shadow: none;
+}
+
+/* Sidebar border in dark — drop from 12% to 5% white. Sidebar still
+ * needs subtle chrome (it IS the navigation), but 12% reads as a hard
+ * white outline against pitch black. */
+[data-theme="dark"] .sidebar {
+  border-color: rgba(255,255,255,0.05);
+}
+
+/* Sidebar uses dedicated dark surface in both light & dark themes (Stripe pattern).
+ * Color tokens (`--sidebar-bg`, `--sidebar-text`, etc.) carry the dark identity
+ * regardless of app theme. No light-mode override here. */
+
+
+.workspace__content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* Seamless canvas (2026-06-01): no card chrome — the content area shares the
+   * app background with the topbar above. Inner cards carry all elevation. */
+  background: var(--app-bg);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  /* Clear the floating topbar cluster (2026-06-01): content starts below the
+   * cluster band so page-level top-right actions never hide under it. Restores
+   * the spacing the in-flow topbar used to reserve. Home opts out via --flush
+   * so its greeting shares the cluster's row (benchmark one-row header). */
+  padding-top: var(--topbar-height);
+  /* Subtle scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: var(--panel-border-strong) transparent;
+}
+.workspace__content--flush { padding-top: 0; }
+.workspace__content::-webkit-scrollbar { width: 6px; }
+.workspace__content::-webkit-scrollbar-track { background: transparent; }
+.workspace__content::-webkit-scrollbar-thumb { background: var(--panel-border-strong); border-radius: 99px; }
+.workspace__content::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ══ Topbar ═══════════════════════════════════════════════════
+ * Pure System: shares canvas (--app-bg). Bottom hairline draws the boundary.
+ * No panel shadow — topbar feels structural with the rest of the page,
+ * not a separate elevated bar. */
+.topbar {
+  /* Slim two-sided utility bar (rev 2026-06-01): full-width, out of flow.
+   * KIRI = meta (periode + Live), KANAN = actions. Spacer flex:1 di tengah
+   * mendorong actions ke kanan. Sebelumnya sempat cluster kanan-only, tapi
+   * terlalu padat di kanan — meta dikembalikan ke kiri (preferensi user). */
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  width: auto;
+  height: var(--topbar-height);
+  /* Opaque fill (fix 2026-06-01): bar was transparent + pointer-events:none so
+   * scrolled content bled through it. Konten reserve band lewat padding-top di
+   * .workspace__content, jadi fill solid menutup konten yang menggulung di
+   * belakang bar — tidak lagi tembus pandang. Hairline bawah jadi pembatas.
+   * Bg opak (bukan backdrop-filter) — blur di selector ini = stutter scroll. */
+  background: var(--topbar-bg);
+  border: 0;
+  border-bottom: 1px solid var(--panel-border);
+  border-radius: 0;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px;
+  /* 9500 > backdrop (9000) so topbar stays above any modal overlay within workspace */
+  z-index: var(--z-topbar);
+}
+
+/* ── Slim utility bar: meta (date/period/live) + cmdk + spacer ─────
+ * Pure System: topbar shares canvas. Left holds context meta, right holds
+ * utility icons. No breadcrumb, no full-width search. */
+
+/* Modern topbar meta: sans-serif, sentence case, lebih tenang.
+   Sebelumnya uppercase tracked mono — terasa enterprise lawas.
+   Sekarang Linear-like contextual strip. */
+.topbar__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--ds-font-sans, var(--font-sans));
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.topbar__meta-date {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.topbar__meta-sep {
+  color: var(--panel-border);
+}
+
+.topbar__meta-period {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+/* Live SSE indicator — tiny pulsing dot. Green when connected, gray when offline */
+.topbar__live {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 4px 0 6px;
+  font-family: var(--ds-font-sans, var(--font-sans));
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  height: 14px;
+}
+.topbar__live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  position: relative;
+  flex-shrink: 0;
+}
+.topbar__live--connected .topbar__live-dot::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: var(--green);
+  opacity: 0.4;
+  animation: topbar-live-pulse 1800ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.topbar__live--disconnected .topbar__live-dot { background: var(--text-muted); opacity: 0.5; }
+.topbar__live--disconnected { color: var(--text-muted); opacity: 0.6; }
+@keyframes topbar-live-pulse {
+  0%   { transform: scale(0.6); opacity: 0.5; }
+  80%  { transform: scale(1.6); opacity: 0; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+
+.topbar__spacer {
+  flex: 1 1 auto;
+  /* Biarkan klik tembus ke konten di band kosong tengah (di atas .topbar > *) */
+  pointer-events: none;
+}
+
+/* ⌘K command palette trigger — prominent search pill (Linear/Vercel pattern).
+ * Acts like an input field but opens the command palette on click. */
+.topbar__cmdk {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  width: 252px;
+  padding: 0 8px 0 11px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  border-radius: 9px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background var(--transition), border-color var(--transition), color var(--transition), box-shadow var(--transition);
+  flex-shrink: 0;
+}
+
+.topbar__cmdk-placeholder {
+  flex: 1;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.005em;
+}
+
+.topbar__cmdk:hover {
+  background: var(--surface-1);
+  border-color: color-mix(in srgb, var(--ptpn-green) 22%, var(--panel-border-strong));
+  color: var(--text-strong);
+}
+.topbar__cmdk:hover .topbar__cmdk-placeholder {
+  color: color-mix(in srgb, var(--text-strong) 60%, var(--text-muted));
+}
+
+.topbar__cmdk:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.topbar__cmdk kbd {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: var(--surface-1);
+  border: 1px solid var(--panel-border);
+  font-feature-settings: 'tnum';
+}
+
+/* Breadcrumb (legacy — element no longer rendered in topbar but classes
+ * remain for any consumer that may still reference them) */
+.topbar__breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--type-small);
+  flex-shrink: 0;
+}
+.topbar__breadcrumb-workspace {
+  color: var(--text-muted);
+  font-weight: var(--w-medium);
+}
+.topbar__breadcrumb-sep {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 400;
+  user-select: none;
+}
+.topbar__breadcrumb-page {
+  color: var(--text-strong);
+  font-weight: var(--w-semibold);
+}
+
+/* Search */
+.topbar__search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 340px;
+}
+.topbar__search-icon {
+  position: absolute;
+  left: 11px;
+  color: var(--text-muted);
+  pointer-events: none;
+  display: flex;
+}
+.topbar__search-input {
+  width: 100%;
+  background: transparent;
+  height: 32px;
+  border: 0.5px solid transparent;
+  border-radius: 8px;
+  padding: 0 38px 0 32px;
+  font-size: var(--type-small);
+  color: var(--text);
+  outline: none;
+  transition: border-color 160ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 160ms cubic-bezier(0.4, 0, 0.2, 1), background 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.topbar__search-input::placeholder { color: var(--text-muted); }
+.topbar__search-input:hover {
+  background: var(--surface-1);
+  border-color: var(--panel-border);
+}
+.topbar__search-input:focus {
+  border-color: var(--indigo);
+  background: var(--panel);
+  box-shadow: 0 0 0 3px var(--indigo-dim);
+}
+.topbar__search-kbd {
+  position: absolute;
+  right: 9px;
+  font-size: 0.71rem;
+  color: var(--text-muted);
+  background: var(--surface-1);
+  border: 1px solid var(--panel-border);
+  padding: 1px 5px;
+  border-radius: 4px;
+  pointer-events: none;
+  font-family: var(--font-sans);
+  letter-spacing: 0.02em;
+}
+
+/* Right cluster */
+.topbar__right { display: flex; align-items: center; gap: 8px; }
+
+/* Icon buttons */
+.topbar__notif-btn {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 9px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: background 160ms cubic-bezier(0.4, 0, 0.2, 1), color 160ms cubic-bezier(0.4, 0, 0.2, 1), border-color 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.topbar__notif-btn:hover {
+  background: var(--surface-1);
+  border-color: color-mix(in srgb, var(--ptpn-green) 22%, var(--panel-border-strong));
+  color: var(--text-strong);
+}
+.topbar__notif-icon {
+  width: 19px;
+  height: 19px;
+  stroke: currentColor;
+  stroke-width: 1.55;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform: translateY(-0.5px);
+}
+
+.topbar__notif-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 14px;
+  height: 14px;
+  background: var(--red);
+  color: var(--text-inverse);
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 2px;
+  border: 1.5px solid var(--topbar-bg);
+  line-height: 1;
+}
+.topbar__notif-badge--info {
+  background: var(--text-muted);
+}
+.topbar__notif-badge--urgent::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 999px;
+  background: var(--red);
+  opacity: 0.35;
+  animation: topbar-notif-pulse 2200ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+@keyframes topbar-notif-pulse {
+  0%   { transform: scale(0.85); opacity: 0.45; }
+  70%  { transform: scale(1.6); opacity: 0; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.topbar__divider {
+  width: 1px;
+  height: 20px;
+  background: var(--panel-border);
+  margin: 0 6px;
+  flex-shrink: 0;
+}
+
+/* ── Account avatar + menu (kanan-atas topbar, 2026-06-01) ──
+ * Dipindah dari footer sidebar. Avatar selaras dimensi tombol help/notif
+ * (32px), popover pakai surface terang (--panel) seperti notif-popover. */
+.topbar__user-menu { position: relative; }
+/* User chip — avatar 3D glossy + nama lengkap (2026-06-01). Chip transparan
+ * yang menyala saat hover/open; avatar pakai gradient + gloss + drop-shadow
+ * supaya terbaca sebagai objek dimensional, bukan flat shape + border. */
+.topbar__avatar-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 9px 3px 3px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  background: transparent;
+  transition: background 160ms cubic-bezier(0.4, 0, 0.2, 1), border-color 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.topbar__avatar-btn:hover,
+.topbar__avatar-btn[aria-expanded="true"] {
+  background: var(--panel);
+  border-color: var(--panel-border);
+}
+.topbar__avatar-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* Dimensional selaras brand mark "A" (shell.css:139) — gradient 135° + soft
+ * glow + inset highlight/shade tipis + ::after gloss halus. Bukan orb glossy,
+ * tapi sepasang facet hijau dengan logo. */
+.topbar__avatar {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--ptpn-green) 0%, color-mix(in srgb, var(--ptpn-green) 70%, #0a4d20 30%) 100%);
+  box-shadow:
+    0 6px 16px color-mix(in srgb, var(--ptpn-green) 40%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.22),
+    inset 0 -1px 0 rgba(0,0,0,0.18);
+  transition: transform 160ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.topbar__avatar::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.16) 0%, transparent 55%);
+  pointer-events: none;
+}
+.topbar__avatar-btn:hover .topbar__avatar {
+  transform: scale(1.04);
+}
+.topbar__avatar-initials {
+  position: relative;
+  z-index: 1;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-feature-settings: 'cv11' on;
+}
+.topbar__avatar-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-strong);
+  white-space: nowrap;
+  line-height: 1;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.topbar__avatar-chev {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.topbar__user-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 230px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--panel-shadow-xl);
+  z-index: var(--z-popover);
+  overflow: hidden;
+  animation: fade-in 140ms var(--ease-enter);
+}
+.topbar__user-popover-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 13px;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--ptpn-green) 10%, transparent) 0%,
+    transparent 100%);
+  border-bottom: 1px solid var(--panel-border-soft);
+}
+.topbar__user-popover-identity strong { display: block; font-size: 12.5px; font-weight: 700; color: var(--text-strong); }
+.topbar__user-popover-identity span { display: block; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.topbar__user-popover-avatar {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, var(--ptpn-green) 0%, color-mix(in srgb, var(--ptpn-green) 70%, #0a4d20 30%) 100%);
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.10), inset 0 1px 0 rgba(255,255,255,0.18);
+}
+.topbar__user-popover-divider { height: 1px; background: var(--panel-border); }
+.topbar__user-popover-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 13px;
+  background: none;
+  border: none;
+  font-size: 0.84rem;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  transition: background var(--transition), color var(--transition);
+}
+.topbar__user-popover-item:hover { background: var(--surface-1); color: var(--text-strong); }
+.topbar__user-popover-item--danger { color: var(--red); }
+.topbar__user-popover-item--danger:hover { background: var(--red-dim, color-mix(in srgb, var(--red) 12%, transparent)); color: var(--red); }
+
+/* Notification dropdown */
+.topbar__notif-menu { position: relative; }
+.topbar__notif-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--panel-shadow-xl);
+  width: 320px;
+  max-height: 480px;
+  z-index: var(--z-popover);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fade-in 140ms var(--ease-enter);
+}
+.topbar__notif-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--panel-border);
+  flex-shrink: 0;
+}
+.topbar__notif-popover-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-strong);
+  letter-spacing: 0.03em;
+}
+.topbar__notif-mark-all {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 4px;
+  transition: color 140ms cubic-bezier(0.4, 0, 0.2, 1), background 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.topbar__notif-mark-all:hover:not(:disabled) { color: var(--accent); background: var(--accent-dim); }
+.topbar__notif-mark-all:disabled { opacity: 0.5; cursor: default; }
+.topbar__notif-filter {
+  display: flex;
+  gap: 5px;
+  padding: 8px 10px 5px;
+  border-bottom: 1px solid var(--panel-border-soft);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.topbar__notif-filter::-webkit-scrollbar { display: none; }
+.topbar__notif-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--panel-border-strong) 72%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-overlay-strong) 70%, var(--panel));
+  color: color-mix(in srgb, var(--text) 82%, var(--text-muted));
+  cursor: pointer;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 5%, transparent);
+  transition: background 140ms cubic-bezier(0.4, 0, 0.2, 1), border-color 140ms cubic-bezier(0.4, 0, 0.2, 1), color 140ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.topbar__notif-filter-btn:hover {
+  background: color-mix(in srgb, var(--surface-1) 86%, var(--green-dim));
+  border-color: color-mix(in srgb, var(--green) 34%, var(--panel-border-strong));
+  color: var(--text-strong);
+}
+.topbar__notif-filter-btn.is-active {
+  background: color-mix(in srgb, var(--green-dim) 46%, var(--panel));
+  border-color: color-mix(in srgb, var(--green) 56%, var(--panel-border-strong));
+  color: color-mix(in srgb, var(--green) 52%, var(--text-strong));
+  box-shadow:
+    inset 2px 0 0 color-mix(in srgb, var(--green) 74%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--green) 12%, transparent);
+}
+.topbar__notif-filter-btn strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  color: color-mix(in srgb, var(--text) 68%, var(--text-muted));
+  font-size: 10px;
+  line-height: 1;
+}
+.topbar__notif-filter-btn.is-active strong {
+  background: color-mix(in srgb, var(--green-dim) 88%, var(--panel));
+  color: color-mix(in srgb, var(--green) 78%, var(--text-strong));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--green) 12%, transparent);
+}
+.topbar__notif-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+.topbar__notif-priority {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px 10px 6px;
+  padding: 7px 9px;
+  border: 1px solid var(--yellow-subtle);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--yellow-dim) 88%, var(--panel));
+}
+.topbar__notif-priority-label {
+  display: block;
+  color: var(--text-strong);
+  font-size: 11.5px;
+  font-weight: 800;
+}
+.topbar__notif-priority-copy {
+  display: block;
+  margin-top: 1px;
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+.topbar__notif-priority strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  color: var(--yellow-ink);
+  font-size: 11.5px;
+}
+.topbar__notif-section-label {
+  padding: 7px 12px 3px;
+  color: color-mix(in srgb, var(--text-muted) 84%, transparent);
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.topbar__notif-row {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+.topbar__notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  width: 100%;
+  padding: 9px 30px 9px 12px;
+  background: none;
+  border: none;
+  border-left: 2px solid transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background 140ms cubic-bezier(0.4, 0, 0.2, 1), border-color 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.topbar__notif-item:hover {
+  background: var(--surface-1);
+}
+.topbar__notif-item--unread {
+  background: color-mix(in srgb, var(--accent-dim) 34%, transparent);
+}
+.topbar__notif-item--unread:hover {
+  background: color-mix(in srgb, var(--accent-dim) 78%, var(--panel));
+}
+.topbar__notif-item--priority-critical,
+.topbar__notif-item--priority-high {
+  border-left-color: color-mix(in srgb, var(--red) 88%, transparent);
+}
+.topbar__notif-item--priority-medium {
+  border-left-color: color-mix(in srgb, var(--yellow) 88%, transparent);
+}
+.topbar__notif-item--priority-low {
+  border-left-color: transparent;
+}
+.topbar__notif-dismiss {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--panel-border-strong) 48%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel) 96%, transparent);
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 140ms cubic-bezier(0.4, 0, 0.2, 1), background 140ms cubic-bezier(0.4, 0, 0.2, 1), color 140ms cubic-bezier(0.4, 0, 0.2, 1), border-color 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.topbar__notif-row:hover .topbar__notif-dismiss,
+.topbar__notif-dismiss:focus-visible {
+  opacity: 1;
+}
+.topbar__notif-dismiss:hover {
+  background: var(--red-dim);
+  border-color: color-mix(in srgb, var(--red) 45%, var(--panel-border));
+  color: var(--red);
+}
+@media (hover: none) {
+  .topbar__notif-dismiss {
+    opacity: 1;
+  }
+}
+.topbar__notif-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+.topbar__notif-dot--read { background: transparent; }
+.topbar__notif-item-body { flex: 1; min-width: 0; }
+.topbar__notif-item-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+.topbar__notif-item-type {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--surface-1);
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.topbar__notif-item-type.notif-type--mention { background: var(--indigo-dim); color: var(--indigo); }
+.topbar__notif-item-type.notif-type--approval { background: var(--yellow-dim); color: var(--yellow-ink); }
+.topbar__notif-item-type.notif-type--blocker { background: var(--red-dim); color: var(--red); }
+.topbar__notif-item-type.notif-type--danger { background: var(--red-dim); color: var(--red); }
+.topbar__notif-item-type.notif-type--warn { background: var(--yellow-dim); color: var(--yellow-ink); }
+.topbar__notif-item-count {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--surface-1);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 650;
+}
+.topbar__notif-item-msg {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.45;
+  margin: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.topbar__notif-item-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+  min-width: 0;
+}
+.topbar__notif-item-context span {
+  max-width: 92%;
+  padding: 1px 5px;
+  border: 1px solid color-mix(in srgb, var(--panel-border-strong) 28%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-overlay-strong) 28%, var(--panel));
+  color: color-mix(in srgb, var(--text) 58%, var(--text-muted));
+  font-size: 9px;
+  font-weight: 550;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.topbar__notif-item-time {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+.topbar__notif-item-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+}
+.topbar__notif-item-action {
+  flex-shrink: 0;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+.topbar__notif-empty {
+  padding: 28px 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.topbar__notif-empty--compact {
+  padding: 18px 12px;
+}
+.topbar__notif-footer {
+  border-top: 1px solid var(--panel-border);
+  padding: 8px 10px;
+  flex-shrink: 0;
+}
+.topbar__notif-view-all {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  background: var(--surface-1);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  text-align: center;
+  transition: background 140ms cubic-bezier(0.4, 0, 0.2, 1), color 140ms cubic-bezier(0.4, 0, 0.2, 1), border-color 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.topbar__notif-view-all:hover { background: var(--accent-dim); color: var(--accent); border-color: var(--accent-subtle); }
+
+/* User button */
+.topbar__user-menu { position: relative; }
+.topbar__user-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.topbar__user-btn:hover {
+  transform: translateY(-1px);
+}
+.topbar__user-avatar-wrap {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+}
+.topbar__user-avatar {
+  width: 32px;
+  height: 32px;
+  background: var(--avatar-bg);
+  color: var(--avatar-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.topbar__user-status {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--green);
+  border: 1.5px solid var(--topbar-bg);
+}
+.topbar__user-name { display: none; }
+
+/* Dropdown */
+.topbar__menu-backdrop { position: fixed; inset: 0; z-index: var(--z-popover-backdrop); }
+.topbar__menu-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--panel-shadow-xl);
+  min-width: 232px;
+  z-index: var(--z-popover);
+  overflow: hidden;
+  animation: fade-in 140ms var(--ease-enter);
+}
+.topbar__menu-identity {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 12px;
+  background: linear-gradient(135deg, var(--surface-1), var(--surface-mint));
+}
+.topbar__menu-identity strong { display: block; font-size: 12.5px; font-weight: 700; color: var(--text-strong); }
+.topbar__menu-identity span { display: block; font-size: 11px; color: var(--text-muted); }
+.topbar__menu-avatar {
+  width: 30px;
+  height: 30px;
+  background: var(--avatar-bg);
+  color: var(--avatar-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.topbar__menu-divider { height: 1px; background: var(--panel-border); }
+.topbar__menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 12px;
+  background: none;
+  border: none;
+  font-size: 0.84rem;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition);
+}
+.topbar__menu-item:hover { background: var(--app-bg); }
+.topbar__menu-item--danger { color: var(--red); }
+.topbar__menu-item--danger:hover { background: var(--red-dim); }
+
+/* Pure System: light-mode topbar inherits canvas via `--topbar-bg` token.
+ * Previous gradient + lift shadow would re-introduce a separate topbar
+ * surface, so they are intentionally omitted. The base `.topbar` rule
+ * (background: var(--topbar-bg); border-bottom hairline) carries the look. */
+
+:root:not([data-theme="dark"]) .topbar__search-input {
+  background: color-mix(in srgb, var(--surface-2) 78%, var(--panel) 22%);
+  border-color: color-mix(in srgb, var(--panel-border) 82%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-inverse) 76%, transparent);
+}
+
+:root:not([data-theme="dark"]) .topbar__search-input:hover {
+  background: color-mix(in srgb, var(--surface-2) 68%, var(--indigo-dim) 32%);
+  border-color: color-mix(in srgb, var(--indigo) 10%, transparent);
+}
+
+:root:not([data-theme="dark"]) .topbar__search-kbd {
+  background: var(--panel);
+  border-color: color-mix(in srgb, var(--panel-border) 90%, transparent);
+}
+
+:root:not([data-theme="dark"]) .topbar__notif-btn {
+  background: color-mix(in srgb, var(--surface-2) 78%, var(--panel) 22%);
+  border-color: color-mix(in srgb, var(--panel-border) 82%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-inverse) 76%, transparent);
+}
+
+:root:not([data-theme="dark"]) .topbar__notif-btn:hover {
+  background: color-mix(in srgb, var(--surface-2) 60%, var(--indigo-dim) 40%);
+  border-color: color-mix(in srgb, var(--indigo) 12%, transparent);
+}
+
+:root:not([data-theme="dark"]) .topbar__user-avatar {
+  box-shadow:
+    0 0 0 1.5px color-mix(in srgb, var(--topbar-bg) 96%, transparent),
+    0 0 0 2.5px rgba(31,107,53,0.20),
+    0 4px 10px color-mix(in srgb, var(--indigo) 8%, transparent);
+}
+
+:root:not([data-theme="dark"]) .topbar__menu-popover {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 86%, var(--panel) 14%) 0%, var(--panel) 100%);
+}
+
+:root:not([data-theme="dark"]) .topbar__menu-item:hover {
+  background: color-mix(in srgb, var(--surface-2) 62%, var(--indigo-dim) 38%);
+}
+
+/* Boot screen */
+.boot-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: var(--sidebar-bg);
+}
+.boot-screen__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.boot-screen__mark {
+  width: 48px;
+  height: 48px;
+  background: var(--accent);
+  color: var(--text-inverse);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.route-fallback {
+  display: flex;
+  min-height: 360px;
+  flex-direction: column;
+  gap: 18px;
+  padding: 28px;
+}
+
+.route-error {
+  display: flex;
+  min-height: 360px;
+  width: min(720px, calc(100% - 40px));
+  flex-direction: column;
+  align-self: center;
+  gap: 12px;
+  margin: 40px auto;
+  padding: 24px;
+  border: 1px solid color-mix(in srgb, var(--red) 18%, var(--panel-border));
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--red-dim) 42%, transparent), transparent 44%),
+    var(--panel);
+  box-shadow: var(--panel-shadow-xl);
+}
+
+.route-error__eyebrow {
+  color: var(--red);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.route-error h2 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 24px;
+  letter-spacing: -0.03em;
+}
+
+.route-error p {
+  max-width: 560px;
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.route-error pre {
+  max-height: 160px;
+  overflow: auto;
+  margin: 4px 0 0;
+  padding: 12px;
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  background: var(--surface-1);
+  color: var(--red);
+  white-space: pre-wrap;
+}
+
+.route-error__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* ─── Notification Toast Stack ──────────────────────────────────────────── */
+@keyframes notif-toast-in {
+  from { opacity: 0; transform: translateX(110%) scale(0.95); }
+  to   { opacity: 1; transform: translateX(0)   scale(1); }
+}
+@keyframes notif-toast-progress {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+.notif-toast-stack {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.notif-toast {
+  position: relative;
+  width: 340px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--panel-border-strong) 28%, transparent),
+              0 2px 8px  color-mix(in srgb, var(--panel-border-strong) 14%, transparent);
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  animation: notif-toast-in 240ms cubic-bezier(0.34, 1.2, 0.64, 1) both;
+  pointer-events: all;
+}
+
+.notif-toast__body {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 12px 10px 16px 13px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.notif-toast__body:hover { background: var(--surface-1); }
+
+.notif-toast__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--surface-1);
+  border: 1px solid var(--panel-border);
+  color: var(--text-muted);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+.notif-toast__avatar--person {
+  border-radius: 50%;
+  background: var(--indigo-dim);
+  color: var(--indigo);
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+}
+
+.notif-toast__content { flex: 1; min-width: 0; }
+.notif-toast__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.notif-toast__type {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--surface-1);
+  color: var(--text-muted);
+}
+.notif-toast__type.notif-type--mention { background: var(--indigo-dim); color: var(--indigo); }
+.notif-toast__type.notif-type--approval { background: var(--yellow-dim); color: var(--yellow-ink); }
+.notif-toast__type.notif-type--blocker { background: var(--red-dim); color: var(--red); }
+.notif-toast__type.notif-type--danger  { background: var(--red-dim); color: var(--red); }
+.notif-toast__type.notif-type--warn    { background: var(--yellow-dim); color: var(--yellow-ink); }
+.notif-toast__app {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.notif-toast__msg {
+  font-size: 12.5px;
+  color: var(--text);
+  line-height: 1.45;
+  margin: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.notif-toast__close {
+  flex-shrink: 0;
+  width: 28px;
+  padding: 10px 0 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.notif-toast__close:hover { color: var(--text-strong); }
+
+.notif-toast__progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+  animation: notif-toast-progress 5.5s linear both;
+  opacity: 0.5;
+}
+
+:root:not([data-theme="dark"]) .notif-toast {
+  background: color-mix(in srgb, var(--panel) 97%, var(--surface-2) 3%);
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--panel-border-strong) 22%, transparent),
+              0 2px 8px  color-mix(in srgb, var(--panel-border-strong) 10%, transparent);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * CollapsibleSection (Sprint 2 — primitive)
+ * ───────────────────────────────────────────────────────────────────────── */
+.collapsible-section {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel) 60%, transparent);
+  overflow: hidden;
+}
+.collapsible-section + .collapsible-section { margin-top: 12px; }
+.collapsible-section__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+  font: inherit;
+}
+.collapsible-section__header:hover { background: color-mix(in srgb, var(--surface-2) 35%, transparent); }
+.collapsible-section__chevron {
+  display: inline-flex;
+  transition: transform .15s ease;
+  color: var(--text-muted);
+}
+.collapsible-section.is-collapsed .collapsible-section__chevron { transform: rotate(-90deg); }
+.collapsible-section__title { font-size: 13px; font-weight: 600; flex: 0 0 auto; }
+.collapsible-section__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+.collapsible-section__summary {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.collapsible-section__body {
+  padding: 8px 14px 14px;
+  border-top: 1px solid var(--panel-border);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * DataSourceBadge (Sprint 2 — primitive)
+ * ───────────────────────────────────────────────────────────────────────── */
+.data-source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--panel-border);
+  background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+  color: var(--text-muted);
+  cursor: help;
+}
+.data-source-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.data-source-badge--dummy { color: var(--yellow-ink); border-color: color-mix(in srgb, var(--yellow-ink) 35%, var(--panel-border)); }
+.data-source-badge--partial { color: var(--blue-ink); }
+.data-source-badge--live { color: var(--green-ink); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * SidePanel (Sprint 4 — primitive)
+ * ───────────────────────────────────────────────────────────────────────── */
+.side-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, black 36%, transparent);
+  z-index: 60;
+  animation: side-panel-fade .15s ease;
+}
+.side-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--side-panel-width, 420px);
+  max-width: 95vw;
+  background: var(--panel);
+  border-left: 1px solid var(--panel-border);
+  box-shadow: -8px 0 32px color-mix(in srgb, black 16%, transparent);
+  z-index: 61;
+  display: flex;
+  flex-direction: column;
+  animation: side-panel-slide-in .18s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes side-panel-fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes side-panel-slide-in { from { transform: translateX(100%) } to { transform: translateX(0) } }
+.side-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--panel-border);
+}
+.side-panel__title { margin: 0; font-size: 14px; font-weight: 600; color: var(--text); }
+.side-panel__subtitle { margin: 2px 0 0; font-size: 12px; color: var(--text-muted); }
+.side-panel__close {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: inline-flex;
+}
+.side-panel__close:hover { background: var(--surface-2); color: var(--text); }
+.side-panel__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.side-panel__footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--panel-border);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* Mobile: full-screen */
+@media (max-width: 768px) {
+  .side-panel {
+    width: 100vw;
+    max-width: 100vw;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * AgingIndicator (Sprint 4 — primitive)
+ * ───────────────────────────────────────────────────────────────────────── */
+.aging-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--panel-border);
+  background: var(--surface-2);
+}
+.aging-indicator__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.aging-indicator--green  { color: var(--green-ink); border-color: color-mix(in srgb, var(--green-ink) 22%, var(--panel-border)); }
+.aging-indicator--yellow { color: var(--yellow-ink); border-color: color-mix(in srgb, var(--yellow-ink) 22%, var(--panel-border)); }
+.aging-indicator--orange { color: var(--yellow); border-color: color-mix(in srgb, var(--yellow) 28%, var(--panel-border)); background: color-mix(in srgb, var(--yellow) 6%, var(--surface-2)); }
+.aging-indicator--red    { color: var(--red-ink); border-color: color-mix(in srgb, var(--red-ink) 35%, var(--panel-border)); background: color-mix(in srgb, var(--red-ink) 8%, var(--surface-2)); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * DraftStatusBadge (Sprint 6 — autosave indicator)
+ * ─────────────────────────────────────────────────────────────────────────
+ * Indicator subtle yang nempel di header form: "Tersimpan • 3 detik lalu",
+ * "Menyimpan…", "Offline — backup lokal", dst. Visual mengikuti
+ * aging-indicator (pill kecil border + dot) supaya tidak menambah noise.
+ */
+.draft-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--panel-border);
+  background: var(--surface-2);
+  transition: color 120ms ease, background 120ms ease;
+}
+.draft-status-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.draft-status-badge__label { white-space: nowrap; }
+.draft-status-badge--muted  { color: var(--color-text-muted, #6b7280); }
+.draft-status-badge--green  { color: var(--green-ink); border-color: color-mix(in srgb, var(--green-ink) 22%, var(--panel-border)); }
+.draft-status-badge--blue   { color: #2563eb; border-color: color-mix(in srgb, #2563eb 22%, var(--panel-border)); background: color-mix(in srgb, #2563eb 5%, var(--surface-2)); }
+.draft-status-badge--yellow { color: var(--yellow-ink); border-color: color-mix(in srgb, var(--yellow-ink) 22%, var(--panel-border)); background: color-mix(in srgb, var(--yellow-ink) 6%, var(--surface-2)); }
+.draft-status-badge--red    { color: var(--red-ink); border-color: color-mix(in srgb, var(--red-ink) 30%, var(--panel-border)); background: color-mix(in srgb, var(--red-ink) 6%, var(--surface-2)); }
+.draft-status-badge--blue .draft-status-badge__dot {
+  animation: draft-status-pulse 1.2s ease-in-out infinite;
+}
+@keyframes draft-status-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * DraftRestoreBanner (Sprint 6 — restore prompt setelah refresh / SSE reload)
+ * ─────────────────────────────────────────────────────────────────────────
+ * Banner full-width di atas form. Sekali muncul, user pilih:
+ * Pulihkan (load draft ke form) atau Buang draf (delete dengan undo 5 detik).
+ */
+.draft-restore-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, #2563eb 25%, var(--panel-border));
+  background: color-mix(in srgb, #2563eb 6%, var(--surface-2));
+  color: var(--color-text-primary);
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.draft-restore-banner__icon {
+  font-size: 16px;
+  color: #2563eb;
+  flex-shrink: 0;
+}
+.draft-restore-banner__text { flex: 1; line-height: 1.45; }
+.draft-restore-banner__text strong { font-weight: 600; }
+.draft-restore-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.draft-restore-banner__btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.draft-restore-banner__btn--primary {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+.draft-restore-banner__btn--primary:hover { background: #1d4ed8; }
+.draft-restore-banner__btn--ghost {
+  background: transparent;
+  color: var(--color-text-muted, #6b7280);
+  border-color: var(--panel-border);
+}
+.draft-restore-banner__btn--ghost:hover {
+  color: var(--color-text-primary);
+  border-color: color-mix(in srgb, var(--color-text-muted) 50%, var(--panel-border));
+}
+.draft-restore-banner__dismiss {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted, #6b7280);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+.draft-restore-banner__dismiss:hover {
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-text-muted) 8%, transparent);
+}
+.draft-restore-banner--undo {
+  border-color: color-mix(in srgb, var(--yellow-ink) 30%, var(--panel-border));
+  background: color-mix(in srgb, var(--yellow-ink) 7%, var(--surface-2));
+  position: relative;
+  overflow: hidden;
+}
+.draft-restore-banner--undo .draft-restore-banner__btn--primary {
+  background: var(--yellow-ink);
+  border-color: var(--yellow-ink);
+}
+.draft-restore-banner--undo .draft-restore-banner__btn--primary:hover { background: #7a5400; }
+
+/* Progress bar countdown — bar mengecil dari kanan ke kiri seiring waktu
+   habis. Memberi visual cue jelas berapa detik tersisa, bukan cuma teks. */
+.draft-restore-banner__undo-track {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.draft-restore-banner__undo-fill {
+  height: 100%;
+  background: color-mix(in srgb, var(--yellow-ink) 18%, transparent);
+  transition: width 100ms linear;
+}
+.draft-restore-banner--undo > .draft-restore-banner__text,
+.draft-restore-banner--undo > .draft-restore-banner__actions {
+  position: relative;
+  z-index: 1;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * ForecastBadge (Sprint 5)
+ * ───────────────────────────────────────────────────────────────────────── */
+.forecast-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  border: 1px dashed var(--panel-border);
+  background: color-mix(in srgb, var(--surface-2) 50%, transparent);
+  cursor: help;
+}
+.forecast-badge__icon { font-size: 11px; }
+.forecast-badge--green  { color: var(--green-ink); border-color: color-mix(in srgb, var(--green-ink) 30%, var(--panel-border)); }
+.forecast-badge--yellow { color: var(--yellow-ink); border-color: color-mix(in srgb, var(--yellow-ink) 30%, var(--panel-border)); }
+.forecast-badge--red    { color: var(--red-ink); border-color: color-mix(in srgb, var(--red-ink) 35%, var(--panel-border)); }
+.forecast-badge--muted  { color: var(--text-muted); }
+
+/* Touch (hover:none): tombol topbar search/bell jangan sticky-hover sesudah
+   tap — balikkan ke base, ganti dgn :active press. 2026-06-03. */
+@media (hover: none) {
+  .topbar__cmdk:hover,
+  .topbar__notif-btn:hover {
+    background: var(--panel);
+    border-color: var(--panel-border);
+    color: var(--text-muted);
+  }
+  .topbar__cmdk:active,
+  .topbar__notif-btn:active { background: var(--surface-1); }
+}

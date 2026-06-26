@@ -1,0 +1,30 @@
+/* Legacy global stylesheets dari atlas-php app.tsx — urutan dipertahankan.
+   shell.css & sidebar-rail.css di-skip (shell custom Next pakai .atlas-* sendiri). */
+@import './tokens.css';
+@import './reset.css';
+@import './components.css';
+@import './dashboard.css';
+@import './home.css';
+@import './programs.css';
+@import './execution-grid.css';
+@import './workboard.css';
+@import './wi-detail.css';
+@import './search.css';
+@import './presence.css';
+@import './misc-views.css';
+@import './performance.css';
+@import './pica.css';
+@import './pilot-metrics.css';
+@import './thresholds.css';
+@import './responsive.css';
+@import './channels-polish.css';
+@import './accounts-polish.css';
+@import './programs-polish.css';
+@import './workboard-polish.css';
+@import './assignments-polish.css';
+@import './performance-polish.css';
+@import './schedule-polish.css';
+@import './topbar.css';
+@import './topbar-extras.css';
+@import './command-palette.css';
+@import './context-panel.css';

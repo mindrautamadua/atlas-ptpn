@@ -1,0 +1,958 @@
+/* Topbar styles — extracted VERBATIM from atlas-php resources/js/styles/shell.css
+ * (the `.topbar*` block, lines ~856–1806). Only the topbar-related rules are
+ * pulled here so the Next custom `.atlas-*` shell can reuse the original look
+ * WITHOUT importing the legacy `.app-shell/.sidebar` rules (which would clash
+ * with the custom shell). The `.atlas-main .topbar` positioning override lives
+ * in src/styles/shell.css (in-flow/sticky instead of absolute). */
+
+/* ══ Topbar ═══════════════════════════════════════════════════
+ * Pure System: shares canvas (--app-bg). Bottom hairline draws the boundary.
+ * No panel shadow — topbar feels structural with the rest of the page,
+ * not a separate elevated bar. */
+.topbar {
+  /* Slim two-sided utility bar (rev 2026-06-01): full-width, out of flow.
+   * KIRI = meta (periode + Live), KANAN = actions. Spacer flex:1 di tengah
+   * mendorong actions ke kanan. Sebelumnya sempat cluster kanan-only, tapi
+   * terlalu padat di kanan — meta dikembalikan ke kiri (preferensi user). */
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  width: auto;
+  height: var(--topbar-height);
+  /* Opaque fill (fix 2026-06-01): bar was transparent + pointer-events:none so
+   * scrolled content bled through it. Konten reserve band lewat padding-top di
+   * .workspace__content, jadi fill solid menutup konten yang menggulung di
+   * belakang bar — tidak lagi tembus pandang. Hairline bawah jadi pembatas.
+   * Bg opak (bukan backdrop-filter) — blur di selector ini = stutter scroll. */
+  background: var(--topbar-bg);
+  border: 0;
+  border-bottom: 1px solid var(--panel-border);
+  border-radius: 0;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px;
+  /* 9500 > backdrop (9000) so topbar stays above any modal overlay within workspace */
+  z-index: var(--z-topbar);
+}
+
+/* ── Slim utility bar: meta (date/period/live) + cmdk + spacer ─────
+ * Pure System: topbar shares canvas. Left holds context meta, right holds
+ * utility icons. No breadcrumb, no full-width search. */
+
+/* Modern topbar meta: sans-serif, sentence case, lebih tenang.
+   Sebelumnya uppercase tracked mono — terasa enterprise lawas.
+   Sekarang Linear-like contextual strip. */
+.topbar__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--ds-font-sans, var(--font-sans));
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.topbar__meta-date {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.topbar__meta-sep {
+  color: var(--panel-border);
+}
+
+.topbar__meta-period {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+/* Live SSE indicator — tiny pulsing dot. Green when connected, gray when offline */
+.topbar__live {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 4px 0 6px;
+  font-family: var(--ds-font-sans, var(--font-sans));
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  height: 14px;
+}
+.topbar__live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  position: relative;
+  flex-shrink: 0;
+}
+.topbar__live--connected .topbar__live-dot::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: var(--green);
+  opacity: 0.4;
+  animation: topbar-live-pulse 1800ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.topbar__live--disconnected .topbar__live-dot { background: var(--text-muted); opacity: 0.5; }
+.topbar__live--disconnected { color: var(--text-muted); opacity: 0.6; }
+@keyframes topbar-live-pulse {
+  0%   { transform: scale(0.6); opacity: 0.5; }
+  80%  { transform: scale(1.6); opacity: 0; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+
+.topbar__spacer {
+  flex: 1 1 auto;
+  /* Biarkan klik tembus ke konten di band kosong tengah (di atas .topbar > *) */
+  pointer-events: none;
+}
+
+/* ⌘K command palette trigger — prominent search pill (Linear/Vercel pattern).
+ * Acts like an input field but opens the command palette on click. */
+.topbar__cmdk {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  width: 252px;
+  padding: 0 8px 0 11px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  border-radius: 9px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background var(--transition), border-color var(--transition), color var(--transition), box-shadow var(--transition);
+  flex-shrink: 0;
+}
+
+.topbar__cmdk-placeholder {
+  flex: 1;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.005em;
+}
+
+.topbar__cmdk:hover {
+  background: var(--surface-1);
+  border-color: color-mix(in srgb, var(--ptpn-green) 22%, var(--panel-border-strong));
+  color: var(--text-strong);
+}
+.topbar__cmdk:hover .topbar__cmdk-placeholder {
+  color: color-mix(in srgb, var(--text-strong) 60%, var(--text-muted));
+}
+
+.topbar__cmdk:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.topbar__cmdk kbd {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: var(--surface-1);
+  border: 1px solid var(--panel-border);
+  font-feature-settings: 'tnum';
+}
+
+/* Breadcrumb (legacy — element no longer rendered in topbar but classes
+ * remain for any consumer that may still reference them) */
+.topbar__breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--type-small);
+  flex-shrink: 0;
+}
+.topbar__breadcrumb-workspace {
+  color: var(--text-muted);
+  font-weight: var(--w-medium);
+}
+.topbar__breadcrumb-sep {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 400;
+  user-select: none;
+}
+.topbar__breadcrumb-page {
+  color: var(--text-strong);
+  font-weight: var(--w-semibold);
+}
+
+/* Search */
+.topbar__search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 340px;
+}
+.topbar__search-icon {
+  position: absolute;
+  left: 11px;
+  color: var(--text-muted);
+  pointer-events: none;
+  display: flex;
+}
+.topbar__search-input {
+  width: 100%;
+  background: transparent;
+  height: 32px;
+  border: 0.5px solid transparent;
+  border-radius: 8px;
+  padding: 0 38px 0 32px;
+  font-size: var(--type-small);
+  color: var(--text);
+  outline: none;
+  transition: border-color 160ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 160ms cubic-bezier(0.4, 0, 0.2, 1), background 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.topbar__search-input::placeholder { color: var(--text-muted); }
+.topbar__search-input:hover {
+  background: var(--surface-1);
+  border-color: var(--panel-border);
+}
+.topbar__search-input:focus {
+  border-color: var(--indigo);
+  background: var(--panel);
+  box-shadow: 0 0 0 3px var(--indigo-dim);
+}
+.topbar__search-kbd {
+  position: absolute;
+  right: 9px;
+  font-size: 0.71rem;
+  color: var(--text-muted);
+  background: var(--surface-1);
+  border: 1px solid var(--panel-border);
+  padding: 1px 5px;
+  border-radius: 4px;
+  pointer-events: none;
+  font-family: var(--font-sans);
+  letter-spacing: 0.02em;
+}
+
+/* Right cluster */
+.topbar__right { display: flex; align-items: center; gap: 8px; }
+
+/* Icon buttons */
+.topbar__notif-btn {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 9px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: background 160ms cubic-bezier(0.4, 0, 0.2, 1), color 160ms cubic-bezier(0.4, 0, 0.2, 1), border-color 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.topbar__notif-btn:hover {
+  background: var(--surface-1);
+  border-color: color-mix(in srgb, var(--ptpn-green) 22%, var(--panel-border-strong));
+  color: var(--text-strong);
+}
+.topbar__notif-icon {
+  width: 19px;
+  height: 19px;
+  stroke: currentColor;
+  stroke-width: 1.55;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform: translateY(-0.5px);
+}
+
+.topbar__notif-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 14px;
+  height: 14px;
+  background: var(--red);
+  color: var(--text-inverse);
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 2px;
+  border: 1.5px solid var(--topbar-bg);
+  line-height: 1;
+}
+.topbar__notif-badge--info {
+  background: var(--text-muted);
+}
+.topbar__notif-badge--urgent::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 999px;
+  background: var(--red);
+  opacity: 0.35;
+  animation: topbar-notif-pulse 2200ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+@keyframes topbar-notif-pulse {
+  0%   { transform: scale(0.85); opacity: 0.45; }
+  70%  { transform: scale(1.6); opacity: 0; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.topbar__divider {
+  width: 1px;
+  height: 20px;
+  background: var(--panel-border);
+  margin: 0 6px;
+  flex-shrink: 0;
+}
+
+/* ── Account avatar + menu (kanan-atas topbar, 2026-06-01) ──
+ * Dipindah dari footer sidebar. Avatar selaras dimensi tombol help/notif
+ * (32px), popover pakai surface terang (--panel) seperti notif-popover. */
+.topbar__user-menu { position: relative; }
+/* User chip — avatar 3D glossy + nama lengkap (2026-06-01). Chip transparan
+ * yang menyala saat hover/open; avatar pakai gradient + gloss + drop-shadow
+ * supaya terbaca sebagai objek dimensional, bukan flat shape + border. */
+.topbar__avatar-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 9px 3px 3px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  background: transparent;
+  transition: background 160ms cubic-bezier(0.4, 0, 0.2, 1), border-color 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.topbar__avatar-btn:hover,
+.topbar__avatar-btn[aria-expanded="true"] {
+  background: var(--panel);
+  border-color: var(--panel-border);
+}
+.topbar__avatar-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* Dimensional selaras brand mark "A" (shell.css:139) — gradient 135° + soft
+ * glow + inset highlight/shade tipis + ::after gloss halus. Bukan orb glossy,
+ * tapi sepasang facet hijau dengan logo. */
+.topbar__avatar {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--ptpn-green) 0%, color-mix(in srgb, var(--ptpn-green) 70%, #0a4d20 30%) 100%);
+  box-shadow:
+    0 6px 16px color-mix(in srgb, var(--ptpn-green) 40%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.22),
+    inset 0 -1px 0 rgba(0,0,0,0.18);
+  transition: transform 160ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.topbar__avatar::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.16) 0%, transparent 55%);
+  pointer-events: none;
+}
+.topbar__avatar-btn:hover .topbar__avatar {
+  transform: scale(1.04);
+}
+.topbar__avatar-initials {
+  position: relative;
+  z-index: 1;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-feature-settings: 'cv11' on;
+}
+.topbar__avatar-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-strong);
+  white-space: nowrap;
+  line-height: 1;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.topbar__avatar-chev {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.topbar__user-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 230px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--panel-shadow-xl);
+  z-index: var(--z-popover);
+  overflow: hidden;
+  animation: fade-in 140ms var(--ease-enter);
+}
+.topbar__user-popover-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 13px;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--ptpn-green) 10%, transparent) 0%,
+    transparent 100%);
+  border-bottom: 1px solid var(--panel-border-soft);
+}
+.topbar__user-popover-identity strong { display: block; font-size: 12.5px; font-weight: 700; color: var(--text-strong); }
+.topbar__user-popover-identity span { display: block; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.topbar__user-popover-avatar {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, var(--ptpn-green) 0%, color-mix(in srgb, var(--ptpn-green) 70%, #0a4d20 30%) 100%);
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.10), inset 0 1px 0 rgba(255,255,255,0.18);
+}
+.topbar__user-popover-divider { height: 1px; background: var(--panel-border); }
+.topbar__user-popover-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 13px;
+  background: none;
+  border: none;
+  font-size: 0.84rem;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  transition: background var(--transition), color var(--transition);
+}
+.topbar__user-popover-item:hover { background: var(--surface-1); color: var(--text-strong); }
+.topbar__user-popover-item--danger { color: var(--red); }
+.topbar__user-popover-item--danger:hover { background: var(--red-dim, color-mix(in srgb, var(--red) 12%, transparent)); color: var(--red); }
+
+/* Notification dropdown */
+.topbar__notif-menu { position: relative; }
+.topbar__notif-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--panel-shadow-xl);
+  width: 320px;
+  max-height: 480px;
+  z-index: var(--z-popover);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fade-in 140ms var(--ease-enter);
+}
+.topbar__notif-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--panel-border);
+  flex-shrink: 0;
+}
+.topbar__notif-popover-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-strong);
+  letter-spacing: 0.03em;
+}
+.topbar__notif-mark-all {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 4px;
+  transition: color 140ms cubic-bezier(0.4, 0, 0.2, 1), background 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.topbar__notif-mark-all:hover:not(:disabled) { color: var(--accent); background: var(--accent-dim); }
+.topbar__notif-mark-all:disabled { opacity: 0.5; cursor: default; }
+.topbar__notif-filter {
+  display: flex;
+  gap: 5px;
+  padding: 8px 10px 5px;
+  border-bottom: 1px solid var(--panel-border-soft);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.topbar__notif-filter::-webkit-scrollbar { display: none; }
+.topbar__notif-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--panel-border-strong) 72%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-overlay-strong) 70%, var(--panel));
+  color: color-mix(in srgb, var(--text) 82%, var(--text-muted));
+  cursor: pointer;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 5%, transparent);
+  transition: background 140ms cubic-bezier(0.4, 0, 0.2, 1), border-color 140ms cubic-bezier(0.4, 0, 0.2, 1), color 140ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.topbar__notif-filter-btn:hover {
+  background: color-mix(in srgb, var(--surface-1) 86%, var(--green-dim));
+  border-color: color-mix(in srgb, var(--green) 34%, var(--panel-border-strong));
+  color: var(--text-strong);
+}
+.topbar__notif-filter-btn.is-active {
+  background: color-mix(in srgb, var(--green-dim) 46%, var(--panel));
+  border-color: color-mix(in srgb, var(--green) 56%, var(--panel-border-strong));
+  color: color-mix(in srgb, var(--green) 52%, var(--text-strong));
+  box-shadow:
+    inset 2px 0 0 color-mix(in srgb, var(--green) 74%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--green) 12%, transparent);
+}
+.topbar__notif-filter-btn strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  color: color-mix(in srgb, var(--text) 68%, var(--text-muted));
+  font-size: 10px;
+  line-height: 1;
+}
+.topbar__notif-filter-btn.is-active strong {
+  background: color-mix(in srgb, var(--green-dim) 88%, var(--panel));
+  color: color-mix(in srgb, var(--green) 78%, var(--text-strong));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--green) 12%, transparent);
+}
+.topbar__notif-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+.topbar__notif-priority {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px 10px 6px;
+  padding: 7px 9px;
+  border: 1px solid var(--yellow-subtle);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--yellow-dim) 88%, var(--panel));
+}
+.topbar__notif-priority-label {
+  display: block;
+  color: var(--text-strong);
+  font-size: 11.5px;
+  font-weight: 800;
+}
+.topbar__notif-priority-copy {
+  display: block;
+  margin-top: 1px;
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+.topbar__notif-priority strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  color: var(--yellow-ink);
+  font-size: 11.5px;
+}
+.topbar__notif-section-label {
+  padding: 7px 12px 3px;
+  color: color-mix(in srgb, var(--text-muted) 84%, transparent);
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.topbar__notif-row {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+.topbar__notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  width: 100%;
+  padding: 9px 30px 9px 12px;
+  background: none;
+  border: none;
+  border-left: 2px solid transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background 140ms cubic-bezier(0.4, 0, 0.2, 1), border-color 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.topbar__notif-item:hover {
+  background: var(--surface-1);
+}
+.topbar__notif-item--unread {
+  background: color-mix(in srgb, var(--accent-dim) 34%, transparent);
+}
+.topbar__notif-item--unread:hover {
+  background: color-mix(in srgb, var(--accent-dim) 78%, var(--panel));
+}
+.topbar__notif-item--priority-critical,
+.topbar__notif-item--priority-high {
+  border-left-color: color-mix(in srgb, var(--red) 88%, transparent);
+}
+.topbar__notif-item--priority-medium {
+  border-left-color: color-mix(in srgb, var(--yellow) 88%, transparent);
+}
+.topbar__notif-item--priority-low {
+  border-left-color: transparent;
+}
+.topbar__notif-dismiss {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--panel-border-strong) 48%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel) 96%, transparent);
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 140ms cubic-bezier(0.4, 0, 0.2, 1), background 140ms cubic-bezier(0.4, 0, 0.2, 1), color 140ms cubic-bezier(0.4, 0, 0.2, 1), border-color 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.topbar__notif-row:hover .topbar__notif-dismiss,
+.topbar__notif-dismiss:focus-visible {
+  opacity: 1;
+}
+.topbar__notif-dismiss:hover {
+  background: var(--red-dim);
+  border-color: color-mix(in srgb, var(--red) 45%, var(--panel-border));
+  color: var(--red);
+}
+@media (hover: none) {
+  .topbar__notif-dismiss {
+    opacity: 1;
+  }
+}
+.topbar__notif-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+.topbar__notif-dot--read { background: transparent; }
+.topbar__notif-item-body { flex: 1; min-width: 0; }
+.topbar__notif-item-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+.topbar__notif-item-type {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--surface-1);
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.topbar__notif-item-type.notif-type--mention { background: var(--indigo-dim); color: var(--indigo); }
+.topbar__notif-item-type.notif-type--approval { background: var(--yellow-dim); color: var(--yellow-ink); }
+.topbar__notif-item-type.notif-type--blocker { background: var(--red-dim); color: var(--red); }
+.topbar__notif-item-type.notif-type--danger { background: var(--red-dim); color: var(--red); }
+.topbar__notif-item-type.notif-type--warn { background: var(--yellow-dim); color: var(--yellow-ink); }
+.topbar__notif-item-count {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--surface-1);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 650;
+}
+.topbar__notif-item-msg {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.45;
+  margin: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.topbar__notif-item-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+  min-width: 0;
+}
+.topbar__notif-item-context span {
+  max-width: 92%;
+  padding: 1px 5px;
+  border: 1px solid color-mix(in srgb, var(--panel-border-strong) 28%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-overlay-strong) 28%, var(--panel));
+  color: color-mix(in srgb, var(--text) 58%, var(--text-muted));
+  font-size: 9px;
+  font-weight: 550;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.topbar__notif-item-time {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+.topbar__notif-item-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+}
+.topbar__notif-item-action {
+  flex-shrink: 0;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+.topbar__notif-empty {
+  padding: 28px 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.topbar__notif-empty--compact {
+  padding: 18px 12px;
+}
+.topbar__notif-footer {
+  border-top: 1px solid var(--panel-border);
+  padding: 8px 10px;
+  flex-shrink: 0;
+}
+.topbar__notif-view-all {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  background: var(--surface-1);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  text-align: center;
+  transition: background 140ms cubic-bezier(0.4, 0, 0.2, 1), color 140ms cubic-bezier(0.4, 0, 0.2, 1), border-color 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.topbar__notif-view-all:hover { background: var(--accent-dim); color: var(--accent); border-color: var(--accent-subtle); }
+
+/* User button */
+.topbar__user-menu { position: relative; }
+.topbar__user-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.topbar__user-btn:hover {
+  transform: translateY(-1px);
+}
+.topbar__user-avatar-wrap {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+}
+.topbar__user-avatar {
+  width: 32px;
+  height: 32px;
+  background: var(--avatar-bg);
+  color: var(--avatar-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.topbar__user-status {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--green);
+  border: 1.5px solid var(--topbar-bg);
+}
+.topbar__user-name { display: none; }
+
+/* Dropdown */
+.topbar__menu-backdrop { position: fixed; inset: 0; z-index: var(--z-popover-backdrop); }
+.topbar__menu-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--panel-shadow-xl);
+  min-width: 232px;
+  z-index: var(--z-popover);
+  overflow: hidden;
+  animation: fade-in 140ms var(--ease-enter);
+}
+.topbar__menu-identity {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 12px;
+  background: linear-gradient(135deg, var(--surface-1), var(--surface-mint));
+}
+.topbar__menu-identity strong { display: block; font-size: 12.5px; font-weight: 700; color: var(--text-strong); }
+.topbar__menu-identity span { display: block; font-size: 11px; color: var(--text-muted); }
+.topbar__menu-avatar {
+  width: 30px;
+  height: 30px;
+  background: var(--avatar-bg);
+  color: var(--avatar-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.topbar__menu-divider { height: 1px; background: var(--panel-border); }
+.topbar__menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 12px;
+  background: none;
+  border: none;
+  font-size: 0.84rem;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition);
+}
+.topbar__menu-item:hover { background: var(--app-bg); }
+.topbar__menu-item--danger { color: var(--red); }
+.topbar__menu-item--danger:hover { background: var(--red-dim); }
+
+/* Pure System: light-mode topbar inherits canvas via `--topbar-bg` token.
+ * Previous gradient + lift shadow would re-introduce a separate topbar
+ * surface, so they are intentionally omitted. The base `.topbar` rule
+ * (background: var(--topbar-bg); border-bottom hairline) carries the look. */
+
+:root:not([data-theme="dark"]) .topbar__search-input {
+  background: color-mix(in srgb, var(--surface-2) 78%, var(--panel) 22%);
+  border-color: color-mix(in srgb, var(--panel-border) 82%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-inverse) 76%, transparent);
+}
+
+:root:not([data-theme="dark"]) .topbar__search-input:hover {
+  background: color-mix(in srgb, var(--surface-2) 68%, var(--indigo-dim) 32%);
+  border-color: color-mix(in srgb, var(--indigo) 10%, transparent);
+}
+
+:root:not([data-theme="dark"]) .topbar__search-kbd {
+  background: var(--panel);
+  border-color: color-mix(in srgb, var(--panel-border) 90%, transparent);
+}
+
+:root:not([data-theme="dark"]) .topbar__notif-btn {
+  background: color-mix(in srgb, var(--surface-2) 78%, var(--panel) 22%);
+  border-color: color-mix(in srgb, var(--panel-border) 82%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-inverse) 76%, transparent);
+}
+
+:root:not([data-theme="dark"]) .topbar__notif-btn:hover {
+  background: color-mix(in srgb, var(--surface-2) 60%, var(--indigo-dim) 40%);
+  border-color: color-mix(in srgb, var(--indigo) 12%, transparent);
+}
+
+:root:not([data-theme="dark"]) .topbar__user-avatar {
+  box-shadow:
+    0 0 0 1.5px color-mix(in srgb, var(--topbar-bg) 96%, transparent),
+    0 0 0 2.5px rgba(31,107,53,0.20),
+    0 4px 10px color-mix(in srgb, var(--indigo) 8%, transparent);
+}
+
+:root:not([data-theme="dark"]) .topbar__menu-popover {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 86%, var(--panel) 14%) 0%, var(--panel) 100%);
+}
+
+:root:not([data-theme="dark"]) .topbar__menu-item:hover {
+  background: color-mix(in srgb, var(--surface-2) 62%, var(--indigo-dim) 38%);
+}

@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local private uploads (assignment evidence) — mirror Laravel storage/app/private
+/storage
