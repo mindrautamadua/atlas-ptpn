@@ -10,7 +10,8 @@ export function buildSharedProps(user: AuthUser): Record<string, unknown> {
     auth: { user },
     flash: { success: null, error: null },
     errors: {},
-    features: {},
+    // Pilot flags aktif di atlas live (DKM pilot).
+    features: { 'clear-the-path': true, 'commitment-ledger': true },
     strategicPillars: {},
     thresholds: {
       autosave: { debounceMs: 1500, ttlDays: 7, maxPayloadKb: 256 },

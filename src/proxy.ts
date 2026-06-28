@@ -25,6 +25,11 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  // Run on everything except Next internals and static assets.
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|assets/|manifest.webmanifest|sw.js).*)'],
+  // Run on everything except Next internals and static assets. The trailing
+  // extension group keeps metadata icons (/icon.svg, /apple-icon.png), the PWA
+  // PNGs, and /offline.html public — otherwise auth would 307 them to /login
+  // and the browser/SW would receive HTML instead of the asset.
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|assets/|manifest.webmanifest|sw.js|.*\\.(?:svg|png|ico|jpg|jpeg|gif|webp|woff2?|ttf|html)$).*)',
+  ],
 }

@@ -1233,6 +1233,17 @@ exports.Prisma.MigrationsScalarFieldEnum = {
   batch: 'batch'
 };
 
+exports.Prisma.PushSubscriptionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  endpoint: 'endpoint',
+  p256dh: 'p256dh',
+  auth: 'auth',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1344,7 +1355,8 @@ exports.Prisma.ModelName = {
   Cache: 'Cache',
   CacheLock: 'CacheLock',
   FocusDisposition: 'FocusDisposition',
-  migrations: 'migrations'
+  migrations: 'migrations',
+  PushSubscription: 'PushSubscription'
 };
 
 /**

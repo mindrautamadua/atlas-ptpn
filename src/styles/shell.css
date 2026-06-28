@@ -13,7 +13,12 @@
 .atlas-shell {
   display: grid;
   grid-template-columns: var(--shell-atlas-sidebar-w) 1fr;
-  min-height: 100dvh;
+  /* Fixed viewport height + internal scroll on main (lihat .atlas-main).
+   * Sebelumnya min-height:100dvh + sticky sidebar → sticky tak nyangkut di
+   * nesting grid/flex ini, sidebar ikut ter-scroll & terpotong saat konten
+   * panjang. Shell tinggi-tetap = sidebar selalu full-height. */
+  height: 100dvh;
+  overflow: hidden;
   background: var(--shell-bg);
 }
 
@@ -23,27 +28,86 @@
   color: var(--shell-atlas-sidebar-fg);
   display: flex;
   flex-direction: column;
-  position: sticky;
-  top: 0;
   height: 100dvh;
   padding: 18px 12px;
   gap: 4px;
 }
+.atlas-sidebar__header { padding: 0 0 8px; }
+.atlas-sidebar__ws { position: relative; }
+/* Brand = workspace menu trigger (mirror sidebar__wschip di atlas live). */
 .atlas-sidebar__brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 10px 16px;
+  gap: 9px;
+  width: 100%;
+  padding: 6px 7px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background .12s, border-color .12s;
 }
+.atlas-sidebar__wschip:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.08); }
+.atlas-sidebar__wschip[aria-expanded="true"] { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.1); }
 .atlas-sidebar__mark {
-  width: 30px; height: 30px;
+  width: 30px; height: 30px; flex-shrink: 0;
   display: grid; place-items: center;
   background: var(--shell-accent);
   border-radius: 8px;
 }
-.atlas-sidebar__wordmark-block { display: flex; flex-direction: column; min-width: 0; }
-.atlas-sidebar__wordmark { font-weight: 700; letter-spacing: .14em; color: #fff; font-size: 15px; line-height: 1.1; }
-.atlas-sidebar__tagline { font-size: 9.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--shell-atlas-sidebar-muted); margin-top: 3px; }
+.atlas-sidebar__wordmark-block { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.atlas-sidebar__titlerow { display: flex; align-items: center; gap: 7px; }
+.atlas-sidebar__wordmark { font-weight: 700; letter-spacing: .14em; color: #f1f5f9; font-size: 14px; line-height: 1.15; }
+.atlas-sidebar__brand-chip {
+  font-size: 8.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: #4ade80; background: rgba(74,222,128,.13);
+  padding: 1px 6px; border-radius: 5px; line-height: 1.4;
+}
+.atlas-sidebar__tagline { font-size: 9.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--shell-atlas-sidebar-muted); margin-top: 3px; }
+.atlas-sidebar__brand-chev { display: flex; align-items: center; margin-left: auto; color: #79828f; flex-shrink: 0; }
+
+/* Workspace dropdown menu */
+.atlas-sidebar__ws-scrim { position: fixed; inset: 0; z-index: 50; }
+.atlas-sidebar__ws-menu {
+  position: absolute; z-index: 51; top: calc(100% + 4px); left: 0; right: 0;
+  background: #16181d; border: 1px solid rgba(255,255,255,.1); border-radius: 12px;
+  padding: 6px; box-shadow: 0 12px 32px rgba(0,0,0,.45);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.atlas-sidebar__ws-head { padding: 8px 10px 10px; border-bottom: 1px solid rgba(255,255,255,.07); margin-bottom: 4px; }
+.atlas-sidebar__ws-head-label { display: block; font-size: 9.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--shell-atlas-sidebar-muted); }
+.atlas-sidebar__ws-head-name { display: block; font-size: 13px; font-weight: 600; color: #f1f5f9; margin-top: 3px; }
+.atlas-sidebar__ws-head-sub { display: block; font-size: 11px; color: var(--shell-atlas-sidebar-muted); margin-top: 2px; }
+.atlas-sidebar__ws-item {
+  display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 8px;
+  font-size: 13px; font-weight: 500; color: var(--shell-atlas-sidebar-fg); text-decoration: none;
+}
+.atlas-sidebar__ws-item:hover { background: rgba(255,255,255,.06); color: #fff; }
+.atlas-sidebar__ws-item svg { color: var(--shell-atlas-sidebar-muted); }
+
+/* Action anchor — footer status card (All clear / N need action) */
+.atlas-sidebar__anchor {
+  display: block; margin: 8px 0 4px; padding: 11px 12px;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.07);
+  border-radius: 12px; text-decoration: none;
+  transition: background .12s, border-color .12s;
+}
+.atlas-sidebar__anchor:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.12); }
+.atlas-sidebar__anchor--alert { background: rgba(245,158,11,.1); border-color: rgba(245,158,11,.22); }
+.atlas-sidebar__anchor--alert:hover { background: rgba(245,158,11,.15); }
+.atlas-sidebar__anchor-row { display: flex; align-items: center; gap: 10px; }
+.atlas-sidebar__anchor-icon {
+  width: 26px; height: 26px; flex-shrink: 0; border-radius: 8px;
+  display: grid; place-items: center;
+}
+.atlas-sidebar__anchor-icon[data-tone="green"] { background: rgba(74,222,128,.13); color: #4ade80; }
+.atlas-sidebar__anchor-icon[data-tone="amber"] { background: rgba(245,158,11,.16); color: #f59e0b; }
+.atlas-sidebar__anchor-copy { min-width: 0; display: flex; flex-direction: column; }
+.atlas-sidebar__anchor-copy strong { font-size: 12px; font-weight: 700; color: #f1f5f9; line-height: 1.5; }
+.atlas-sidebar__anchor-copy span { font-size: 10.5px; color: var(--shell-atlas-sidebar-muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .atlas-sidebar__nav { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
 .atlas-sidebar__group-label {
   font-size: 10.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
@@ -69,8 +133,18 @@
 }
 .atlas-sidebar__link--active .atlas-sidebar__badge { color: #fff; background: rgba(22,163,74,.28); }
 
-.atlas-sidebar__footer { border-top: 1px solid rgba(255,255,255,.08); padding-top: 12px; margin-top: 8px; }
+.atlas-sidebar__footer { border-top: 1px solid rgba(255,255,255,.07); padding: 8px 2px 2px; margin-top: 4px; }
+.atlas-sidebar__footer--balanced { display: flex; align-items: center; gap: 2px; }
 .atlas-sidebar__footer .atlas-sidebar__user { margin-top: 8px; }
+/* Footer util buttons — Playbook + theme toggle (mirror atlas live). */
+.atlas-sidebar__util-btn {
+  width: 32px; height: 32px; flex-shrink: 0;
+  background: transparent; border: 0; cursor: pointer;
+  color: #79828f; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  text-decoration: none; transition: background .12s, color .12s;
+}
+.atlas-sidebar__util-btn:hover { color: #fff; background: rgba(255,255,255,.06); }
 .atlas-sidebar__user { display: flex; align-items: center; gap: 10px; padding: 4px 8px; }
 
 /* ── Coming soon (stub page placeholder) ───────────────── */
@@ -95,15 +169,6 @@
 }
 .atlas-sidebar__logout:hover { color: #fff; background: rgba(255,255,255,.06); }
 
-/* Footer theme toggle (bottom-left) — user/profile/settings live in topbar now */
-.atlas-sidebar__theme-toggle {
-  background: transparent; border: 0; cursor: pointer;
-  color: var(--shell-atlas-sidebar-muted);
-  padding: 8px; border-radius: 8px; display: grid; place-items: center;
-}
-.atlas-sidebar__theme-toggle:hover { color: #fff; background: rgba(255,255,255,.06); }
-.atlas-sidebar__theme-toggle svg { width: 17px; height: 17px; }
-
 /* ── Topbar ────────────────────────────────────────────────
  * The topbar reuses the legacy `.topbar*` look (styles extracted verbatim
  * into src/legacy-styles/topbar.css). The legacy base rule positions the bar
@@ -123,8 +188,17 @@
 }
 
 /* ── Main ──────────────────────────────────────────────── */
-.atlas-main { min-width: 0; display: flex; flex-direction: column; }
-.atlas-content { padding: 28px 32px; max-width: 1680px; width: 100%; }
+/* Main = the scroll container (shell tinggi-tetap). Topbar sticky & konten
+ * scroll di dalam sini, sidebar tetap diam full-height. */
+.atlas-main { min-width: 0; display: flex; flex-direction: column; height: 100dvh; overflow-y: auto; }
+/* Content region fills the available width (mirror live `.workspace__content`,
+ * max-width:none). Per-view caps govern the inner width — e.g. Home caps at
+ * 1920px below. Sebelumnya shell di-cap 1680px → konten home lebih sempit dari
+ * live & menyisakan ruang kosong di kanan pada layar lebar. */
+.atlas-content { padding: 28px 32px; width: 100%; }
+/* Home cockpit width cap — mirror live `.hv--cockpit { max-width: 1920px }`
+ * (kiri-rata, bukan center). Tanpa ini home melebar penuh di layar ultrawide. */
+.atlas-content .hv--cockpit { max-width: 1920px; }
 
 @media (max-width: 1024px) {
   .atlas-shell { grid-template-columns: 1fr; }

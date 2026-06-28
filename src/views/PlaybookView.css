@@ -1,0 +1,915 @@
+/* ── Playbook workspace ───────────────────────────────────────────────────── */
+
+.pb-workspace {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+/* ── Inline page header — scrolls with content ───────────────────────────── */
+
+.pb-page-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 4px 0 18px;
+  margin: 0 0 18px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.pb-page-header__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-strong, var(--text));
+  margin: 0;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.pb-page-header__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.pb-page-header__dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  opacity: 0.4;
+  flex-shrink: 0;
+}
+
+/* ── Two-column layout ───────────────────────────────────────────────────── */
+
+/* TOC width fluid: 256px di T2+ baseline, shrink ke 200px di laptop kecil.
+ * Tidak pakai breakpoint stepping — clamp() gives smooth transition. */
+.pb-layout {
+  display: grid;
+  grid-template-columns: clamp(200px, 20vw, 280px) 1fr;
+  align-items: start;
+  gap: 0;
+  flex: 1;
+}
+
+/* Tablet portrait & lebih sempit: stack vertikal. TOC jadi horizontal
+ * scroll bar di atas konten. Header tetap sticky. Threshold 768 ==
+ * batas tablet portrait minimum (lihat docs/responsive-audit-2026-05.md). */
+@media (max-width: 768px) {
+  .pb-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── TOC ─────────────────────────────────────────────────────────────────── */
+
+.pb-nav {
+  position: sticky;
+  top: 0;
+  padding: 20px 16px 40px 20px;
+  border-right: 1px solid var(--panel-border);
+  max-height: 100vh;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.pb-nav::-webkit-scrollbar { display: none; }
+
+/* Tablet portrait stacked layout: TOC jadi mini-drawer di atas konten.
+ * Max-height dibatasi 240px supaya tidak menggusur konten. Border-right
+ * jadi border-bottom. Tidak sticky (sticky di stacked context terasa janggal). */
+@media (max-width: 768px) {
+  .pb-nav {
+    position: relative;
+    max-height: 240px;
+    padding: 14px 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--panel-border);
+  }
+}
+
+/* Search box — filters TOC entries by label. Sticky at top of nav so it
+ * stays accessible while scrolling through long groups. */
+.pb-search {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 14px;
+  padding: 6px 8px 6px 10px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 5px;
+}
+.pb-search:focus-within {
+  border-color: var(--green);
+  box-shadow: 0 0 0 1px var(--green-subtle);
+}
+.pb-search__icon {
+  color: var(--text-muted);
+  opacity: 0.65;
+  flex-shrink: 0;
+}
+.pb-search__input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text);
+  padding: 0;
+}
+.pb-search__input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.55;
+}
+/* Remove native search clear button (we render our own) */
+.pb-search__input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.pb-search__clear {
+  -webkit-appearance: none;
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 3px;
+  opacity: 0.65;
+  transition: opacity 0.12s, background 0.12s;
+}
+.pb-search__clear:hover {
+  opacity: 1;
+  background: var(--surface-overlay-soft);
+}
+
+.pb-nav__empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 8px 10px;
+  line-height: 1.5;
+  opacity: 0.7;
+}
+
+/* Group label — small caps eyebrow that separates PDCA clusters in TOC */
+.pb-nav__group + .pb-nav__group {
+  margin-top: 18px;
+}
+.pb-nav__group-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 6px;
+  padding: 0 10px;
+  opacity: 0.5;
+}
+
+.pb-nav__item {
+  -webkit-appearance: none;
+  appearance: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-left: 2px solid transparent;
+  outline: none;
+  box-shadow: none;
+  text-align: left;
+  padding: 5px 8px 5px 10px;
+  margin: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+  /* Allow wrap to 2-3 lines instead of ellipsis. Label info (PDCA prefix) is
+   * useful for orientation — preserve it rather than truncate. */
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+  border-radius: 0 3px 3px 0;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+.pb-nav__item:hover {
+  color: var(--text);
+  background: var(--surface-overlay-soft);
+}
+.pb-nav__item--active {
+  color: var(--green-ink);
+  border-left-color: var(--green);
+  font-weight: 500;
+  background: var(--green-dim);
+}
+
+.pb-nav__idx {
+  display: inline-block;
+  min-width: 16px;
+  padding-top: 2px;
+  font-size: 9.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  opacity: 0.45;
+  flex-shrink: 0;
+  text-align: right;
+}
+.pb-nav__item--active .pb-nav__idx {
+  color: var(--green-ink);
+  opacity: 0.7;
+}
+
+.pb-nav__top {
+  -webkit-appearance: none;
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  background: none;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 4px 0 4px 10px;
+  margin-top: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, color 0.12s;
+}
+.pb-nav__top--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+.pb-nav__top:hover { color: var(--text); }
+
+/* ── Content area ────────────────────────────────────────────────────────── */
+
+.pb-content {
+  /* Full-bleed: no max-width on the column. Halaman primer ikut lebar
+   * workspace (lihat pakem di components.css → .page-shell). Untuk
+   * kenyamanan baca prose panjang, line-length dibatasi pada elemen teks
+   * di bawah, bukan pada container.
+   *
+   * Padding fluid: scale halus dari T1 (1366) ke T4 (4K). Sebelumnya
+   * fixed 40px horizontal → terasa sempit di 4K, terlalu generous di 1366. */
+  padding: var(--space-fluid-md) var(--space-fluid-lg) 56px;
+  min-width: 0;
+}
+
+.pb-content > p,
+.pb-content > ul,
+.pb-content > ol,
+.pb-content > blockquote {
+  max-width: var(--content-max-width-prose);
+}
+
+/* Loading / error */
+.pb-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 64px 32px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+@keyframes pb-spin { to { transform: rotate(360deg); } }
+.pb-state__spin {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: pb-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+/* ── Body ────────────────────────────────────────────────────────────────── */
+
+.pb-body {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+/* ── Intro + sections (Pattern A: flat surface + hairline dividers) ─────────
+ * Halaman lain ATLAS (Home, Profile, Performance) sudah migrasi ke pola
+ * "single surface + hairline" — playbook ikut sama. Tidak ada card-in-card. */
+
+.pb-body .pb-intro {
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+/* Tighten blockquote margin inside intro */
+.pb-body .pb-intro .pb-bq {
+  margin-bottom: 4px;
+}
+
+.pb-body .pb-section {
+  margin: 0;
+  padding: 24px 0 4px;
+  border: 0;
+  border-top: 1px solid var(--surface-overlay);
+  border-radius: 0;
+  background: transparent;
+}
+
+/* First section: no hairline above (intro provides rhythm) */
+.pb-body .pb-intro + .pb-section,
+.pb-body > .pb-section:first-child {
+  border-top: 0;
+  padding-top: 4px;
+}
+
+/* Reference sections (unnumbered) — uniform with numbered ones.
+ * Pakem: konten foundational (Glosarium, Referensi Jabatan) bukan appendix,
+ * jadi tidak diberi styling muted. Class .pb-section--ref tetap dirender
+ * oleh parser untuk TOC divider logic — di sini sengaja tidak ada override. */
+
+/* Remove compound margin on last child so section padding alone controls spacing */
+.pb-body .pb-intro > *:last-child,
+.pb-body .pb-section > *:last-child {
+  margin-bottom: 0;
+}
+
+/* Tables and pre inside sections — prevent double bottom gap */
+.pb-body .pb-section .pb-table-wrap:last-child,
+.pb-body .pb-section .pb-pre:last-child {
+  margin-bottom: 0;
+}
+
+/* Section headings — bare type, no underline (section hairline does dividing) */
+.pb-body .pb-h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 12px;
+  padding-bottom: 0;
+  border-bottom: 0;
+  color: var(--text-strong, var(--text));
+  letter-spacing: -0.008em;
+  scroll-margin-top: 20px;
+}
+
+/* Subsection heading — clearly a child of H2, no competing accent.
+ * Slightly smaller + muted color steps the hierarchy down without adding
+ * a green accent bar that would conflate with intro callout treatment. */
+.pb-body .pb-h3 {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin: 14px 0 4px;
+  color: var(--text);
+  letter-spacing: -0.003em;
+  scroll-margin-top: 20px;
+}
+
+/* Status dots — CSS-rendered to replace emoji 🟢🟡🔴🔵 in Glosarium
+ * Status Program table. Crisp + consistent size across OS, themable. */
+.pb-body .pb-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: 0.06em;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.05) inset;
+}
+.pb-body .pb-dot--green { background: #16a34a; }
+.pb-body .pb-dot--amber { background: #f59e0b; }
+.pb-body .pb-dot--red   { background: #dc2626; }
+.pb-body .pb-dot--blue  { background: #2563eb; }
+[data-theme="dark"] .pb-body .pb-dot {
+  box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.08) inset;
+}
+
+/* Anchor permalink — hover-reveal "#" button next to each H2/H3.
+ * Click copies deep-link URL to clipboard and flashes "tersalin" badge.
+ * Hidden by default; surfaces on heading hover or button focus. */
+.pb-body .pb-anchor {
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-left: 6px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  vertical-align: middle;
+  border-radius: 4px;
+  transition: opacity 0.12s, color 0.12s, background 0.12s;
+}
+.pb-body .pb-h2:hover .pb-anchor,
+.pb-body .pb-h3:hover .pb-anchor,
+.pb-body .pb-anchor:focus-visible {
+  opacity: 0.55;
+}
+.pb-body .pb-anchor:hover {
+  opacity: 1;
+  color: var(--green-ink);
+  background: var(--green-dim);
+}
+.pb-body .pb-anchor--copied {
+  opacity: 1;
+  color: var(--green-ink);
+  background: var(--green-dim);
+}
+.pb-body .pb-anchor--copied::after {
+  content: 'Tersalin';
+  position: absolute;
+  left: calc(100% + 6px);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--green-ink);
+  background: var(--green-dim);
+  padding: 2px 7px;
+  border-radius: 3px;
+  border: 1px solid var(--green-subtle);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.pb-body .pb-h4 {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  margin: 14px 0 4px;
+}
+.pb-body .pb-h5,
+.pb-body .pb-h6 {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 12px 0 3px;
+}
+
+/* ── Body elements ───────────────────────────────────────────────────────── */
+
+.pb-body .pb-p { margin: 0 0 6px; }
+
+.pb-body .pb-ul { list-style: disc; padding-left: 18px; margin: 0 0 8px; }
+.pb-body .pb-ul li { margin-bottom: 2px; line-height: 1.55; }
+
+/* Styled step counter for ordered lists */
+.pb-body .pb-ol {
+  list-style: none;
+  counter-reset: step-counter;
+  padding-left: 0;
+  margin: 0 0 8px;
+}
+.pb-body .pb-ol li {
+  counter-increment: step-counter;
+  position: relative;
+  padding-left: 26px;
+  margin-bottom: 5px;
+  line-height: 1.55;
+}
+.pb-body .pb-ol li::before {
+  content: counter(step-counter);
+  position: absolute;
+  left: 0;
+  top: 1px;
+  width: 17px;
+  height: 17px;
+  background: var(--green-dim);
+  color: var(--green-ink);
+  border-radius: 50%;
+  font-size: 10.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* ── Inline code ─────────────────────────────────────────────────────────── */
+
+.pb-body .pb-ic {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11.5px;
+  background: var(--surface-overlay-soft);
+  border: 1px solid var(--panel-border);
+  border-radius: 3px;
+  padding: 1px 4px;
+  color: var(--text-strong, var(--text));
+  vertical-align: baseline;
+}
+
+.pb-body .pb-a {
+  color: var(--green-ink);
+  text-decoration: none;
+  font-weight: 450;
+}
+.pb-body .pb-a:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.pb-body .pb-hr {
+  border: none;
+  border-top: 1px solid var(--panel-border);
+  margin: 28px 0;
+}
+
+/* ── Code blocks ─────────────────────────────────────────────────────────── */
+
+.pb-body .pb-pre {
+  position: relative;
+  background: var(--code-surface);
+  color: var(--code-text);
+  border-radius: 7px;
+  padding: 14px 16px;
+  margin: 6px 0 14px;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11.5px;
+  line-height: 1.65;
+  white-space: pre;
+  box-shadow: inset 0 1px 0 var(--surface-overlay-strong), var(--shadow-soft);
+}
+.pb-body .pb-pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+}
+.pb-body .pb-lang {
+  position: absolute;
+  top: 9px;
+  right: 12px;
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--code-muted);
+  font-family: inherit;
+  user-select: none;
+}
+
+/* ── Tables ──────────────────────────────────────────────────────────────── */
+
+.pb-body .pb-table-wrap {
+  overflow-x: auto;
+  margin: 4px 0 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: 7px;
+}
+.pb-body .pb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.pb-body .pb-table th {
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--panel-border);
+  background: var(--surface-overlay-faint);
+  white-space: nowrap;
+}
+.pb-body .pb-table td {
+  padding: 5px 12px;
+  border-bottom: 1px solid var(--panel-border-soft);
+  vertical-align: top;
+  line-height: 1.45;
+  font-size: 12.5px;
+}
+/* First column shrinks to content width — eliminates over-wide narrow
+ * columns when later columns hold longer prose. Uses width:1% trick which
+ * the table layout algorithm interprets as "as narrow as content allows".
+ * `white-space: nowrap` di TD penting: tanpa itu, term seperti "Belum
+ * Direncanakan" / "On Track" / "Terlambat (Delayed)" wrap ke 2 baris karena
+ * kolom auto-size mengikuti header pendek "Istilah" saja. Dengan nowrap, lebar
+ * kolom = term terpanjang, semua single-line. Container `.pb-table-wrap` punya
+ * `overflow-x: auto` sebagai jaring pengaman kalau total tabel terlalu lebar. */
+.pb-body .pb-table th:first-child,
+.pb-body .pb-table td:first-child {
+  width: 1%;
+  white-space: nowrap;
+  padding-right: 18px;
+}
+.pb-body .pb-table tbody tr:last-child td { border-bottom: none; }
+.pb-body .pb-table tbody tr:hover td {
+  background: var(--surface-overlay-soft);
+  transition: background 0.08s;
+}
+
+/* ── Blockquote ──────────────────────────────────────────────────────────── */
+
+.pb-body .pb-bq {
+  margin: 4px 0 14px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--green-subtle);
+  background: var(--green-dim);
+  border-radius: 0 6px 6px 0;
+  color: var(--text);
+  font-size: 13px;
+}
+.pb-body .pb-bq p { margin: 0 0 4px; }
+.pb-body .pb-bq p:last-child { margin: 0; }
+
+/* Tech note blockquote variant — muted, for developer-only context */
+.pb-body .pb-bq--tech {
+  border-left-color: var(--panel-border-strong);
+  background: var(--surface-overlay-faint);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* Neutral blockquote — structural info, no tip/tech emoji */
+.pb-body .pb-bq--neutral {
+  border-left-color: var(--panel-border-soft);
+  background: var(--surface-overlay-soft);
+  color: var(--text);
+}
+
+/* ── "Siapa yang bisa" role bar ──────────────────────────────────────────── */
+
+.pb-body .pb-who {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 2px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--panel-border);
+  font-size: 12px;
+}
+
+.pb-body .pb-who__label {
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.pb-body .pb-who__roles {
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* ── Status badges ───────────────────────────────────────────────────────── */
+
+.pb-body .pb-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 20px;
+  margin: 4px 0 10px;
+  background: var(--surface-overlay);
+  color: var(--text-muted);
+  border: 1px solid var(--panel-border);
+}
+.pb-body .pb-status--green {
+  background: var(--green-dim);
+  color: var(--green-ink);
+  border-color: var(--green-subtle);
+}
+.pb-body .pb-status--amber {
+  background: var(--yellow-dim);
+  color: var(--yellow-ink);
+  border-color: var(--yellow-subtle);
+}
+.pb-body .pb-status--red {
+  background: var(--red-dim);
+  color: var(--red-ink);
+  border-color: var(--red-subtle);
+}
+
+/* Light mode quality pass: Playbook reading experience */
+:root:not([data-theme="dark"]) .pb-workspace {
+  background:
+    radial-gradient(circle at 8% 0%, color-mix(in srgb, var(--green-dim) 48%, transparent) 0 26%, transparent 52%),
+    radial-gradient(circle at 94% 12%, color-mix(in srgb, var(--blue-dim) 36%, transparent) 0 22%, transparent 48%),
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-1) 68%, var(--panel)), var(--app-bg));
+}
+
+:root:not([data-theme="dark"]) .pb-page-header {
+  border-bottom-color: color-mix(in srgb, var(--panel-border) 72%, var(--green-subtle));
+}
+
+:root:not([data-theme="dark"]) .pb-nav__idx,
+:root:not([data-theme="dark"]) .pb-body .pb-status {
+  box-shadow: var(--shadow-soft);
+}
+
+:root:not([data-theme="dark"]) .pb-nav {
+  border-right-color: color-mix(in srgb, var(--panel-border) 72%, var(--green-subtle));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--panel) 92%, var(--surface-1)), var(--panel));
+  box-shadow: 10px 0 28px color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+:root:not([data-theme="dark"]) .pb-nav__item {
+  border: 1px solid transparent;
+}
+
+:root:not([data-theme="dark"]) .pb-nav__item:hover {
+  border-color: color-mix(in srgb, var(--green-subtle) 52%, transparent);
+  background: color-mix(in srgb, var(--green-dim) 34%, var(--panel));
+}
+
+:root:not([data-theme="dark"]) .pb-nav__item--active {
+  border-color: color-mix(in srgb, var(--green-subtle) 76%, var(--panel-border));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--green-dim) 76%, var(--panel)), color-mix(in srgb, var(--panel) 86%, var(--blue-dim)));
+  box-shadow: var(--panel-shadow);
+}
+
+/* Light mode: only the loading/error state keeps card chrome (distinct UX role).
+ * Sections and intro use the flat surface — no gradient / shadow / border. */
+:root:not([data-theme="dark"]) .pb-state {
+  border-color: color-mix(in srgb, var(--panel-border) 70%, var(--green-subtle));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--panel) 94%, var(--surface-1)), var(--panel)),
+    var(--panel);
+  box-shadow: var(--panel-shadow-md);
+}
+
+:root:not([data-theme="dark"]) .pb-body .pb-h2 {
+  color: color-mix(in srgb, var(--text-strong) 82%, var(--green));
+}
+
+:root:not([data-theme="dark"]) .pb-body .pb-table-wrap {
+  border-color: color-mix(in srgb, var(--panel-border) 72%, var(--green-subtle));
+  box-shadow: var(--panel-shadow);
+}
+
+:root:not([data-theme="dark"]) .pb-body .pb-table th {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-1) 74%, var(--panel)), var(--panel));
+  color: color-mix(in srgb, var(--text-strong) 84%, var(--green));
+}
+
+:root:not([data-theme="dark"]) .pb-body .pb-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--green-dim) 28%, var(--panel));
+}
+
+:root:not([data-theme="dark"]) .pb-body .pb-bq {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--green-dim) 62%, var(--panel)), color-mix(in srgb, var(--panel) 92%, var(--surface-1)));
+  border-left-color: color-mix(in srgb, var(--green) 70%, var(--green-subtle));
+  box-shadow: var(--shadow-soft);
+}
+
+:root:not([data-theme="dark"]) .pb-body .pb-bq--tech,
+:root:not([data-theme="dark"]) .pb-body .pb-bq--neutral {
+  background: color-mix(in srgb, var(--panel) 88%, var(--surface-1));
+}
+
+/* ── Mermaid flowchart container ──────────────────────────────────────────── */
+
+/* Pattern A — mermaid sits on the same surface, no card chrome. Container
+ * still scrolls when SVG overflows on narrow viewports.
+ *
+ * Max-width cap: diagram tidak boleh stretch sampai 2000px+ di monitor 4K
+ * — node label jadi miss-aligned dan visual jadi "berenang" di tengah
+ * area konten. Cap 1200px sesuai practical max readability. */
+.pb-mermaid {
+  margin: 14px auto;
+  padding: 8px 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  overflow-x: auto;
+  text-align: center;
+  position: relative;
+  max-width: 1200px;
+}
+
+.pb-mermaid svg {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Root-cause fix for mermaid label clipping.
+ *
+ * .pb-body cascades font-size:13.5px into all descendants. Mermaid measures
+ * labels offscreen at its theme fontSize (12.5px) and sizes rects from that
+ * measurement. When SVG inserts into .pb-body, text inherits 13.5px and
+ * renders LARGER than measured — clipping ~1-2 chars per node.
+ *
+ * Fix: pin every text-bearing element under .pb-mermaid to 12.5px system-ui
+ * with !important so it wins regardless of mermaid output mode (SVG <text>,
+ * <tspan>, or HTML inside <foreignObject>). Container-level font-size also
+ * set so any descendant we forgot inherits from .pb-mermaid, not .pb-body. */
+.pb-mermaid {
+  font-size: 12.5px;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.pb-mermaid svg text,
+.pb-mermaid svg tspan,
+.pb-mermaid svg .nodeLabel,
+.pb-mermaid svg .label,
+.pb-mermaid svg foreignObject,
+.pb-mermaid svg foreignObject *,
+.pb-mermaid svg foreignObject div,
+.pb-mermaid svg foreignObject span {
+  font-size: 12.5px !important;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0 !important;
+}
+
+/* Force white text on dark-fill nodes.
+ *
+ * With htmlLabels:false, mermaid v11 doesn't reliably translate
+ * `classDef ... color:#ffffff` into SVG text fill — the text frequently
+ * inherits the default dark fill, which is invisible against dark-green
+ * shapes (start/done/tier1-3/p1-2/api/bus/sse/ui/err).
+ *
+ * Pin the fill explicitly per dark-bg class. List has to be exhaustive: any
+ * classDef with a dark fill must appear here, or its label silently goes
+ * unreadable. */
+.pb-mermaid svg g.start text,    .pb-mermaid svg g.start tspan,    .pb-mermaid svg g.start .nodeLabel,    .pb-mermaid svg g.start foreignObject *,
+.pb-mermaid svg g.done text,     .pb-mermaid svg g.done tspan,     .pb-mermaid svg g.done .nodeLabel,     .pb-mermaid svg g.done foreignObject *,
+.pb-mermaid svg g.err text,      .pb-mermaid svg g.err tspan,      .pb-mermaid svg g.err .nodeLabel,      .pb-mermaid svg g.err foreignObject *,
+.pb-mermaid svg g.api text,      .pb-mermaid svg g.api tspan,      .pb-mermaid svg g.api .nodeLabel,      .pb-mermaid svg g.api foreignObject *,
+.pb-mermaid svg g.bus text,      .pb-mermaid svg g.bus tspan,      .pb-mermaid svg g.bus .nodeLabel,      .pb-mermaid svg g.bus foreignObject *,
+.pb-mermaid svg g.sse text,      .pb-mermaid svg g.sse tspan,      .pb-mermaid svg g.sse .nodeLabel,      .pb-mermaid svg g.sse foreignObject *,
+.pb-mermaid svg g.ui text,       .pb-mermaid svg g.ui tspan,       .pb-mermaid svg g.ui .nodeLabel,       .pb-mermaid svg g.ui foreignObject *,
+.pb-mermaid svg g.p1 text,       .pb-mermaid svg g.p1 tspan,       .pb-mermaid svg g.p1 .nodeLabel,       .pb-mermaid svg g.p1 foreignObject *,
+.pb-mermaid svg g.p2 text,       .pb-mermaid svg g.p2 tspan,       .pb-mermaid svg g.p2 .nodeLabel,       .pb-mermaid svg g.p2 foreignObject *,
+.pb-mermaid svg g.tier1 text,    .pb-mermaid svg g.tier1 tspan,    .pb-mermaid svg g.tier1 .nodeLabel,    .pb-mermaid svg g.tier1 foreignObject *,
+.pb-mermaid svg g.tier2 text,    .pb-mermaid svg g.tier2 tspan,    .pb-mermaid svg g.tier2 .nodeLabel,    .pb-mermaid svg g.tier2 foreignObject *,
+.pb-mermaid svg g.tier3 text,    .pb-mermaid svg g.tier3 tspan,    .pb-mermaid svg g.tier3 .nodeLabel,    .pb-mermaid svg g.tier3 foreignObject * {
+  fill: #ffffff !important;
+  color: #ffffff !important;
+}
+
+/* make edge labels clean */
+.pb-mermaid svg .edgeLabel .label {
+  background: #f8faf8 !important;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 11px !important;
+}
+
+.pb-mermaid__spin {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #d4e3d4;
+  border-top-color: #2d6a4f;
+  border-radius: 50%;
+  animation: pb-spin 0.7s linear infinite;
+}
+
+@keyframes pb-spin {
+  to { transform: rotate(360deg); }
+}
+
+.pb-mermaid__err {
+  color: var(--text-muted, #9ca3af);
+  font-size: 0.8rem;
+  margin: 0;
+  padding: 0.5rem;
+}
+
+/* Dark mode: mermaid surface inherits transparent — only text fill needs override
+ * so SVG labels read against the dark canvas. */
+[data-theme="dark"] .pb-mermaid svg text {
+  fill: var(--text, #f3f4f6) !important;
+}

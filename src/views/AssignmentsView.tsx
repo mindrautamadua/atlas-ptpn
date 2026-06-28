@@ -49,7 +49,7 @@ type Assignment = {
   rejectedAt: string | null
   rejectionReason: string | null
   createdAt: string; updatedAt: string
-  assigner: PersonRef; assignee: PersonRef
+  assigner: PersonRef | null; assignee: PersonRef | null
   relatedProgram: ProgramRef | null
   _count?: { evidenceItems: number }
 }
@@ -385,7 +385,7 @@ function CardFace({ item, currentUserId, className }: { item: Assignment; curren
             <span className="work-card__context-ini">{item.relatedProgram.name}</span>
           </>
         ) : (
-          <span className="work-card__context-ini" style={{ fontStyle: 'italic', opacity: 0.7 }}>Ad-hoc · from {firstName(item.assigner.name)}</span>
+          <span className="work-card__context-ini" style={{ fontStyle: 'italic', opacity: 0.7 }}>Ad-hoc · from {item.assigner ? firstName(item.assigner.name) : 'Unknown'}</span>
         )}
       </div>
       {/* Review badge — muncul di kolom IN_REVIEW */}
@@ -410,7 +410,7 @@ function CardFace({ item, currentUserId, className }: { item: Assignment; curren
         {item.isPrivate ? <span className="pg-card__flag pg-card__flag--private" title="Private">🔒</span> : null}
         {(item._count?.evidenceItems ?? 0) > 0 ? <span className="pg-card__evidence-badge" title={`${item._count?.evidenceItems} evidence attachment(s)`}><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M9 4.5L5 8.5a2 2 0 0 1-3-3l4.5-4.5a1.4 1.4 0 0 1 2 2L4 7.5"/></svg>{item._count?.evidenceItems}</span> : null}
         <span className="work-card__footer-meta">
-          <span className={`pg-due-inline pg-due-inline--${due.tone}`}>{due.label}</span> · {firstName(item.assignee.name)}
+          <span className={`pg-due-inline pg-due-inline--${due.tone}`}>{due.label}</span> · {item.assignee ? firstName(item.assignee.name) : 'Unknown'}
         </span>
       </div>
     </div>
@@ -434,7 +434,7 @@ function ListView({ items, onSelect }: { items: Assignment[]; onSelect: (id: num
                 <span className="code-badge">{r.code}</span>
                 <div>
                   <strong>{r.title}</strong>
-                  <span className="text-muted text-sm">{r.assignee.name} · {STATUS_LABEL[r.status]}</span>
+                  <span className="text-muted text-sm">{r.assignee?.name ?? 'Unknown'} · {STATUS_LABEL[r.status]}</span>
                 </div>
               </div>
               <div className="wi-list-row__right">
@@ -838,12 +838,12 @@ function DetailPanel({ assignment, isOpen, currentUserId, isAdmin, onClose }: {
             <h4 className="pg-section__title">Detail</h4>
             <dl className="pg-meta">
               <div><dt>PIC</dt><dd>
-                <span className="pg-person"><Avatar name={a.assignee.name} size={20} />{a.assignee.name}</span>
-                {a.assignee.positionTitle && <small>{a.assignee.positionTitle}</small>}
+                <span className="pg-person"><Avatar name={a.assignee?.name ?? 'Unknown'} size={20} />{a.assignee?.name ?? 'Unknown'}</span>
+                {a.assignee?.positionTitle && <small>{a.assignee.positionTitle}</small>}
               </dd></div>
               <div><dt>Assigner</dt><dd>
-                <span className="pg-person"><Avatar name={a.assigner.name} size={20} />{a.assigner.name}</span>
-                {a.assigner.positionTitle && <small>{a.assigner.positionTitle}</small>}
+                <span className="pg-person"><Avatar name={a.assigner?.name ?? 'Unknown'} size={20} />{a.assigner?.name ?? 'Unknown'}</span>
+                {a.assigner?.positionTitle && <small>{a.assigner.positionTitle}</small>}
               </dd></div>
               <div><dt>Deadline</dt><dd style={{ padding: 0 }}>
                 <span className={`pg-due-inline pg-due-inline--${due.tone}`}>{due.label}</span>
@@ -854,7 +854,7 @@ function DetailPanel({ assignment, isOpen, currentUserId, isAdmin, onClose }: {
                   </small>
                 )}
                 <small style={{ color: 'var(--text-muted)', marginTop: 1, display: 'block' }}>
-                  Set by: {a.assigner.name}
+                  Set by: {a.assigner?.name ?? 'Unknown'}
                 </small>
               </dd></div>
               {a.relatedProgram && (<div><dt>Program</dt><dd>[{a.relatedProgram.code}] {a.relatedProgram.name}</dd></div>)}

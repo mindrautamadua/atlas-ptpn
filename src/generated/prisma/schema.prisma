@@ -1710,3 +1710,21 @@ model migrations {
 
   @@schema("ptpn_kmr_app")
 }
+
+/// Web Push subscriptions — one row per browser/device. userId is a plain
+/// indexed scalar (no DB-level FK) to avoid the cross-schema relation quirks
+/// noted in auth.ts; ownership is enforced at the app layer.
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  endpoint  String   @unique(map: "push_subscriptions_endpoint_unique") @db.Text
+  p256dh    String   @db.Text
+  auth      String   @db.Text
+  userAgent String?  @db.VarChar(512)
+  createdAt DateTime @default(now()) @db.Timestamp(0)
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamp(0)
+
+  @@index([userId], map: "push_subscriptions_userid_index")
+  @@map("push_subscriptions")
+  @@schema("ptpn_kmr_app")
+}

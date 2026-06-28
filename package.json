@@ -15,11 +15,13 @@
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@radix-ui/react-dropdown-menu": "^2.1.18",
+    "@types/web-push": "^3.6.4",
     "bcryptjs": "^3.0.3",
     "cmdk": "^1.1.1",
     "dotenv": "^17.4.2",
     "jose": "^6.2.3",
     "lucide-react": "^1.21.0",
+    "mermaid": "^11.16.0",
     "next": "16.2.9",
     "pdfjs-dist": "^5.7.284",
     "pg": "^8.22.0",
@@ -27,7 +29,8 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "recharts": "^3.9.0",
-    "shepherd.js": "^15.2.2"
+    "shepherd.js": "^15.2.2",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

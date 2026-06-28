@@ -1,0 +1,203 @@
+/* Install prompt banner — brand-consistent with the ATLAS shell. */
+.pwa-install {
+  position: fixed;
+  z-index: 1000;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 420px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #16181d;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.55);
+  animation: pwa-rise 0.25s ease;
+}
+
+@keyframes pwa-rise {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.pwa-install__mark {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  background: #16a34a;
+  border-radius: 9px;
+}
+
+.pwa-install__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.pwa-install__title {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #f1f5f9;
+  line-height: 1.3;
+}
+
+.pwa-install__desc {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #7c8493;
+}
+
+.pwa-install__actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pwa-install__btn {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #fff;
+  background: #16a34a;
+  white-space: nowrap;
+  transition: filter 0.15s ease;
+}
+.pwa-install__btn:hover { filter: brightness(1.09); }
+
+.pwa-install__dismiss {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  color: #79828f;
+  background: transparent;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.pwa-install__dismiss:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #c9ced8;
+}
+
+/* iOS variant stacks the share instructions under the title. */
+.pwa-install--ios {
+  align-items: flex-start;
+}
+.pwa-install__ios-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #c9ced8;
+}
+.pwa-install__ios-hint b { color: #4ade80; font-weight: 700; }
+
+/* --- Notification settings page (light app content area) --- */
+.settings-page {
+  max-width: 640px;
+  padding: 28px 4px;
+}
+.settings-page__head { margin-bottom: 20px; }
+.settings-page__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+}
+.settings-page__subtitle {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.push-card {
+  padding: 20px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid var(--shell-border, #e4e7ec);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+.push-card__row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.push-card__copy { flex: 1; min-width: 0; }
+.push-card__title {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+.push-card__desc {
+  display: block;
+  margin-top: 3px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #6b7280;
+}
+
+.push-card__toggle {
+  flex-shrink: 0;
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  width: 46px;
+  height: 26px;
+  padding: 3px;
+  border-radius: 999px;
+  background: #d1d5db;
+  transition: background 0.18s ease;
+}
+.push-card__toggle.is-on { background: var(--shell-accent, #16a34a); }
+.push-card__toggle:disabled { opacity: 0.55; cursor: not-allowed; }
+.push-card__knob {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.18s ease;
+}
+.push-card__toggle.is-on .push-card__knob { transform: translateX(20px); }
+
+.push-card__test {
+  margin-top: 16px;
+  appearance: none;
+  cursor: pointer;
+  padding: 9px 16px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--shell-accent, #16a34a);
+  background: rgba(22, 163, 74, 0.08);
+  border: 1px solid rgba(22, 163, 74, 0.25);
+  transition: background 0.15s ease;
+}
+.push-card__test:hover { background: rgba(22, 163, 74, 0.14); }
+.push-card__test:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.push-card__note,
+.push-card__msg {
+  margin: 14px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.push-card__note { color: #b45309; }
+.push-card__msg { color: #374151; }

@@ -1,0 +1,2469 @@
+/* Shared styles for Performance views.
+ * Each view has its own layout file; this carries shared patterns:
+ *   - Page shell (full-bleed surface, inner max-width)
+ *   - Page header / toolbar
+ *   - Header card (subject + score)
+ *   - Rank rows
+ *   - KPI rows (compact)
+ *   - Progress bar utility
+ */
+
+/* ─── Shell ─────────────────────────────────────────────── */
+
+.perf {
+  background: var(--ds-surface-page);
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Tier 2 spacing: pad ke tokens (sebelumnya 32 top → 28 = HomeView ref).
+ * Full-bleed: no max-width. Internal grids use auto-fill to scale. */
+.perf__inner {
+  padding: var(--space-page-top) var(--space-page-x) var(--space-page-bot);
+}
+
+/* ─── Header / Toolbar ──────────────────────────────────── */
+
+.perf__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ds-space-4);
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+
+.perf__header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.perf__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  background: transparent;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-md);
+  color: var(--ds-text-secondary);
+  font-family: inherit;
+  font-size: var(--ds-text-13);
+  cursor: pointer;
+  transition: background var(--ds-duration-fast) var(--ds-ease-standard),
+              color var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+.perf__back:hover {
+  background: var(--ds-surface-hover);
+  color: var(--ds-text-primary);
+}
+
+.perf__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: var(--ds-weight-semibold);
+  letter-spacing: -0.015em;
+  color: var(--ds-text-primary);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.perf__subtitle {
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-tertiary);
+  white-space: nowrap;
+}
+
+.perf__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Header summary stat row — fills the otherwise empty middle band on wide
+ * viewports with computed context (avg, count, alerts). */
+.perf__header-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+  margin-left: 24px;
+  border-left: 1px solid var(--ds-border-subtle);
+  flex: 0 1 auto;
+}
+
+.perf__header-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-tertiary);
+  white-space: nowrap;
+}
+
+.perf__header-stat strong {
+  font-size: 18px;
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.perf__header-stat strong[data-tone="green"] { color: var(--tone-green); }
+.perf__header-stat strong[data-tone="amber"] { color: var(--tone-amber); }
+.perf__header-stat strong[data-tone="red"]   { color: var(--tone-red); }
+
+.perf__header-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--ds-border-subtle);
+}
+
+@media (max-width: 1100px) {
+  .perf__header-summary {
+    margin-left: 0;
+    border-left: 0;
+    padding: 0;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}
+
+.perf__period-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-neutral-100);
+  font-size: 11px;
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.perf__period-pill svg { color: var(--ds-text-tertiary); }
+
+/* ─── Section wrappers ──────────────────────────────────── */
+
+.perf__section {
+  margin-bottom: 16px;
+}
+
+.perf__section-label {
+  font-size: 10px;
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+  display: block;
+}
+
+/* Two-column row */
+.perf__cols-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 980px) {
+  .perf__cols-2 { grid-template-columns: 1fr; }
+}
+
+/* Phone (≤640): header tadinya flex sebaris tanpa wrap — title + summary
+ * ("102.7% rata-rata · N direktorat") + period pill min-content > lebar layar
+ * → overflow halaman (gap kosong di kanan + pill kepotong). Wrap + lepas
+ * divider/margin summary saat pindah baris. Fase 3 mobile, 2026-06-01. */
+@media (max-width: 640px) { /* bp-allow: --bp-sm */
+  .perf__header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .perf__header-summary {
+    margin-left: 0;
+    padding-left: 0;
+    border-left: 0;
+    flex-wrap: wrap;
+  }
+  .perf__header-actions { margin-left: 0; }
+}
+
+/* ─── Subject header card (Direktur / Divisi / Individu) ──── */
+
+/* Compressed hero — was ~280px tall, now ~180px. Same info density,
+ * less wasted real estate. Score number compressed from 48px → 32px,
+ * name 24 → 18, padding 20/22 → 14/18. */
+.perf-subject {
+  padding: 14px 18px;
+}
+
+.perf-subject__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.perf-subject__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.perf-subject__eyebrow {
+  font-size: 10px;
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+}
+
+.perf-subject__name {
+  font-size: 18px;
+  font-weight: var(--ds-weight-semibold);
+  letter-spacing: -0.015em;
+  color: var(--ds-text-primary);
+  line-height: 1.2;
+}
+
+.perf-subject__jabatan {
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-secondary);
+}
+
+.perf-subject__chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.perf-subject__score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.perf-subject__score-value {
+  font-size: 32px;
+  font-weight: var(--ds-weight-semibold);
+  line-height: 1;
+  letter-spacing: -0.022em;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 980px) {
+  .perf-subject__score-value { font-size: 26px; }
+  .perf-subject__name { font-size: 16px; }
+}
+
+.perf-subject__score-value[data-tone="green"] { color: var(--tone-green); }
+.perf-subject__score-value[data-tone="amber"] { color: var(--tone-amber); }
+.perf-subject__score-value[data-tone="red"]   { color: var(--tone-red); }
+
+.perf-subject__score-label {
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-tertiary);
+}
+
+.perf-subject__bar {
+  margin-top: 10px;
+  height: 3px;
+  background: var(--ds-neutral-100);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.perf-subject__bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 480ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.perf-subject__bar-fill[data-tone="green"] { background: var(--ds-green-500); }
+.perf-subject__bar-fill[data-tone="amber"] { background: var(--ds-amber-500); }
+.perf-subject__bar-fill[data-tone="red"]   { background: var(--ds-red-500); }
+
+/* ─── Rank row ──────────────────────────────────────────── */
+
+.perf-rank {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  margin: 0 -10px;
+  border: 0;
+  background: transparent;
+  border-radius: var(--ds-radius-md);
+  font-family: inherit;
+  color: var(--ds-text-primary);
+  cursor: pointer;
+  text-align: left;
+  width: calc(100% + 20px);
+  transition: background-color var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+.perf-rank:hover {
+  background: var(--ds-surface-hover);
+}
+
+.perf-rank:focus-visible {
+  outline: none;
+  box-shadow: var(--ds-ring-focus);
+}
+
+.perf-rank--static {
+  cursor: default;
+}
+
+.perf-rank--static:hover {
+  background: transparent;
+}
+
+.perf-rank__num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--ds-neutral-100);
+  color: var(--ds-text-tertiary);
+  font-size: 11px;
+  font-weight: var(--ds-weight-semibold);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 0 0 0.5px var(--panel-border, rgba(0,0,0,0.06));
+  flex-shrink: 0;
+}
+
+/* Medal palette for top 3 — Gap #3 leaderboard polish.
+   Mirror PDF DKMR slide 14: gold #1, silver #2, bronze #3. */
+.perf-rank__num[data-rank="1"] {
+  background: linear-gradient(135deg, #fde68a 0%, #fbbf24 100%);
+  color: #78350f;
+  box-shadow: inset 0 0 0 1px #f59e0b, 0 1px 2px rgba(245, 158, 11, 0.3);
+}
+.perf-rank__num[data-rank="2"] {
+  background: linear-gradient(135deg, #e5e7eb 0%, #9ca3af 100%);
+  color: #1f2937;
+  box-shadow: inset 0 0 0 1px #6b7280, 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+.perf-rank__num[data-rank="3"] {
+  background: linear-gradient(135deg, #fdba74 0%, #c2410c 100%);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px #9a3412, 0 1px 2px rgba(154, 52, 18, 0.3);
+}
+
+.perf-rank__info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.perf-rank__name {
+  font-size: var(--ds-text-14);
+  color: var(--ds-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.perf-rank__sub {
+  font-size: 11px;
+  color: var(--ds-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.perf-rank__value {
+  font-size: var(--ds-text-14);
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.perf-rank__value[data-tone="green"] { color: var(--tone-green); }
+.perf-rank__value[data-tone="amber"] { color: var(--tone-amber); }
+.perf-rank__value[data-tone="red"]   { color: var(--tone-red); }
+
+/* Section heading inside cards */
+.perf-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.perf-card-head__title {
+  margin: 0;
+  font-size: var(--ds-text-14);
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-primary);
+}
+
+/* ─── Direktorat card (Scorecard grid) ───────────────────── */
+
+/* Auto-fill: scales 3 → 4 → 5 columns on wider monitors without breakpoints.
+ * Min 360px keeps each card readable (Scorecard direktorat cards).
+ * align-items: start so cards take their natural height — avoids forced
+ * stretch that produces empty-bottom whitespace when divisi counts differ. */
+.perf-direktorat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+/* Compact variant: Kolegial director cards (just header+bar+count, no nested list). */
+.perf-direktur-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.perf-direktorat {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.perf-direktorat__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.perf-direktorat__name {
+  font-size: var(--ds-text-14);
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-primary);
+  line-height: 1.25;
+  letter-spacing: -0.005em;
+}
+
+.perf-direktorat__total {
+  font-size: 22px;
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  flex-shrink: 0;
+  line-height: 1;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+}
+
+.perf-direktorat__unit {
+  font-size: 13px;
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-tertiary);
+}
+
+.perf-direktorat__total[data-tone="green"] { color: var(--tone-green); }
+.perf-direktorat__total[data-tone="amber"] { color: var(--tone-amber); }
+.perf-direktorat__total[data-tone="red"]   { color: var(--tone-red); }
+
+/* Overall achievement bar — visualizes direktorat total under the head,
+ * before the divisi list. */
+.perf-direktorat__bar {
+  height: 5px;
+  background: var(--ds-neutral-100);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+.perf-direktorat__bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 480ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.perf-direktorat__bar-fill[data-tone="green"] { background: var(--ds-green-500); }
+.perf-direktorat__bar-fill[data-tone="amber"] { background: var(--ds-amber-500); }
+.perf-direktorat__bar-fill[data-tone="red"]   { background: var(--ds-red-500); }
+
+.perf-direktorat__divisi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ds-border-subtle);
+}
+
+.perf-divisi-row {
+  display: grid;
+  grid-template-columns: 50px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  margin: 0 -8px;
+  border-radius: var(--ds-radius-md);
+  text-decoration: none;
+  color: inherit;
+  font-size: var(--ds-text-13);
+  transition: background-color var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+.perf-divisi-row:hover {
+  background: var(--ds-surface-hover);
+}
+
+.perf-divisi-row__code {
+  font-family: var(--ds-font-mono);
+  font-size: 10px;
+  color: var(--ds-text-tertiary);
+}
+
+.perf-divisi-row__name {
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.perf-divisi-row__value {
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.perf-divisi-row__value[data-tone="green"] { color: var(--tone-green); }
+.perf-divisi-row__value[data-tone="amber"] { color: var(--tone-amber); }
+.perf-divisi-row__value[data-tone="red"]   { color: var(--tone-red); }
+
+/* ─── KPI row (compact, used in Detail views) ─────────────── */
+
+.perf-kpi-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.perf-kpi {
+  /* Density pass 2026-06-10: 16/20 → 12/16 + gap 14 — 19 KPI per halaman
+     dulu ±150px/baris (scroll fatigue), konten tetap sama. */
+  padding: 12px 16px;
+  border-radius: var(--ds-radius-lg);
+  border: 1px solid var(--ds-border-subtle);
+  background: var(--ds-surface-card);
+  display: grid;
+  grid-template-columns: 24px 1fr 80px;
+  gap: 14px;
+  align-items: start;
+  transition: border-color var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+.perf-kpi:hover {
+  border-color: var(--ds-border-default);
+}
+
+.perf-kpi__num {
+  font-size: 11px;
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+.perf-kpi__main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.perf-kpi__title {
+  font-size: var(--ds-text-14);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-primary);
+  line-height: 1.35;
+}
+
+.perf-kpi__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.perf-kpi__meta-chip {
+  font-size: 10px;
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-tertiary);
+  padding: 2px 6px;
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-neutral-100);
+}
+
+.perf-kpi__meta-chip--max { color: var(--tone-green); background: var(--ds-green-50); }
+.perf-kpi__meta-chip--min { color: var(--tone-red); background: var(--ds-red-50); }
+
+.perf-kpi__realisasi {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.perf-kpi__realisasi-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.perf-kpi__realisasi-label {
+  font-size: 10px;
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.perf-kpi__realisasi-value {
+  font-size: var(--ds-text-14);
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-text-primary);
+}
+
+.perf-kpi__realisasi-value[data-tone="green"] { color: var(--tone-green); }
+.perf-kpi__realisasi-value[data-tone="amber"] { color: var(--tone-amber); }
+.perf-kpi__realisasi-value[data-tone="red"]   { color: var(--tone-red); }
+
+.perf-kpi__realisasi-arrow {
+  color: var(--ds-text-tertiary);
+  font-size: 14px;
+}
+
+.perf-kpi__bar {
+  margin-top: 6px;
+  height: 5px;
+  background: var(--ds-neutral-100);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Tick garis 100% — skala bar = 0–110% (cap), jadi posisi 100% = 100/110.
+   Tanpa tick, bar "hampir penuh" tak terbedakan dari "tepat target". */
+.perf-kpi__bar--ticked::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  left: calc(100% * 100 / 110);
+  width: 2px;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--ds-text-tertiary) 55%, transparent);
+}
+
+.perf-kpi__bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 480ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.perf-kpi__bar-fill[data-tone="green"] { background: var(--ds-green-500); }
+.perf-kpi__bar-fill[data-tone="amber"] { background: var(--ds-amber-500); }
+.perf-kpi__bar-fill[data-tone="red"]   { background: var(--ds-red-500); }
+
+/* Persentase capaian inline ("104% of target") — pelengkap angka mentah. */
+.perf-kpi__pct {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.perf-kpi__pct[data-tone="green"] { color: var(--tone-green); }
+.perf-kpi__pct[data-tone="amber"] { color: var(--tone-amber); }
+.perf-kpi__pct[data-tone="red"]   { color: var(--tone-red); }
+
+/* Zero-target met (mis. "Jumlah Fraud: target 0, tercapai 0") — komunikasi
+   eksplisit, menggantikan "0 → 0" yang tampak seperti data rusak. */
+.perf-kpi__zero-met {
+  font-size: 12px;
+  font-weight: var(--ds-weight-medium);
+  color: var(--tone-green);
+}
+
+/* Realisasi belum diukur (N/A) — dibedakan dari nilai nyata "0". */
+.perf-kpi__realisasi-value--na {
+  color: var(--ds-text-tertiary);
+  font-style: italic;
+  font-weight: var(--ds-weight-regular);
+}
+
+.perf-kpi__definisi {
+  font-size: 11px;
+  color: var(--ds-text-tertiary);
+  line-height: 1.45;
+  padding-top: 6px;
+  border-top: 1px dashed var(--ds-border-subtle);
+}
+
+.perf-kpi__right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.perf-kpi__skor {
+  font-size: 22px;
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+/* Warna skor via data-tone + token theme-aware — dulu inline style
+   `var(--ds-{tone}-600)` yang terlalu gelap di dark mode. */
+.perf-kpi__skor[data-tone="green"] { color: var(--tone-green); }
+.perf-kpi__skor[data-tone="amber"] { color: var(--tone-amber); }
+.perf-kpi__skor[data-tone="red"]   { color: var(--tone-red); }
+
+.perf-kpi__bobot {
+  font-size: 10px;
+  color: var(--ds-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ─── Filter row (perspektif pills) ──────────────────────── */
+
+.perf-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.perf-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: var(--ds-radius-pill);
+  background: transparent;
+  border: 1px solid var(--ds-border-subtle);
+  color: var(--ds-text-secondary);
+  font-family: inherit;
+  font-size: var(--ds-text-13);
+  cursor: pointer;
+  transition: background var(--ds-duration-fast) var(--ds-ease-standard),
+              border-color var(--ds-duration-fast) var(--ds-ease-standard),
+              color var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+.perf-filter:hover {
+  background: var(--ds-surface-hover);
+}
+
+.perf-filter[data-active="true"] {
+  background: var(--ds-brand-50);
+  border-color: var(--ds-brand-600);
+  color: var(--ds-brand-700);
+  font-weight: var(--ds-weight-semibold);
+}
+
+.perf-filter__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+/* Pemisah visual antara filter perspektif (kiri) dan triage (kanan). */
+.perf-filter-row__spacer { flex: 1; min-width: 8px; }
+
+.perf-filter--triage[data-active="true"] {
+  background: var(--ds-amber-50);
+  border-color: var(--ds-amber-500);
+  color: var(--tone-amber);
+}
+
+/* ─── Group header (collapsible, perspektif) ─────────────── */
+
+.perf-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: var(--ds-radius-md);
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+@media (hover: hover) {
+  .perf-group-head:hover { background: var(--ds-surface-hover); }
+}
+
+.perf-group-head__chevron {
+  font-size: 10px;
+  color: var(--ds-text-tertiary);
+  transition: transform var(--ds-duration-fast) var(--ds-ease-standard);
+}
+.perf-group-head__chevron[data-collapsed="true"] { transform: rotate(-90deg); }
+
+.perf-group-head__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.perf-group-head__label { margin: 0; }
+
+.perf-group-head__count {
+  font-size: 11px;
+  color: var(--ds-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.perf-group-head__pct {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.perf-group-head__pct[data-tone="green"] { color: var(--tone-green); }
+.perf-group-head__pct[data-tone="amber"] { color: var(--tone-amber); }
+.perf-group-head__pct[data-tone="red"]   { color: var(--tone-red); }
+
+/* ─── Scale note (penjelasan skor) ───────────────────────── */
+
+.perf-scale-note {
+  font-size: 11px;
+  color: var(--ds-text-tertiary);
+  line-height: 1.5;
+  margin: -6px 0 14px;
+}
+
+/* ─── Sparse trend summary (histori <4 bulan) ────────────── */
+
+.kpi-trend-sparse {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kpi-trend-sparse__row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-md);
+}
+
+.kpi-trend-sparse__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.kpi-trend-sparse__name {
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kpi-trend-sparse__period {
+  font-size: 11px;
+  color: var(--ds-text-tertiary);
+}
+
+.kpi-trend-sparse__value {
+  font-size: 20px;
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.kpi-trend-sparse__value[data-tone="green"] { color: var(--tone-green); }
+.kpi-trend-sparse__value[data-tone="amber"] { color: var(--tone-amber); }
+.kpi-trend-sparse__value[data-tone="red"]   { color: var(--tone-red); }
+
+.kpi-trend-sparse__delta {
+  font-size: 11px;
+  font-weight: var(--ds-weight-medium);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.kpi-trend-sparse__delta[data-tone="green"]   { color: var(--tone-green); }
+.kpi-trend-sparse__delta[data-tone="red"]     { color: var(--tone-red); }
+.kpi-trend-sparse__delta[data-tone="neutral"] { color: var(--ds-text-tertiary); }
+
+.kpi-trend-sparse__note {
+  font-size: 11px;
+  color: var(--ds-text-tertiary);
+  margin: 2px 0 0;
+}
+
+/* ─── Empty state ───────────────────────────────────────── */
+
+.perf-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--ds-text-tertiary);
+  font-size: var(--ds-text-13);
+}
+
+.perf-empty__title {
+  font-size: var(--ds-text-14);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-secondary);
+  margin-bottom: 4px;
+}
+
+/* ─── Footer note ───────────────────────────────────────── */
+
+.perf-footnote {
+  font-size: 11px;
+  color: var(--ds-text-tertiary);
+  text-align: center;
+  margin-top: 16px;
+}
+
+/* ─── Rank with proportion bar ──────────────────────────── */
+
+.perf-rank-bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.perf-rank-bar {
+  display: grid;
+  grid-template-columns: 24px minmax(140px, 1fr) minmax(180px, 1.5fr);
+  align-items: center;
+  gap: 14px;
+  padding: 10px 10px;
+  margin: 0 -10px;
+  border: 0;
+  background: transparent;
+  border-radius: var(--ds-radius-md);
+  font-family: inherit;
+  color: var(--ds-text-primary);
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  transition: background-color var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+.perf-rank-bar:hover {
+  background: var(--ds-surface-hover);
+}
+
+.perf-rank-bar--static {
+  cursor: default;
+}
+
+.perf-rank-bar--static:hover {
+  background: transparent;
+}
+
+.perf-rank-bar__num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  background: var(--ds-neutral-100);
+  color: var(--ds-text-secondary);
+  letter-spacing: -0.01em;
+}
+
+.perf-rank-bar__num[data-rank="1"] {
+  background: var(--ds-brand-600);
+  color: var(--ds-text-on-brand);
+  box-shadow: 0 0 0 2px var(--ds-brand-50);
+}
+
+.perf-rank-bar__main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.perf-rank-bar__name {
+  font-size: var(--ds-text-14);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.perf-rank-bar__sub {
+  font-size: 11px;
+  color: var(--ds-text-tertiary);
+}
+
+.perf-rank-bar__viz {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.perf-rank-bar__track {
+  height: 5px;
+  background: var(--ds-neutral-100);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.perf-rank-bar__fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 480ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.perf-rank-bar__fill[data-tone="green"] { background: var(--ds-green-500); }
+.perf-rank-bar__fill[data-tone="amber"] { background: var(--ds-amber-500); }
+.perf-rank-bar__fill[data-tone="red"]   { background: var(--ds-red-500); }
+
+.perf-rank-bar__value {
+  font-size: var(--ds-text-14);
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  min-width: 60px;
+  text-align: right;
+}
+
+.perf-rank-bar__value[data-tone="green"] { color: var(--tone-green); }
+.perf-rank-bar__value[data-tone="amber"] { color: var(--tone-amber); }
+.perf-rank-bar__value[data-tone="red"]   { color: var(--tone-red); }
+
+/* Phone (≤640): grid min ~372px (24 + 140 + 180 + gap) > lebar konten ~342px
+ * → kolom bar viz overflow tepi kanan. Perkecil mins + gap supaya muat; nama
+ * tetap truncate (min-width:0), bar tetap kelihatan. Fase 3 mobile, 2026-06-01. */
+@media (max-width: 640px) { /* bp-allow: --bp-sm */
+  .perf-rank-bar {
+    grid-template-columns: 22px minmax(0, 1fr) minmax(96px, 1fr);
+    gap: 10px;
+  }
+  .perf-rank-bar__viz { gap: 8px; }
+  .perf-rank-bar__value { min-width: 0; }
+}
+
+/* ─── Section head with meta ──────────────────────────── */
+
+.perf-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.perf-section-meta {
+  font-size: 11px;
+  color: var(--ds-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Tone-scale legend ────────────────────────────────── */
+
+.perf-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 12px 16px;
+  margin-top: 16px;
+  border-top: 1px solid var(--ds-border-subtle);
+  font-size: 11px;
+  color: var(--ds-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.perf-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.perf-legend__item--muted {
+  color: var(--ds-text-tertiary);
+}
+
+.perf-legend__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.perf-legend__dot[data-tone="green"] { background: var(--ds-green-500); }
+.perf-legend__dot[data-tone="amber"] { background: var(--ds-amber-500); }
+.perf-legend__dot[data-tone="red"]   { background: var(--ds-red-500); }
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * Comparison view (BOD-fungsional KPI Divisi index)
+ * Pattern A: flat hero (no nested card) + grid of divisi cards with hairline
+ * borders. Hover lifts subtly. Clicking card drills into /performance/divisi/{kode}.
+ * ─────────────────────────────────────────────────────────────────────── */
+
+/* Direktorat hero — flat inline header (no Card wrap) */
+.perf-compare__hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 4px 0 20px;
+  margin-bottom: 20px;
+  border-bottom: 0.5px solid var(--ds-border-subtle);
+}
+
+.perf-compare__hero-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.perf-compare__hero-eyebrow {
+  font-size: 10px;
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+}
+
+.perf-compare__hero-name {
+  font-size: 18px;
+  font-weight: var(--ds-weight-semibold);
+  letter-spacing: -0.015em;
+  color: var(--ds-text-primary);
+  line-height: 1.2;
+  margin: 0;
+}
+
+.perf-compare__hero-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-tertiary);
+}
+
+.perf-compare__hero-code {
+  font-family: var(--ds-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary);
+  text-transform: uppercase;
+}
+
+.perf-compare__hero-score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.perf-compare__hero-score-val {
+  font-size: 36px;
+  font-weight: var(--ds-weight-bold);
+  letter-spacing: -0.025em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.perf-compare__hero-score-val[data-tone="green"] { color: var(--tone-green); }
+.perf-compare__hero-score-val[data-tone="amber"] { color: var(--tone-amber); }
+.perf-compare__hero-score-val[data-tone="red"]   { color: var(--tone-red); }
+
+.perf-compare__hero-score-lbl {
+  font-size: 11px;
+  color: var(--ds-text-tertiary);
+  font-weight: var(--ds-weight-medium);
+}
+
+/* Grid + cards */
+.perf-compare-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  margin-bottom: 16px;
+}
+
+@media (max-width: 720px) {
+  .perf-compare-grid { grid-template-columns: 1fr; }
+}
+
+.perf-compare-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px 16px;
+  background: var(--ds-bg-surface);
+  border: 0.5px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-md);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--ds-duration-fast) var(--ds-ease-standard),
+              background var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+.perf-compare-card:hover {
+  border-color: var(--ds-text-tertiary);
+  background: var(--ds-surface-hover);
+}
+
+.perf-compare-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.perf-compare-card__rank-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: var(--ds-weight-semibold);
+  padding: 2px 8px;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-neutral-100);
+  color: var(--ds-text-secondary);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.perf-compare-card__arrow {
+  font-size: 16px;
+  color: var(--ds-text-tertiary);
+  transition: color var(--ds-duration-fast) var(--ds-ease-standard),
+              transform var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+.perf-compare-card:hover .perf-compare-card__arrow {
+  color: var(--ds-text-primary);
+  transform: translateX(2px);
+}
+
+.perf-compare-card__hero {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.perf-compare-card__name {
+  font-size: 14px;
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-primary);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.perf-compare-card__sub {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--ds-text-tertiary);
+  font-weight: var(--ds-weight-medium);
+}
+
+.perf-compare-card__code {
+  font-family: var(--ds-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary);
+  text-transform: uppercase;
+}
+
+.perf-compare-card__sep {
+  color: var(--ds-text-tertiary);
+}
+
+.perf-compare-card__score-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.perf-compare-card__score {
+  font-size: 28px;
+  font-weight: var(--ds-weight-bold);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.perf-compare-card__score[data-tone="green"] { color: var(--tone-green); }
+.perf-compare-card__score[data-tone="amber"] { color: var(--tone-amber); }
+.perf-compare-card__score[data-tone="red"]   { color: var(--tone-red); }
+
+.perf-compare-card__score-pct {
+  font-size: 14px;
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-tertiary);
+  margin-left: 2px;
+}
+
+.perf-compare-card__status {
+  font-size: 11px;
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-secondary);
+}
+
+.perf-compare-card__status[data-tone="green"] { color: var(--tone-green); }
+.perf-compare-card__status[data-tone="amber"] { color: var(--tone-amber); }
+.perf-compare-card__status[data-tone="red"]   { color: var(--tone-red); }
+
+.perf-compare-card__divider {
+  height: 0.5px;
+  background: var(--ds-border-subtle);
+  margin: 0;
+}
+
+.perf-compare-card__kpis {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.perf-compare-card__kpis-label {
+  font-size: 10px;
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.perf-compare-card__kpi {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 56px 36px;
+  align-items: center;
+  gap: 10px;
+  font-size: 11.5px;
+}
+
+.perf-compare-card__kpi-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ds-text-secondary);
+  min-width: 0;
+}
+
+.perf-compare-card__kpi-bar {
+  height: 4px;
+  background: var(--ds-neutral-100);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.perf-compare-card__kpi-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width var(--ds-duration-base) var(--ds-ease-standard);
+}
+
+.perf-compare-card__kpi-bar-fill[data-tone="green"] { background: var(--ds-green-500); }
+.perf-compare-card__kpi-bar-fill[data-tone="amber"] { background: var(--ds-amber-500); }
+.perf-compare-card__kpi-bar-fill[data-tone="red"]   { background: var(--ds-red-500); }
+
+.perf-compare-card__kpi-skor {
+  text-align: right;
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-text-secondary);
+}
+
+.perf-compare-card__kpi-skor[data-tone="green"] { color: var(--ds-green-700); }
+.perf-compare-card__kpi-skor[data-tone="amber"] { color: var(--ds-amber-700); }
+.perf-compare-card__kpi-skor[data-tone="red"]   { color: var(--ds-red-700); }
+
+.perf-compare-card__kpi-empty {
+  font-size: 12px;
+  color: var(--ds-text-tertiary);
+  font-style: italic;
+}
+
+/* ── KPI trend bar chart (Gap #2) ─────────────────────────────────────── */
+.kpi-trend-empty {
+  padding: 36px 16px;
+  text-align: center;
+  color: var(--ds-text-secondary);
+  font-size: 12.5px;
+  font-style: italic;
+}
+.kpi-trend-chart {
+  width: 100%;
+}
+
+/* ── Insight Utama panel (auto-derived KPI bullets) ─────────── */
+.perf-insight {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.perf-insight__head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.perf-insight__title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ds-text-primary);
+  margin: 0;
+}
+.perf-insight__sub {
+  font-size: 11px;
+  color: var(--ds-text-secondary);
+}
+.perf-insight__cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 720px) {
+  .perf-insight__cols { grid-template-columns: 1fr; }
+}
+.perf-insight__col {
+  padding: 12px 14px;
+  border-radius: 8px;
+  border-left: 3px solid;
+  background: var(--surface-1, #fafafa);
+}
+.perf-insight__col[data-tone='green'] {
+  border-left-color: var(--green, #16a34a);
+  background: color-mix(in srgb, var(--green, #16a34a) 5%, var(--surface-1, #fafafa));
+}
+.perf-insight__col[data-tone='amber'] {
+  border-left-color: var(--amber, #f59e0b);
+  background: color-mix(in srgb, var(--amber, #f59e0b) 5%, var(--surface-1, #fafafa));
+}
+.perf-insight__col-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.perf-insight__col-icon {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+}
+.perf-insight__col[data-tone='green'] .perf-insight__col-icon { background: var(--green-strong, #16a34a); }
+.perf-insight__col[data-tone='amber'] .perf-insight__col-icon { background: var(--amber-strong, #d97706); }
+.perf-insight__col-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ds-text-primary);
+  flex: 1;
+}
+.perf-insight__col-count {
+  font-size: 11px;
+  color: var(--ds-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.perf-insight__list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.perf-insight__item {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-default);
+}
+.perf-insight__empty {
+  font-size: 12px;
+  color: var(--ds-text-secondary);
+  font-style: italic;
+  margin: 0;
+}
+
+/* ── Leaderboard 3-column grid (Gap #3) ─────────────────────── */
+.perf-leaderboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+}
+.perf-leaderboard__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* ═══ Redesain bentuk 2026-06-10 — kokpit + scorecard table ═══════════════ */
+
+/* Delta chip di header verdict (▲/▼ vs bulan sebelumnya). */
+.perf__header-delta {
+  font-size: 11px;
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.perf__header-delta[data-tone="green"] { color: var(--tone-green); }
+.perf__header-delta[data-tone="red"]   { color: var(--tone-red); }
+
+/* Kolom kokpit: pengecualian (kiri, dominan) | trend (kanan). */
+.perf__cols-2--cockpit { grid-template-columns: 1.15fr 0.85fr; }
+@media (max-width: 980px) {
+  .perf__cols-2--cockpit { grid-template-columns: 1fr; }
+}
+
+/* ── Matriks divisi × perspektif ─────────────────────────── */
+
+.perf-matrix-card { overflow: hidden; }
+
+.perf-matrix { width: 100%; }
+
+.perf-matrix__row {
+  display: grid;
+  /* Jumlah kolom dari --matrix-cols (di-set FE) — auto-fit bikin sel wrap
+     ke baris implisit saat sempit, merusak bentuk tabel di mobile. */
+  grid-template-columns: minmax(200px, 1.6fr) repeat(var(--matrix-cols, 5), minmax(86px, 1fr));
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  transition: background var(--ds-duration-fast) var(--ds-ease-standard);
+}
+.perf-matrix__row:last-child { border-bottom: none; }
+
+@media (hover: hover) {
+  a.perf-matrix__row:hover { background: var(--ds-surface-hover); }
+}
+
+.perf-matrix__row--head {
+  background: color-mix(in srgb, var(--ds-neutral-100) 55%, transparent);
+}
+
+.perf-matrix__division {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 10px 14px;
+  min-width: 0;
+}
+.perf-matrix__row--head .perf-matrix__division {
+  font-size: 10px;
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.perf-matrix__division-code {
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-primary);
+}
+.perf-matrix__division-name {
+  font-size: 11px;
+  color: var(--ds-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.perf-matrix__cell {
+  padding: 10px 12px;
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  border-left: 1px solid var(--ds-border-subtle);
+}
+.perf-matrix__cell--head {
+  font-size: 10px;
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+/* Tint heatmap — warna = sinyal, angka tetap terbaca (teks tone gelap). */
+.perf-matrix__cell[data-tone="green"] {
+  background: color-mix(in srgb, var(--tone-green) 9%, transparent);
+  color: var(--tone-green);
+}
+.perf-matrix__cell[data-tone="amber"] {
+  background: color-mix(in srgb, var(--tone-amber) 13%, transparent);
+  color: var(--tone-amber);
+}
+.perf-matrix__cell[data-tone="red"] {
+  background: color-mix(in srgb, var(--tone-red) 13%, transparent);
+  color: var(--tone-red);
+}
+.perf-matrix__cell--total { font-weight: var(--ds-weight-bold); }
+
+/* Phone: matriks = scroll-x (pakem CLAUDE.md §7 untuk matriks).
+   Transposed (ronde 7): natural ±410px utk 3 divisi — scroll-x tinggal
+   jaring pengaman untuk direktorat ber-divisi banyak. */
+@media (max-width: 640px) { /* bp-allow: --bp-sm */
+  .perf-matrix-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .perf-matrix { min-width: 400px; }
+}
+
+/* ── Daftar pengecualian (Needs attention) ───────────────── */
+
+.perf-exc-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.perf-exc {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 4px;
+  text-decoration: none;
+  color: inherit;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  transition: background var(--ds-duration-fast) var(--ds-ease-standard);
+}
+.perf-exc:last-child { border-bottom: none; }
+@media (hover: hover) {
+  .perf-exc:hover { background: var(--ds-surface-hover); }
+}
+
+.perf-exc__divisi {
+  font-size: 10px;
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-secondary);
+  background: var(--ds-neutral-100);
+  border-radius: var(--ds-radius-sm);
+  padding: 3px 0;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.perf-exc__main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+
+.perf-exc__kpi {
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.perf-exc__detail { font-size: 11px; color: var(--ds-text-tertiary); }
+
+.perf-exc__pct {
+  font-size: var(--ds-text-14);
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.perf-exc__pct[data-tone="green"] { color: var(--tone-green); }
+.perf-exc__pct[data-tone="amber"] { color: var(--tone-amber); }
+.perf-exc__pct[data-tone="red"]   { color: var(--tone-red); }
+
+/* ── Deviation bar (jangkar 100%, zoom ±) ────────────────── */
+
+.kst-dev {
+  position: relative;
+  height: 6px;
+  flex: 1;
+  min-width: 56px;
+  background: var(--ds-neutral-100);
+  border-radius: 3px;
+}
+
+.kst-dev__baseline {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  left: 75%;
+  width: 2px;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--ds-text-tertiary) 65%, transparent);
+  z-index: 1;
+}
+
+.kst-dev__fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+}
+.kst-dev__fill[data-tone="green"] { background: var(--ds-green-500); }
+.kst-dev__fill[data-tone="amber"] { background: var(--ds-amber-500); }
+.kst-dev__fill[data-tone="red"]   { background: var(--ds-red-500); }
+
+/* ── KpiScoreTable (bentuk scorecard table) ──────────────── */
+
+.perf-table-card { overflow: hidden; }
+
+.kst { width: 100%; }
+
+.kst__headrow,
+.kst__row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 2.3fr) 58px minmax(86px, 0.9fr) minmax(96px, 0.9fr) minmax(150px, 1.4fr) 58px;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 14px;
+}
+
+.kst__headrow {
+  font-size: 10px;
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  background: color-mix(in srgb, var(--ds-neutral-100) 55%, transparent);
+}
+
+.kst__row { border-bottom: 1px solid var(--ds-border-subtle); }
+.kst__group:last-child .kst__row:last-child { border-bottom: none; }
+@media (hover: hover) {
+  .kst__row:hover { background: var(--ds-surface-hover); }
+}
+
+.kst__num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.kst__cell { font-size: var(--ds-text-13); color: var(--ds-text-primary); min-width: 0; }
+.kst__cell--no { color: var(--ds-text-tertiary); font-size: 11px; font-variant-numeric: tabular-nums; }
+
+.kst__cell--kpi { display: flex; flex-direction: column; gap: 1px; }
+
+.kst__kpi-name {
+  font-weight: var(--ds-weight-medium);
+  line-height: 1.3;
+}
+
+.kst__kpi-sub {
+  display: flex;
+  gap: 5px;
+  align-items: baseline;
+  font-size: 10.5px;
+  color: var(--ds-text-tertiary);
+  min-width: 0;
+}
+.kst__kpi-code { font-family: var(--ds-font-mono, monospace); letter-spacing: -0.01em; white-space: nowrap; }
+.kst__kpi-def {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.kst__val[data-tone="green"] { color: var(--tone-green); }
+.kst__val[data-tone="amber"] { color: var(--tone-amber); }
+.kst__val[data-tone="red"]   { color: var(--tone-red); }
+.kst__val { font-weight: var(--ds-weight-semibold); }
+
+.kst__na { color: var(--ds-text-tertiary); font-style: italic; }
+.kst__zero { font-size: 12px; font-weight: var(--ds-weight-medium); color: var(--tone-green); }
+
+.kst__cell--ach { display: flex; align-items: center; gap: 10px; }
+
+.kst__ach-pct {
+  font-size: 11.5px;
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  min-width: 38px;
+  text-align: right;
+}
+.kst__ach-pct[data-tone="green"] { color: var(--tone-green); }
+.kst__ach-pct[data-tone="amber"] { color: var(--tone-amber); }
+.kst__ach-pct[data-tone="red"]   { color: var(--tone-red); }
+
+.kst__score { font-weight: var(--ds-weight-semibold); font-size: var(--ds-text-14); }
+.kst__score[data-tone="green"] { color: var(--tone-green); }
+.kst__score[data-tone="amber"] { color: var(--tone-amber); }
+.kst__score[data-tone="red"]   { color: var(--tone-red); }
+
+/* Group header di dalam tabel */
+.kst__group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 14px;
+  border: none;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  background: color-mix(in srgb, var(--ds-neutral-100) 40%, transparent);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--ds-duration-fast) var(--ds-ease-standard);
+}
+@media (hover: hover) {
+  .kst__group-head:hover { background: var(--ds-surface-hover); }
+}
+
+.kst__chevron {
+  font-size: 10px;
+  color: var(--ds-text-tertiary);
+  transition: transform var(--ds-duration-fast) var(--ds-ease-standard);
+}
+.kst__chevron[data-collapsed="true"] { transform: rotate(-90deg); }
+
+.kst__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+.kst__group-label {
+  font-size: 11px;
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.kst__group-meta { font-size: 11px; color: var(--ds-text-tertiary); font-variant-numeric: tabular-nums; }
+
+.kst__group-pct {
+  margin-left: auto;
+  font-size: 11.5px;
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.kst__group-pct[data-tone="green"] { color: var(--tone-green); }
+.kst__group-pct[data-tone="amber"] { color: var(--tone-amber); }
+.kst__group-pct[data-tone="red"]   { color: var(--tone-red); }
+
+/* Phone: tabel → baris bertumpuk (label via data-label), bukan scroll-x —
+ * ini konten utama halaman, harus nyaman dibaca satu tangan. */
+@media (max-width: 640px) { /* bp-allow: --bp-sm */
+  .kst__headrow { display: none; }
+  /* Block-flow (flex-wrap meremukkan nama KPI panjang): nama full-width
+     dengan skor absolute kanan-atas, nilai ber-label inline di bawahnya,
+     bar deviasi paling bawah. */
+  .kst__row {
+    display: block;
+    position: relative;
+    padding: 10px 12px;
+  }
+  .kst__cell--no { display: none; }
+  .kst__cell--kpi { display: flex; padding-right: 52px; }
+  .kst__score {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+  }
+  .kst__row > .kst__num:not(.kst__score) {
+    display: inline-block;
+    text-align: left;
+    font-size: 12px;
+    margin: 6px 14px 0 0;
+  }
+  .kst__row > .kst__num:not(.kst__score)::before {
+    content: attr(data-label) ' ';
+    color: var(--ds-text-tertiary);
+    font-weight: var(--ds-weight-regular);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .kst__cell--ach { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   RICH LAYER (2026-06-10) — bahasa visual Home cockpit (hvc) diterapkan
+   ke modul Performance per mandat user ("masih jauh dari ekspektasi";
+   pakem: rapi saja = 6/10, harus premium). Teknik identik HomeView.css:
+   layered shadow + gradient surface + gradient bignum + tinted stat +
+   backdrop glow. Layered PALING AKHIR supaya menang source order.
+   ════════════════════════════════════════════════════════════════════ */
+
+.perf {
+  --pfc-card-bg: linear-gradient(158deg, var(--ds-surface-card) 0%, color-mix(in srgb, var(--ds-surface-card) 88%, var(--ds-neutral-100)) 100%);
+  --pfc-card-border: var(--ds-border-subtle);
+  --pfc-card-radius: 16px;
+  --pfc-card-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 10px 28px -10px rgba(16,24,40,0.12);
+  --pfc-card-shadow-hover: 0 2px 4px rgba(16,24,40,0.06), 0 16px 40px -12px rgba(16,24,40,0.20);
+  --pfc-inset-top: inset 0 1px 0 rgba(255,255,255,0.6);
+  --pfc-grad-green: linear-gradient(135deg, #34D399, #059669);
+  --pfc-grad-amber: linear-gradient(135deg, #FBBF24, #D97706);
+  --pfc-grad-red: linear-gradient(135deg, #FB7185, #DC2626);
+}
+
+[data-theme="dark"] .perf {
+  --pfc-card-bg: linear-gradient(158deg, #16181F 0%, #101116 100%);
+  --pfc-card-border: rgba(255,255,255,0.08);
+  --pfc-card-shadow: 0 1px 2px rgba(0,0,0,0.5), 0 14px 36px -14px rgba(0,0,0,0.7);
+  --pfc-card-shadow-hover: 0 2px 4px rgba(0,0,0,0.6), 0 20px 48px -14px rgba(0,0,0,0.85);
+  --pfc-inset-top: inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+/* Backdrop glow halus (presisi sama dengan home-v2--cockpit). */
+.perf {
+  background:
+    radial-gradient(1100px 460px at 100% -6%, rgba(16,185,129,0.07), transparent 60%),
+    radial-gradient(820px 460px at -6% 112%, rgba(16,185,129,0.045), transparent 60%),
+    var(--ds-surface-page);
+}
+[data-theme="dark"] .perf {
+  background:
+    radial-gradient(1100px 520px at 100% -8%, rgba(16,185,129,0.11), transparent 55%),
+    radial-gradient(900px 600px at -8% 110%, rgba(56,189,248,0.07), transparent 55%),
+    #0A0A0B;
+}
+
+/* Depth di semua kartu Performance. */
+.perf .ds-card {
+  background: var(--pfc-card-bg);
+  border: 1px solid var(--pfc-card-border);
+  border-radius: var(--pfc-card-radius);
+  box-shadow: var(--pfc-card-shadow), var(--pfc-inset-top);
+}
+
+/* ── Hero band (Scorecard kokpit + subject detail) ───────────── */
+
+.perf-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 26px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Motif glow tone di kanan-atas hero. */
+.perf-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(420px 190px at 86% -30%, color-mix(in srgb, var(--tone-green) 14%, transparent), transparent 70%);
+}
+.perf-hero[data-tone="amber"]::after { background: radial-gradient(420px 190px at 86% -30%, color-mix(in srgb, var(--tone-amber) 16%, transparent), transparent 70%); }
+.perf-hero[data-tone="red"]::after   { background: radial-gradient(420px 190px at 86% -30%, color-mix(in srgb, var(--tone-red) 16%, transparent), transparent 70%); }
+
+.perf-hero__main { display: flex; flex-direction: column; gap: 6px; min-width: 0; position: relative; }
+
+.perf-hero__eyebrow {
+  font-size: 10px;
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.perf-hero__name {
+  margin: 0;
+  font-size: clamp(18px, 1.6vw, 24px);
+  font-weight: var(--ds-weight-semibold);
+  letter-spacing: -0.018em;
+  color: var(--ds-text-primary);
+  line-height: 1.15;
+}
+
+.perf-hero__stats { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+
+.perf-hero__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 9px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--pfc-card-border);
+  box-shadow: var(--pfc-card-shadow), var(--pfc-inset-top);
+  background: var(--ds-surface-card);
+  min-width: 104px;
+}
+.perf-hero__stat[data-tone="green"] { background: linear-gradient(158deg, color-mix(in srgb, #10B981 11%, var(--ds-surface-card)), var(--ds-surface-card)); }
+.perf-hero__stat[data-tone="amber"] { background: linear-gradient(158deg, color-mix(in srgb, #F59E0B 12%, var(--ds-surface-card)), var(--ds-surface-card)); }
+.perf-hero__stat[data-tone="red"]   { background: linear-gradient(158deg, color-mix(in srgb, #EF4444 11%, var(--ds-surface-card)), var(--ds-surface-card)); }
+
+.perf-hero__stat-val {
+  font-size: 19px;
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.015em;
+  color: var(--ds-text-primary);
+}
+.perf-hero__stat-val[data-tone="green"] { color: #059669; }
+.perf-hero__stat-val[data-tone="amber"] { color: #D97706; }
+.perf-hero__stat-val[data-tone="red"]   { color: #DC2626; }
+[data-theme="dark"] .perf-hero__stat-val[data-tone="green"] { color: #34D399; }
+[data-theme="dark"] .perf-hero__stat-val[data-tone="amber"] { color: #FBBF24; }
+[data-theme="dark"] .perf-hero__stat-val[data-tone="red"]   { color: #FB7185; }
+
+.perf-hero__stat-lbl { font-size: 10.5px; color: var(--ds-text-tertiary); }
+
+.perf-hero__score { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; position: relative; }
+
+.perf-hero__num {
+  font-size: clamp(2.4rem, 3.4vw, 3.4rem);
+  font-weight: var(--ds-weight-semibold);
+  line-height: 1;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  background-image: var(--pfc-grad-green);
+}
+.perf-hero__num[data-tone="amber"] { background-image: var(--pfc-grad-amber); }
+.perf-hero__num[data-tone="red"]   { background-image: var(--pfc-grad-red); }
+.perf-hero__num-unit { font-size: 0.45em; -webkit-text-fill-color: var(--ds-text-tertiary); }
+
+.perf-hero__sub { font-size: var(--ds-text-13); color: var(--ds-text-tertiary); }
+
+/* Subject card detail (Directorate/Division KPI) ikut bahasa hero. */
+.perf-subject__score-value {
+  font-size: clamp(2.1rem, 2.8vw, 2.9rem);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  background-image: var(--pfc-grad-green);
+}
+.perf-subject__score-value[data-tone="amber"] { background-image: var(--pfc-grad-amber); }
+.perf-subject__score-value[data-tone="red"]   { background-image: var(--pfc-grad-red); }
+.perf-subject__score-value > span { -webkit-text-fill-color: var(--ds-text-tertiary); }
+
+/* Tone accent kiri pada subject (pola hvc__panel). */
+.perf-subject[data-tone="green"] { box-shadow: var(--pfc-card-shadow), var(--pfc-inset-top), inset 3px 0 0 0 #10B981; }
+.perf-subject[data-tone="amber"] { box-shadow: var(--pfc-card-shadow), var(--pfc-inset-top), inset 3px 0 0 0 #F59E0B; }
+.perf-subject[data-tone="red"]   { box-shadow: var(--pfc-card-shadow), var(--pfc-inset-top), inset 3px 0 0 0 #EF4444; }
+
+/* ── Kokpit Scorecard: matriks | aside ───────────────────────── */
+
+.perf-cockpit {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+.perf-cockpit__aside { display: flex; flex-direction: column; gap: 12px; }
+@media (max-width: 1024px) { /* bp-allow: --bp-md */
+  .perf-cockpit { grid-template-columns: 1fr; }
+}
+
+/* ── Matriks: tint lebih berani + tipografi naik ─────────────── */
+
+.perf-matrix__cell { font-size: var(--ds-text-14); padding: 13px 14px; }
+.perf-matrix__division { padding: 13px 16px; }
+.perf-matrix__division-code { font-size: var(--ds-text-14); }
+
+.perf-matrix__cell[data-tone="green"] { background: color-mix(in srgb, var(--tone-green) 12%, transparent); }
+.perf-matrix__cell[data-tone="amber"] { background: color-mix(in srgb, var(--tone-amber) 20%, transparent); }
+.perf-matrix__cell[data-tone="red"]   { background: color-mix(in srgb, var(--tone-red) 18%, transparent); }
+
+.perf-matrix__cell--total { font-size: var(--ds-text-16); }
+
+/* ── Needs attention: aksen kiri + pct bubble ────────────────── */
+
+.perf-exc { border-radius: 10px; padding: 10px 12px; margin: 2px 0; border-bottom: none; }
+.perf-exc[data-sev="amber"] { box-shadow: inset 3px 0 0 0 #F59E0B; background: color-mix(in srgb, var(--tone-amber) 5%, transparent); }
+.perf-exc[data-sev="red"]   { box-shadow: inset 3px 0 0 0 #EF4444; background: color-mix(in srgb, var(--tone-red) 5%, transparent); }
+
+.perf-exc__pct {
+  padding: 4px 10px;
+  border-radius: var(--ds-radius-pill);
+  font-size: var(--ds-text-13);
+}
+.perf-exc__pct[data-tone="amber"] { background: color-mix(in srgb, var(--tone-amber) 14%, transparent); }
+.perf-exc__pct[data-tone="red"]   { background: color-mix(in srgb, var(--tone-red) 14%, transparent); }
+.perf-exc__pct[data-tone="green"] { background: color-mix(in srgb, var(--tone-green) 14%, transparent); }
+
+/* ── Compare card: aksen rank (medali) + hover lift ──────────── */
+
+.perf-compare-card { position: relative; overflow: hidden; border-radius: var(--pfc-card-radius); box-shadow: var(--pfc-card-shadow), var(--pfc-inset-top); background: var(--pfc-card-bg); transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease; }
+@media (hover: hover) {
+  .perf-compare-card:hover { transform: translateY(-2px); box-shadow: var(--pfc-card-shadow-hover), var(--pfc-inset-top); }
+}
+.perf-compare-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+}
+.perf-compare-card[data-rank="1"]::before { background: linear-gradient(90deg, #FDE68A, #FBBF24); }
+.perf-compare-card[data-rank="2"]::before { background: linear-gradient(90deg, #E5E7EB, #9CA3AF); }
+.perf-compare-card[data-rank="3"]::before { background: linear-gradient(90deg, #FDBA74, #C2410C); }
+
+.perf-compare-card__score {
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  background-image: var(--pfc-grad-green);
+}
+.perf-compare-card__score[data-tone="amber"] { background-image: var(--pfc-grad-amber); }
+.perf-compare-card__score[data-tone="red"]   { background-image: var(--pfc-grad-red); }
+.perf-compare-card__score-pct { -webkit-text-fill-color: var(--ds-text-tertiary); }
+
+/* ── Insight rows terstruktur (bukan tembok teks) ────────────── */
+
+.perf-insight__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 12px;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px dashed var(--ds-border-subtle);
+}
+.perf-insight__item:last-child { border-bottom: none; }
+
+.perf-insight__item-kpi {
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-primary);
+  min-width: 0;
+}
+
+.perf-insight__item-vals {
+  grid-column: 1;
+  font-size: 11.5px;
+  color: var(--ds-text-tertiary);
+}
+
+.perf-insight__item-pct {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  padding: 4px 10px;
+  border-radius: var(--ds-radius-pill);
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.perf-insight__item-pct[data-tone="green"] { color: var(--tone-green); background: color-mix(in srgb, var(--tone-green) 13%, transparent); }
+.perf-insight__item-pct[data-tone="amber"] { color: var(--tone-amber); background: color-mix(in srgb, var(--tone-amber) 15%, transparent); }
+.perf-insight__item-pct[data-tone="red"]   { color: var(--tone-red); background: color-mix(in srgb, var(--tone-red) 15%, transparent); }
+
+/* Hero responsive */
+@media (max-width: 640px) { /* bp-allow: --bp-sm */
+  .perf-hero { flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px; }
+  .perf-hero__score { align-items: flex-start; }
+}
+
+/* Hero compare ikut bahasa gradient. */
+.perf-compare__hero-score-val {
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  background-image: var(--pfc-grad-green);
+}
+.perf-compare__hero-score-val[data-tone="amber"] { background-image: var(--pfc-grad-amber); }
+.perf-compare__hero-score-val[data-tone="red"]   { background-image: var(--pfc-grad-red); }
+
+/* ═══ RONDE 4 — match Home cockpit sungguhan (gauge + mini-bar + heatmap) ═══
+   Referensi: HomeView.css kartu "KPI Achievement" (angka+mini-bar divisi) +
+   "Execution Health" (gauge) + "Program Summary" (heatmap blok). Sebelumnya
+   gradient/shadow saja → masih "standard" karena tak ada micro-viz nyata. */
+
+/* Top accent gradient bar — signature kartu Home (feedback_home_wow_craft_bar). */
+.perf-hero,
+.perf-cockpit > section > .perf-matrix-card,
+.perf-cockpit__aside > .ds-card,
+.perf-subject {
+  position: relative;
+  overflow: hidden;
+}
+.perf-hero::before,
+.perf-subject::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  z-index: 2;
+  background: linear-gradient(90deg, #34D399, #059669);
+}
+.perf-hero[data-tone="amber"]::before,
+.perf-subject[data-tone="amber"]::before { background: linear-gradient(90deg, #FBBF24, #D97706); }
+.perf-hero[data-tone="red"]::before,
+.perf-subject[data-tone="red"]::before { background: linear-gradient(90deg, #FB7185, #DC2626); }
+
+/* ── Hero rich: verdict | divisions | gauge ──────────────────── */
+
+.perf-hero--rich {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.2fr) minmax(220px, 1fr) auto;
+  align-items: center;
+  gap: clamp(20px, 3vw, 48px);
+  padding: 22px 28px;
+}
+
+.perf-hero__verdict { display: flex; flex-direction: column; gap: 3px; min-width: 0; position: relative; z-index: 1; }
+
+.perf-hero__numrow { display: flex; align-items: baseline; gap: 12px; margin-top: 4px; }
+.perf-hero__num {
+  font-size: clamp(2.8rem, 4.2vw, 4rem);
+  font-weight: var(--ds-weight-bold);
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  background-image: var(--pfc-grad-green);
+}
+.perf-hero__num[data-tone="amber"] { background-image: var(--pfc-grad-amber); }
+.perf-hero__num[data-tone="red"]   { background-image: var(--pfc-grad-red); }
+.perf-hero__num-unit { font-size: 0.4em; -webkit-text-fill-color: var(--ds-text-tertiary); font-weight: var(--ds-weight-semibold); }
+
+/* Divisi mini-bars (mirror kartu KPI Achievement Home). */
+.perf-hero__divisions {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  position: relative; z-index: 1;
+  padding-left: clamp(0px, 2vw, 28px);
+  border-left: 1px solid var(--pfc-card-border);
+}
+.perf-hero__divrow {
+  display: grid;
+  grid-template-columns: 52px 1fr 52px;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  border-radius: 8px;
+  padding: 2px 4px;
+  transition: background var(--ds-duration-fast) var(--ds-ease-standard);
+}
+@media (hover: hover) { .perf-hero__divrow:hover { background: var(--ds-surface-hover); } }
+.perf-hero__divcode { font-size: 11px; font-weight: var(--ds-weight-semibold); color: var(--ds-text-secondary); letter-spacing: -0.01em; }
+.perf-hero__divbar { width: 100%; }
+.perf-hero__divval { font-size: var(--ds-text-13); font-weight: var(--ds-weight-semibold); font-variant-numeric: tabular-nums; text-align: right; }
+.perf-hero__divval[data-tone="green"] { color: var(--tone-green); }
+.perf-hero__divval[data-tone="amber"] { color: var(--tone-amber); }
+.perf-hero__divval[data-tone="red"]   { color: var(--tone-red); }
+
+.perf-hero__gauge { position: relative; z-index: 1; justify-self: end; }
+
+@media (max-width: 1024px) { /* bp-allow: --bp-md */
+  .perf-hero--rich { grid-template-columns: 1fr 1fr; }
+  .perf-hero__gauge { grid-column: 1 / -1; justify-self: center; }
+}
+@media (max-width: 640px) { /* bp-allow: --bp-sm */
+  .perf-hero--rich { grid-template-columns: 1fr; }
+  .perf-hero__divisions { border-left: none; padding-left: 0; border-top: 1px solid var(--pfc-card-border); padding-top: 12px; }
+}
+
+/* ── Matriks → heatmap blok intensitas (mirror Program Summary Home) ── */
+
+.perf-matrix__cell[data-tone="green"] { background: color-mix(in srgb, var(--tone-green) calc(var(--i, 0.15) * 100%), var(--ds-surface-card)); color: var(--ds-text-primary); }
+.perf-matrix__cell[data-tone="amber"] { background: color-mix(in srgb, var(--tone-amber) calc(var(--i, 0.2) * 100%), var(--ds-surface-card)); color: var(--ds-text-primary); }
+.perf-matrix__cell[data-tone="red"]   { background: color-mix(in srgb, var(--tone-red) calc(var(--i, 0.2) * 100%), var(--ds-surface-card)); color: var(--ds-text-primary); }
+.perf-matrix__row:not(.perf-matrix__row--head) { border-bottom-color: transparent; }
+.perf-matrix__cell { border-left: 2px solid var(--ds-surface-card); }
+.perf-matrix__row { gap: 0; }
+
+/* Aside cards: top accent halus netral. */
+.perf-cockpit__aside > .ds-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--tone-green) 60%, transparent), transparent);
+}
+
+/* Subject card sebagai instrumen — meta kiri + gauge kanan (pola Home). */
+.perf-subject--gauge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+}
+.perf-subject--gauge .perf-subject__meta { flex: 1; min-width: 0; }
+.perf-subject--gauge .ds-gauge { flex-shrink: 0; }
+@media (max-width: 640px) { /* bp-allow: --bp-sm */
+  .perf-subject--gauge { flex-direction: column; align-items: flex-start; }
+  .perf-subject--gauge .ds-gauge { align-self: center; }
+}
+
+/* ═══ RONDE 5 — density & proporsi (feedback: "teks terlalu besar, banyak
+   area kosong, tidak proporsional"). Skala diturunkan ke proporsi Home:
+   angka besar ≤2.5rem, padding rapat, interior kartu terisi micro-viz. ═══ */
+
+/* Judul halaman & header lebih ramping. */
+.perf__title { font-size: 18px; }
+.perf__header { padding-bottom: 12px; margin-bottom: 12px; }
+.perf__section { margin-bottom: 12px; }
+
+/* Hero: proporsional, bukan dominan. */
+.perf-hero--rich {
+  grid-template-columns: minmax(230px, 1.05fr) minmax(230px, 1fr) auto;
+  gap: clamp(16px, 2.2vw, 36px);
+  padding: 14px 20px;
+}
+.perf-hero__name { font-size: 16px; }
+.perf-hero__eyebrow { font-size: 9.5px; }
+.perf-hero__numrow { margin-top: 2px; }
+.perf-hero__num { font-size: clamp(1.9rem, 2.3vw, 2.4rem); font-weight: var(--ds-weight-semibold); }
+.perf-hero__sub { font-size: 11.5px; }
+.perf-hero__divisions { gap: 7px; }
+
+/* Subject 3-zona: meta | meter perspektif | gauge. */
+.perf-subject--gauge {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.15fr) minmax(220px, 1fr) auto;
+  align-items: center;
+  gap: clamp(16px, 2.2vw, 36px);
+  padding: 14px 20px;
+}
+.perf-subject--gauge .perf-subject__meta { min-width: 0; }
+.perf-subject__name { font-size: 16px; }
+.perf-subject__perspectives { border-left: 1px solid var(--pfc-card-border); padding-left: clamp(12px, 2vw, 24px); }
+.perf-hero__divrow--static { cursor: default; padding: 1px 0; }
+@media (hover: hover) { .perf-hero__divrow--static:hover { background: transparent; } }
+
+@media (max-width: 1024px) { /* bp-allow: --bp-md */
+  .perf-subject--gauge { grid-template-columns: 1fr 1fr; }
+  .perf-subject--gauge .ds-gauge { grid-column: 1 / -1; justify-self: center; }
+}
+@media (max-width: 640px) { /* bp-allow: --bp-sm */
+  .perf-subject--gauge { grid-template-columns: 1fr; }
+  .perf-subject__perspectives { border-left: none; padding-left: 0; border-top: 1px solid var(--pfc-card-border); padding-top: 10px; }
+}
+
+/* Compare: skor & hero turun skala. */
+.perf-compare-card__score { font-size: 24px; }
+.perf-compare__hero-score-val { font-size: 26px; }
+.perf-compare__hero-name { font-size: 17px; }
+.perf-compare__hero { padding: 4px 2px 12px; }
+
+/* Key Insights: kolom tidak stretch ke tinggi kolom terpanjang (dulu kolom
+   "Needs Attention" 1 item = lautan beige kosong). */
+.perf-insight__cols { align-items: start; }
+.perf-insight__col { height: fit-content; }
+.perf-insight__head { margin-bottom: 8px; }
+.perf-insight__title { font-size: var(--ds-text-14); }
+
+/* Matriks & kartu kokpit lebih rapat. */
+.perf-matrix__cell { padding: 11px 12px; font-size: var(--ds-text-13); }
+.perf-matrix__division { padding: 11px 14px; }
+.perf-matrix__cell--total { font-size: var(--ds-text-14); }
+.perf-cockpit { gap: 10px; }
+.perf-cockpit__aside { gap: 10px; }
+.perf-exc { padding: 8px 10px; }
+.perf-card-head { margin-bottom: 8px; }
+
+/* Gauge label rapat. */
+.perf-subject--gauge .ds-gauge, .perf-hero__gauge .ds-gauge { margin: -4px 0; }
+
+/* ═══ RONDE 6 — perbaikan rusak/terpotong (laporan user 2026-06-10) ═══ */
+
+/* (1) Grid blowout kokpit: kolom fr punya lantai min-content dari matriks
+   → aside terdorong keluar viewport (Needs attention/Score trend terklip).
+   minmax(0,…) melepas lantai; matriks scroll di DALAM kartunya sendiri. */
+.perf-cockpit { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); }
+.perf-cockpit > section { min-width: 0; }
+.perf-cockpit__aside { min-width: 0; }
+.perf-cockpit__aside > * { min-width: 0; }
+.perf-matrix-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.perf-matrix { min-width: 640px; }
+
+/* Hero juga: tiga zona tidak boleh memaksa lebar melebihi kontainer. */
+.perf-hero--rich { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr) auto; }
+.perf-hero__verdict, .perf-hero__divisions { min-width: 0; }
+.perf-subject--gauge { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) auto; }
+
+/* (2) Angka di dalam gauge meluber keluar ring (default --ds-text-40 utk
+   gauge besar; di 118px "102,7%" lebih lebar dari diameter dalam). */
+.perf .ds-gauge__value { font-size: 21px; }
+.perf .ds-gauge__unit { font-size: 11px; }
+.perf .ds-gauge__label { font-size: 10px; }
+
+/* (3) Chip divisi di Needs-attention: muat kode panjang tanpa terpotong. */
+.perf-exc__divisi { min-width: 52px; width: auto; padding: 3px 8px; }
+.perf-exc { grid-template-columns: auto minmax(0, 1fr) auto; }
+
+/* ═══ RONDE 7 — transpose matriks + container query (rekomendasi A+C) ═══ */
+
+/* (A) Matriks transposed: perspektif = baris, divisi = kolom. Lebar natural
+   ±410px utk 3 divisi — muat di kolom kokpit walau panel konteks terbuka
+   (bentuk lama 7-kolom butuh ±860px → kolom Total/On-target terpotong). */
+.perf-matrix--transposed { min-width: 0; }
+.perf-matrix--transposed .perf-matrix__row {
+  grid-template-columns: minmax(104px, 1.1fr) repeat(var(--matrix-cols, 3), minmax(92px, 1fr));
+}
+
+.perf-matrix__rowlabel {
+  padding: 11px 14px;
+  font-size: var(--ds-text-13);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.perf-matrix__row--head .perf-matrix__rowlabel {
+  font-size: 10px;
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+a.perf-matrix__cell--divhead {
+  text-decoration: none;
+  color: var(--ds-text-primary);
+  font-size: var(--ds-text-13);
+  letter-spacing: 0;
+  text-transform: none;
+  transition: background var(--ds-duration-fast) var(--ds-ease-standard);
+}
+@media (hover: hover) {
+  a.perf-matrix__cell--divhead:hover {
+    background: var(--ds-surface-hover);
+    text-decoration: underline;
+  }
+}
+
+.perf-matrix__row--total { border-top: 1px solid var(--ds-border-default); }
+.perf-matrix__row--total .perf-matrix__rowlabel { font-weight: var(--ds-weight-semibold); color: var(--ds-text-primary); }
+
+/* (C) Container query — lebar yang menentukan layout adalah KONTEN
+   (sidebar/panel konteks buka-tutup), bukan viewport. @media buta terhadap
+   panel: jendela 2000px dgn panel terbuka = konten ±1430px tapi @media tetap
+   melihat 2000. Kokpit & hero melipat berdasar lebar kontainer halaman. */
+.perf__inner { container-type: inline-size; container-name: perfpage; }
+
+@container perfpage (max-width: 960px) {
+  .perf-cockpit { grid-template-columns: 1fr; }
+  .perf-hero--rich { grid-template-columns: 1fr 1fr; }
+  .perf-hero__gauge { grid-column: 1 / -1; justify-self: center; }
+  .perf-subject--gauge { grid-template-columns: 1fr 1fr; }
+  .perf-subject--gauge .ds-gauge { grid-column: 1 / -1; justify-self: center; }
+}

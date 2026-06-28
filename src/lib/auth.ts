@@ -14,6 +14,7 @@ export type AuthUser = {
   unitId: number | null
   unit: { id: number; code: string | null; name: string } | null
   directorateId: number | null
+  directorate: { code: string; name: string } | null
   managerUserId: number | null
   toursCompleted: unknown
   canAccessPerformance: boolean
@@ -55,6 +56,16 @@ export const getCurrentUser = cache(async (): Promise<AuthUser | null> => {
   })
   if (!user) return null
 
+  // Resolve directorate by id separately — the User→Directorate prisma relation
+  // returns null in this dataset (cross-schema mapping quirk), so we query it
+  // directly by directorateId. Same pattern as scorecard.ts / org-scope.ts.
+  const directorate = user.directorateId
+    ? await prisma.directorate.findUnique({
+        where: { id: user.directorateId },
+        select: { code: true, name: true },
+      })
+    : null
+
   const unit = user.unit
   return {
     id: user.id,
@@ -66,6 +77,7 @@ export const getCurrentUser = cache(async (): Promise<AuthUser | null> => {
     unitId: user.unitId,
     unit: unit ? { id: unit.id, code: unit.code, name: unit.name } : null,
     directorateId: user.directorateId,
+    directorate: directorate ? { code: directorate.code, name: directorate.name } : null,
     managerUserId: user.managerUserId,
     toursCompleted: user.toursCompleted ?? [],
     canAccessPerformance: await resolvePerformanceAccess(user.roleType, user.directorateId),

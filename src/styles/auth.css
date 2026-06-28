@@ -159,7 +159,10 @@
   --auth-toggle-hover-bg: color-mix(in srgb, var(--panel-border) 90%, var(--surface-quiet) 10%);
   --auth-toggle-color: var(--gray-ink);
   --auth-toggle-hover-color: var(--text);
-  --auth-submit-bg: var(--ptpn-green);
+  /* Premium parity (2026-06-26): desktop submit pakai gradient hijau halus
+   * (highlight di puncak → ptpn-green → sedikit gelap di dasar), selaras
+   * treatment mobile. State loading/success override bg sendiri → tetap utuh. */
+  --auth-submit-bg: linear-gradient(180deg, color-mix(in srgb, var(--ptpn-green) 86%, #5BE08A 14%) 0%, var(--ptpn-green) 60%, color-mix(in srgb, var(--ptpn-green) 92%, #000000 8%) 100%);
   /* Glow diredam (2026-06-02): dari halo hijau besar → shadow ber-tint hijau tipis */
   --auth-submit-shadow:
     0 6px 16px color-mix(in srgb, var(--ptpn-green) 18%, transparent),
@@ -636,7 +639,8 @@
   border: 1.5px solid var(--auth-input-border);
   background: var(--auth-input-bg);
   color: var(--auth-input-text);
-  font-size: 0.98rem;
+  /* 16px min — cegah auto-zoom iOS saat input fokus (sebelumnya 0.98rem) */
+  font-size: 1rem;
   transition:
     border-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
     box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1),
@@ -727,13 +731,17 @@
 .auth-input-toggle {
   position: absolute;
   top: 50%;
-  right: 14px;
+  right: 9px;
   transform: translateY(-50%);
-  width: 34px;
-  height: 34px;
+  /* 44x44 hit target (a11y) — chip visual tetap ~34px via padding + content-box,
+   * area transparan di sekeliling tetap dapat di-tap. */
+  width: 44px;
+  height: 44px;
+  padding: 5px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--auth-toggle-bg);
+  background-clip: content-box;
   color: var(--auth-toggle-color);
   display: inline-flex;
   align-items: center;
@@ -1128,13 +1136,8 @@
     display: inline-flex;
   }
 
-  .auth-input-toggle {
-    top: 31px;
-    transform: none;
-  }
-
   .auth-input-toggle:hover {
-    transform: scale(1.03);
+    transform: translateY(-50%) scale(1.03);
   }
 }
 
@@ -1166,3 +1169,300 @@
 .auth-panel__org strong { color: #E6F0EA; }
 /* peta lebih terbaca sebagai outline terang di panel gelap */
 .auth-panel__map { filter: brightness(1.7) saturate(0.7); }
+
+/* ════════════════════════════════════════════════════════════════════
+   MAKEOVER (2026-06-26) — "Modern premium" refine. Split-screen dipertahankan,
+   tapi dinaikkan kelasnya: headline sinematik (gradient clip), eyebrow jadi
+   glass chip dgn live dot, trust row di panel kiri, hierarki heading di form,
+   grid halus + caption keamanan. Hijau-sentris, selaras OPSI A.
+   ════════════════════════════════════════════════════════════════════ */
+@keyframes auth-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, #4ADE80 22%, transparent); }
+  50%      { box-shadow: 0 0 0 7px color-mix(in srgb, #4ADE80 4%, transparent); }
+}
+
+/* Faint blueprint grid — kedalaman di panel gelap, di-mask agar memudar di tepi */
+.auth-panel__grid {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 52px 52px;
+  -webkit-mask-image: radial-gradient(ellipse 78% 70% at 28% 26%, #000 0%, transparent 76%);
+  mask-image: radial-gradient(ellipse 78% 70% at 28% 26%, #000 0%, transparent 76%);
+}
+
+/* Beri ruang vertikal lebih aman setelah trust row ditambahkan */
+.auth-panel__content {
+  margin-top: clamp(28px, 9vh, 116px);
+  gap: 18px;
+}
+
+/* Headline sinematik — gradient clip putih→hijau muda (fallback ke solid) */
+@supports (-webkit-background-clip: text) or (background-clip: text) {
+  .auth-panel__headline {
+    background: linear-gradient(176deg, #FFFFFF 0%, #EAF6EF 42%, #B8E6CC 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+.auth-panel__headline {
+  font-weight: 800;
+  text-wrap: balance;
+}
+
+/* Eyebrow → glass chip dgn live dot */
+.auth-panel__eyebrow {
+  align-self: flex-start;
+  gap: 9px;
+  padding: 7px 14px 7px 11px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: rgba(223, 238, 230, 0.84);
+  opacity: 1;
+}
+
+.auth-panel__eyebrow-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #4ADE80;
+  animation: auth-pulse 2.6s ease-in-out infinite;
+}
+
+/* Trust row — kredibilitas, ikon hijau dalam chip lembut */
+.auth-panel__trust {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auth-panel__trust li {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  font-size: 0.96rem;
+  font-weight: 500;
+  color: rgba(230, 240, 234, 0.9);
+}
+
+.auth-trust-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #6EE7B7;
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+}
+
+/* Org footer — pill keamanan + label "Operated by" */
+.auth-panel__org { opacity: 1; }
+.auth-panel__org > div { opacity: 0.85; }
+.auth-panel__org-pill {
+  align-self: center;
+  gap: 7px;
+}
+
+/* ── Form side: hierarki heading premium ── */
+.auth-form-header__eyebrow {
+  color: var(--ptpn-green);
+  font-size: 0.76rem;
+  letter-spacing: 0.13em;
+}
+
+[data-theme="dark"] .auth-form-header__eyebrow {
+  color: color-mix(in srgb, var(--ptpn-green) 60%, #5BE08A 40%);
+}
+
+.auth-form-header__title {
+  margin: 0;
+  font-size: clamp(1.55rem, 3.4vmin, 1.95rem);
+  font-weight: 800;
+  letter-spacing: -0.032em;
+  line-height: 1.1;
+  color: var(--text-strong);
+}
+
+/* Caption keamanan di bawah form */
+.auth-secure {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  animation: auth-fade-in 300ms ease 320ms both;
+}
+
+.auth-secure svg {
+  color: var(--ptpn-green);
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+
+/* Sembunyikan trust row hanya kalau viewport sangat pendek (hindari clipping) */
+@media (max-height: 680px) {
+  .auth-panel__trust { display: none; }
+  .auth-panel__content { margin-top: clamp(24px, 6vh, 80px); }
+}
+
+/* Mobile (panel kiri disembunyikan): caption keamanan tetap rapi */
+@media (max-width: 1180px) {
+  .auth-secure {
+    padding-top: 4px;
+    color: var(--text-muted);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   MODERN MOTION (2026-06-26) — Magic UI-flavored. Particles (komponen canvas
+   terpisah) di panel kiri; border-beam + shimmer di sisi form. Semua efek di
+   sini diredam oleh blok prefers-reduced-motion di bawah.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Particles canvas — di belakang konten panel kiri (.auth-panel__inner = z1) */
+.auth-panel__particles {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Sudut beam dianimasikan via @property (fallback: ring statis bila tak didukung) */
+@property --auth-beam-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes auth-beam-spin { to { --auth-beam-angle: 360deg; } }
+@keyframes auth-btn-shimmer {
+  0%        { transform: translateX(-130%) skewX(-12deg); }
+  55%, 100% { transform: translateX(130%) skewX(-12deg); }
+}
+
+/* ── Desktop (>1180): kartu pada form + border beam (sebelumnya polos di atas
+   form-side putih; styling kartu hanya ada di breakpoint mobile) ── */
+@media (min-width: 1181px) {
+  .auth-form-container {
+    position: relative;
+    background:
+      radial-gradient(120% 60% at 50% -10%, color-mix(in srgb, var(--ptpn-green) 8%, transparent), transparent 60%),
+      var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 24px;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.55) inset,
+      0 2px 8px color-mix(in srgb, var(--scrim) 6%, transparent),
+      0 24px 56px color-mix(in srgb, var(--scrim) 12%, transparent);
+    overflow: hidden;
+  }
+  [data-theme="dark"] .auth-form-container {
+    box-shadow:
+      0 2px 10px rgba(0, 0, 0, 0.45),
+      0 30px 70px rgba(0, 0, 0, 0.55);
+  }
+  /* Border beam — cincin conic berputar di tepi kartu (mask = hanya tepi) */
+  .auth-form-container::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1.5px;
+    background: conic-gradient(
+      from var(--auth-beam-angle),
+      transparent 0 62%,
+      color-mix(in srgb, var(--ptpn-green) 60%, transparent) 78%,
+      #5BE08A 88%,
+      color-mix(in srgb, var(--ptpn-green) 60%, transparent) 96%,
+      transparent 100%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask-composite: exclude;
+    animation: auth-beam-spin 6s linear infinite;
+    pointer-events: none;
+  }
+}
+
+/* ── Shimmer menyapu tombol submit (kedua breakpoint) ── */
+.auth-form__submit-text,
+.auth-form__submit-loader,
+.auth-form__submit-success { z-index: 2; }
+
+.auth-form__submit::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 38%,
+    color-mix(in srgb, var(--text-inverse) 40%, transparent) 50%,
+    transparent 62%
+  );
+  transform: translateX(-130%) skewX(-12deg);
+  animation: auth-btn-shimmer 3.6s ease-in-out infinite;
+}
+.auth-form__submit:disabled::after,
+.auth-form__submit--success::after { animation: none; opacity: 0; }
+
+/* ════════════════════════════════════════════════════════════════════
+   REDUCED MOTION (2026-06-26) — wajib (a11y). Sebelumnya tidak ada blok ini
+   sama sekali, padahal halaman punya banyak animasi infinite (float panel,
+   pulse dot, shake error) + entrance/stagger. Saat user minta reduced motion:
+   redam semua dekorasi & transform hover, pertahankan HANYA spinner loading
+   (feedback fungsional, bukan dekorasi).
+   ════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .auth-shell,
+  .auth-shell--exiting,
+  .auth-form-header,
+  .auth-form > *,
+  .auth-form__meta,
+  .auth-mobile-brand,
+  .auth-secure,
+  .auth-notice,
+  .auth-notice--error,
+  .auth-panel::before,
+  .auth-panel::after,
+  .auth-panel__eyebrow-dot,
+  .auth-form-container::after,
+  .auth-form__submit::after {
+    animation: none !important;
+  }
+
+  /* Beam & shimmer: tanpa gerak, jangan tampilkan artefak statis */
+  .auth-form-container::after { opacity: 0.5; }
+  .auth-form__submit::after { opacity: 0; }
+
+  /* Netralkan micro-translate pada interaksi (fokus/hover/active) */
+  .auth-float-input:focus,
+  .auth-form__submit:hover:not(:disabled),
+  .auth-form__submit:active:not(:disabled),
+  .auth-panel__highlight:hover,
+  .auth-form__meta-pill:hover {
+    transform: none;
+  }
+}

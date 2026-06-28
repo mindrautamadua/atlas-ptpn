@@ -1,10 +1,12 @@
 import { requireUser } from '@/lib/auth'
-import ComingSoon from '@/components/ComingSoon'
+import { buildSharedProps } from '@/lib/shared-props'
+import ProfileClient from './ProfileClient'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Profile · ATLAS' }
 
 export default async function ProfilePage() {
-  await requireUser()
-  return <ComingSoon title="Profile" phpRoute="/profile" />
+  const user = await requireUser()
+  const props = buildSharedProps(user)
+  return <ProfileClient props={props} />
 }

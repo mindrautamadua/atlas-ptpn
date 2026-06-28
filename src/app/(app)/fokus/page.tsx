@@ -1,10 +1,12 @@
 import { requireUser } from '@/lib/auth'
-import ComingSoon from '@/components/ComingSoon'
+import { buildSharedProps } from '@/lib/shared-props'
+import FokusClient from './FokusClient'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Focus · ATLAS' }
 
 export default async function FokusPage() {
-  await requireUser()
-  return <ComingSoon title="Focus" phpRoute="/fokus" />
+  const user = await requireUser()
+  const props = buildSharedProps(user)
+  return <FokusClient props={props} />
 }

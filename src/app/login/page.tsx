@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { login, type LoginState } from './actions'
+import { Particles } from '@/components/Particles'
 import '@/styles/auth.css'
 
 function CheckIcon() {
@@ -60,6 +61,8 @@ export default function LoginPage() {
       {/* Left panel — brand */}
       <div className="auth-panel">
         <img className="auth-panel__map" src="/assets/indonesia-map.png" alt="" aria-hidden="true" />
+        <div className="auth-panel__grid" aria-hidden="true" />
+        <Particles className="auth-panel__particles" quantity={80} size={0.5} staticity={45} ease={60} color="#4ADE80" />
         <div className="auth-panel__inner">
           <div className="auth-panel__brand">
             <div className="auth-panel__mark">
@@ -69,17 +72,58 @@ export default function LoginPage() {
                 <line x1="6.3" y1="11.5" x2="13.7" y2="11.5" />
               </svg>
             </div>
-            <strong className="auth-panel__wordmark">ATLAS</strong>
+            <div className="auth-panel__brand-copy">
+              <strong className="auth-panel__wordmark">ATLAS</strong>
+              <span className="auth-panel__brand-sub">PTPN III · Execution Platform</span>
+            </div>
           </div>
           <div className="auth-panel__content">
-            <p className="auth-panel__eyebrow">Advanced Transformation &amp; Leadership Alignment System</p>
-            <h2 className="auth-panel__headline">Programs, execution, and alignment — one platform, one view.</h2>
+            <span className="auth-panel__eyebrow">
+              <span className="auth-panel__eyebrow-dot" />
+              Advanced Transformation &amp; Leadership Alignment System
+            </span>
+            <h2 className="auth-panel__headline">Programs, execution, and alignment. One platform, one view.</h2>
             <p className="auth-panel__desc">
               ATLAS brings priority programs, cross-functional collaboration, and strategic alignment into a single platform that&apos;s easy to monitor and comfortable to use every day.
             </p>
+            <ul className="auth-panel__trust">
+              <li>
+                <span className="auth-trust-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M3 17l5-5 4 3 6-7" /><path d="M21 7v5" /><path d="M21 7h-5" />
+                  </svg>
+                </span>
+                Real-time program monitoring
+              </li>
+              <li>
+                <span className="auth-trust-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="9" cy="8" r="3" /><path d="M2 20a7 7 0 0 1 14 0" /><path d="M17 6a3 3 0 0 1 0 6" /><path d="M22 20a6 6 0 0 0-4-5.6" />
+                  </svg>
+                </span>
+                Cross-functional alignment
+              </li>
+              <li>
+                <span className="auth-trust-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M12 2l2.4 6.9H21l-5.4 4 2 6.9L12 16.6 6.4 19.8l2-6.9L3 8.9h6.6z" />
+                  </svg>
+                </span>
+                Executive-ready insights
+              </li>
+            </ul>
           </div>
           <div className="auth-panel__org">
-            <div><strong>PTPN III (Persero)</strong></div>
+            <div>
+              <span>Operated by</span>
+              <strong>PTPN III (Persero)</strong>
+            </div>
+            <span className="auth-panel__org-pill">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />
+              </svg>
+              Enterprise-grade security
+            </span>
           </div>
         </div>
       </div>
@@ -103,24 +147,25 @@ export default function LoginPage() {
           </div>
 
           <div className="auth-form-header">
-            <span className="auth-form-header__eyebrow">Sign in to ATLAS Workspace</span>
-            <p>Sign in with your NIK or User ID to open today&apos;s workspace.</p>
+            <span className="auth-form-header__eyebrow">Welcome back</span>
+            <h1 className="auth-form-header__title">Sign in to your workspace</h1>
+            <p>Use your NIK or User ID to open today&apos;s workspace.</p>
           </div>
 
           {authError && (
-            <div className="auth-notice auth-notice--error" key={authError}>
+            <div className="auth-notice auth-notice--error" id="auth-error" role="alert" key={authError}>
               {authError}
             </div>
           )}
 
           <form className="auth-form" action={formAction}>
             <div className="auth-float-group">
-              <input id="identifier" name="identifier" className="auth-float-input" autoComplete="username" placeholder=" " type="text" />
+              <input id="identifier" name="identifier" className="auth-float-input" autoComplete="username" placeholder=" " type="text" required aria-invalid={authError ? true : undefined} aria-describedby={authError ? 'auth-error' : undefined} />
               <label htmlFor="identifier" className="auth-float-label">NIK or User ID</label>
             </div>
 
             <div className="auth-float-group">
-              <input id="password" name="password" className="auth-float-input" autoComplete="current-password" placeholder=" " type={showPassword ? 'text' : 'password'} />
+              <input id="password" name="password" className="auth-float-input" autoComplete="current-password" placeholder=" " type={showPassword ? 'text' : 'password'} required aria-invalid={authError ? true : undefined} aria-describedby={authError ? 'auth-error' : undefined} />
               <label htmlFor="password" className="auth-float-label">Password</label>
               <button className="auth-input-toggle" onClick={() => setShowPassword((v) => !v)} type="button" aria-label={showPassword ? 'Hide password' : 'Show password'}>
                 {showPassword ? <EyeOffIcon /> : <EyeIcon />}
@@ -129,6 +174,13 @@ export default function LoginPage() {
 
             <SubmitButton />
           </form>
+
+          <p className="auth-secure">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />
+            </svg>
+            Encrypted connection · session protected
+          </p>
 
           <p className="auth-legal">© 2026 PTPN III (Persero)</p>
         </div>

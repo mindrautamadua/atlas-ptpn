@@ -1,0 +1,113 @@
+/* FokusView (InboxView) — ported from atlas-php Pages/FokusView.css.
+ * Page chrome + a craft polish pass scoped to .fokus-v2. Base primitives
+ * (.panel, .hd-act-row, .section-badge) live in legacy-styles/home.css. */
+
+.fokus-v2 {
+  background: var(--ds-surface-page);
+  min-height: 100%;
+  width: 100%;
+}
+
+.fokus-v2__inner {
+  padding: var(--space-page-top, 28px) var(--space-page-x, 0) var(--space-page-bot, 40px);
+}
+
+/* ─── fokus-page wrapper ─────────────────────────────────── */
+.fokus-v2 .fokus-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 0;
+  background: transparent;
+}
+
+/* ─── Empty state (zero box) ─────────────────────────────── */
+.fokus-v2 .fokus-zero {
+  padding: 48px 24px;
+  text-align: center;
+  background: var(--ds-surface-card);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-lg);
+}
+.fokus-v2 .fokus-zero__check {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--ds-green-50, rgba(22,163,74,.12));
+  color: var(--tone-green, #16a34a);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: var(--ds-weight-semibold);
+  margin-bottom: 12px;
+}
+.fokus-v2 .fokus-zero__title {
+  margin: 0 0 4px;
+  font-size: var(--ds-text-16);
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-primary);
+}
+.fokus-v2 .fokus-zero__sub {
+  margin: 0;
+  font-size: var(--ds-text-13);
+  color: var(--ds-text-secondary);
+}
+.fokus-v2 .fokus-zero__link {
+  background: transparent;
+  border: 0;
+  font: inherit;
+  color: var(--ds-brand-700, #15803d);
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ═══ Premium craft pass — scoped to .fokus-v2 ═══════════════
+ * Layered shadow + urgency-tied accent rail on hover, calm at rest. */
+.fokus-v2 .panel {
+  border-radius: 16px;
+  box-shadow: var(--panel-shadow);
+}
+.fokus-v2 .panel__header { padding: 14px 18px; }
+.fokus-v2 .panel__title {
+  font-size: 14px;
+  letter-spacing: -0.015em;
+}
+.fokus-v2 .hd-act-row {
+  grid-template-columns: max-content 1fr auto auto;
+  gap: 14px;
+  padding: 15px 20px;
+  transition: background .14s var(--ds-ease-standard, ease);
+}
+.fokus-v2 .hd-act-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--row-accent-color, var(--text-muted));
+  opacity: 0;
+  transition: opacity .14s var(--ds-ease-standard, ease);
+}
+.fokus-v2 .hd-act-row:hover { background: var(--surface-overlay-soft); }
+.fokus-v2 .hd-act-row:hover::before { opacity: 1; }
+.fokus-v2 .hd-act-row__type {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--row-accent-color, var(--text-muted)) 10%, transparent);
+}
+.fokus-v2 .hd-act-row__body strong { font-size: 13.5px; }
+
+/* ─── Phone (≤640) ─────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .fokus-v2 .hd-act-row {
+    grid-template-columns: max-content 1fr;
+    gap: 8px 12px;
+    padding: 14px 16px;
+  }
+  .fokus-v2 .hd-act-row__body { min-width: 0; }
+}
